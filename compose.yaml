@@ -7,3 +7,9 @@ services:
         environment:
             APP_ENV: prod
             APP_DEBUG: '0'
+        volumes:
+            - .:/app
+            - vendor:/app/vendor
+
+volumes:
+    vendor:

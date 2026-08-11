@@ -26,10 +26,25 @@ final class HelloController
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1">
                     <title>{$title}</title>
+                    <style>
+                        form {
+                            display: flex;
+                            flex-direction: column;
+                            align-items: flex-start;
+                            gap: 0.5rem;
+                        }
+                    </style>
                 </head>
                 <body>
-                    <h1>Hello World!</h1>
-                    <p>{$title}</p>
+                    <main>
+                        <h1>Hello World!</h1>
+                        <p>{$title}</p>
+                        <form action="/submit" method="post">
+                            <label for="content">内容</label>
+                            <textarea id="content" name="content" rows="5" cols="70"></textarea>
+                            <button type="submit" name="post" class="btn">投稿／リロード</button>
+                        </form>
+                    </main>
                 </body>
             </html>
             HTML);
