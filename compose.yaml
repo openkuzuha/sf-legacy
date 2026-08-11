@@ -2,6 +2,7 @@ services:
     app:
         build:
             context: .
+            target: development
         ports:
             - '8000:8000'
         environment:

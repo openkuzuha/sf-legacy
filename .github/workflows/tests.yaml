@@ -1,0 +1,36 @@
+name: Tests
+
+on:
+    push:
+    pull_request:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: tests-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    quality:
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6
+
+            - name: Build development image
+              run: docker compose build app
+
+            - name: Validate Composer files
+              run: docker compose run --rm app composer validate --no-check-publish
+
+            - name: Run tests
+              run: docker compose run --rm -e APP_ENV=test -e APP_DEBUG=1 app vendor/bin/pest --colors=always
+
+            - name: Run static analysis
+              run: docker compose run --rm app vendor/bin/phpstan analyse --no-progress
+
+            - name: Check coding standards
+              run: docker compose run --rm app vendor/bin/phpcs
