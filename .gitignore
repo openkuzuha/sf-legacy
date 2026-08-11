@@ -4,3 +4,6 @@
 /var/
 /vendor/
 /config/reference.php
+/node_modules/
+/public/build/
+/.playwright-cli/

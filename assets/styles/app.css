@@ -1,0 +1,21 @@
+@layer theme, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@source "../../templates";
+
+@theme {
+    --color-brand: #004040;
+}
+
+body {
+    background: var(--color-brand);
+    color: #fff;
+}
+
+a:link { color: #efe; transition:0.1s; }
+a:visited { color: #ddd; }
+a:active { color: #f00; }
+a:hover { color: #10e0e0; }
+a.help { text-decoration-line: underline; }

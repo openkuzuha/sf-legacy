@@ -4,3 +4,6 @@
 phpunit.xml
 var
 vendor
+node_modules
+public/build
+.playwright-cli

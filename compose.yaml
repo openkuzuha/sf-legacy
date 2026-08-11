@@ -11,5 +11,16 @@ services:
             - .:/app
             - vendor:/app/vendor
 
+    vite:
+        build:
+            context: .
+            dockerfile: Dockerfile.vite
+        ports:
+            - '5173:5173'
+        volumes:
+            - .:/app
+            - node_modules:/app/node_modules
+
 volumes:
+    node_modules:
     vendor:
