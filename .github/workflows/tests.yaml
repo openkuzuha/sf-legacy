@@ -23,14 +23,5 @@ jobs:
             - name: Build development image
               run: docker compose build app
 
-            - name: Validate Composer files
-              run: docker compose run --rm app composer validate --no-check-publish
-
-            - name: Run tests
-              run: docker compose run --rm -e APP_ENV=test -e APP_DEBUG=1 app vendor/bin/pest --colors=always
-
-            - name: Run static analysis
-              run: docker compose run --rm app vendor/bin/phpstan analyse --no-progress
-
-            - name: Check coding standards
-              run: docker compose run --rm app vendor/bin/phpcs
+            - name: Run quality checks
+              run: docker compose run --rm -e APP_ENV=test -e APP_DEBUG=1 app composer check

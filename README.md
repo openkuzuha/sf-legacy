@@ -18,18 +18,17 @@ Twig、CSS、JavaScriptの変更はViteによってブラウザへ自動反映�
 docker compose run --rm vite npm run build
 ```
 
-テストと静的解析もDocker Compose内で実行できます。
+テスト、静的解析、コーディング規約のチェックをDocker Compose内で一括実行できます。
 
 ```bash
-docker compose run --rm -e APP_ENV=test -e APP_DEBUG=1 app vendor/bin/pest
-docker compose run --rm app vendor/bin/phpstan analyse --no-progress
-docker compose run --rm app vendor/bin/phpcs
+docker compose run --rm -e APP_ENV=test -e APP_DEBUG=1 app composer check
 ```
 
-PSR-12違反を自動修正する場合は、次を実行します。
+PHPとTwigのコーディング規約違反を自動修正する場合は、次を実行します。
 
 ```bash
 docker compose run --rm app vendor/bin/phpcbf
+docker compose run --rm app vendor/bin/twig-cs-fixer fix templates
 ```
 
 ## Productionへデプロイ
