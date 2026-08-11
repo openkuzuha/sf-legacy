@@ -5,8 +5,8 @@ services:
         ports:
             - '8000:8000'
         environment:
-            APP_ENV: prod
-            APP_DEBUG: '0'
+            APP_ENV: dev
+            APP_DEBUG: '1'
         volumes:
             - .:/app
             - vendor:/app/vendor

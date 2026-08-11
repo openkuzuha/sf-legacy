@@ -5,48 +5,22 @@ namespace App\Controller;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Twig\Environment;
 
 final class HelloController
 {
     public function __construct(
         #[Autowire(param: 'app.title')]
         private readonly string $appTitle,
+        private readonly Environment $twig,
     ) {
     }
 
     #[Route('/', name: 'app_hello')]
     public function __invoke(): Response
     {
-        $title = htmlspecialchars($this->appTitle, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-
-        return new Response(<<<HTML
-            <!DOCTYPE html>
-            <html lang="ja">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1">
-                    <title>{$title}</title>
-                    <style>
-                        form {
-                            display: flex;
-                            flex-direction: column;
-                            align-items: flex-start;
-                            gap: 0.5rem;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <main>
-                        <h1>Hello World!</h1>
-                        <p>{$title}</p>
-                        <form action="/submit" method="post">
-                            <label for="content">内容</label>
-                            <textarea id="content" name="content" rows="5" cols="70"></textarea>
-                            <button type="submit" name="post" class="btn">投稿／リロード</button>
-                        </form>
-                    </main>
-                </body>
-            </html>
-            HTML);
+        return new Response($this->twig->render('hello/index.html.twig', [
+            'app_title' => $this->appTitle,
+        ]));
     }
 }

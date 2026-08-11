@@ -12,9 +12,8 @@ final class HelloControllerTest extends WebTestCase
         $client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('h1', 'Hello World!');
-        self::assertSelectorTextContains('title', 'sf-legacy');
-        self::assertSelectorTextContains('p', 'sf-legacy');
+        self::assertSelectorTextContains('title', 'Open Kuzuha');
+        self::assertSelectorTextContains('h1', 'Open Kuzuha');
         self::assertSelectorCount(1, 'form[action="/submit"][method="post"]');
         self::assertSelectorCount(1, 'textarea[name="content"]');
     }

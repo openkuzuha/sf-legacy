@@ -1,5 +1,5 @@
 parameters:
-    app.title: 'sf-legacy'
+    app.title: '%env(APP_TITLE)%'
 
 services:
     _defaults:
