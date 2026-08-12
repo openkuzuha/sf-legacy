@@ -12,7 +12,7 @@ namespace App\Post;
  *     user_agent: ?string
  * }
  * @phpstan-type PostRecord array{
- *     posted_at: int,
+ *     posted_at: string,
  *     post_id: int,
  *     thread_id: int,
  *     location: string,
@@ -22,6 +22,7 @@ namespace App\Post;
  *     email: string,
  *     title: string,
  *     message: string,
+ *     auto_link: bool,
  *     reply_to: ?int
  * }
  */

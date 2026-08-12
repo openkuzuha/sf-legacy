@@ -9,8 +9,11 @@ use DateTimeZone;
 /** @phpstan-import-type PostRecord from PostTypes */
 final class LegacyHtmlReader
 {
-    public function __construct(private readonly DateTimeZone $timezone = new DateTimeZone('Asia/Tokyo'))
+    private readonly DateTimeZone $timezone;
+
+    public function __construct(string $appTimezone = 'Asia/Tokyo')
     {
+        $this->timezone = new DateTimeZone($appTimezone);
     }
 
     /** @return list<PostRecord> */
@@ -61,6 +64,7 @@ final class LegacyHtmlReader
                 'email' => $email,
                 'title' => $title,
                 'message' => $message,
+                'auto_link' => true,
                 'reply_to' => $replyTo,
             ];
         }
@@ -68,7 +72,7 @@ final class LegacyHtmlReader
         return $posts;
     }
 
-    private function parseDate(string $body): ?int
+    private function parseDate(string $body): ?string
     {
         if (
             !preg_match(
@@ -85,7 +89,9 @@ final class LegacyHtmlReader
             $this->timezone,
         );
 
-        return $date === false ? null : $date->getTimestamp();
+        return $date === false
+            ? null
+            : $date->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z');
     }
 
     /** @return array{string, string} */

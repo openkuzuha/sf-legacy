@@ -22,6 +22,8 @@ test('旧掲示板の公開HTMLから投稿と返信関係を読み取る', func
         ->and($posts[0]['post_id'])->toBe(100)
         ->and($posts[0]['thread_id'])->toBe(100)
         ->and($posts[0]['location'])->toBe('archive')
+        ->and($posts[0]['posted_at'])->toBe('2026-08-12T02:24:41Z')
+        ->and($posts[0]['auto_link'])->toBeTrue()
         ->and($posts[0]['message'])->toBe('本文 & 続き')
         ->and($posts[1]['reply_to'])->toBe(100)
         ->and($posts[1]['thread_id'])->toBe(100)

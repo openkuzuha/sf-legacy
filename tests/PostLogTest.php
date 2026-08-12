@@ -3,7 +3,7 @@
 use App\Post\JsonlPostRepository;
 use App\Post\PostRecordCodec;
 
-test('投稿を旧ログ互換のフィールドを持つJSONLとして追記する', function () {
+test('投稿日時をUTCのRFC 3339形式でJSONLへ追記する', function () {
     $filename = sys_get_temp_dir() . '/sf-legacy-post-log-' . bin2hex(random_bytes(8)) . '.jsonl';
     $log = new JsonlPostRepository($filename, new PostRecordCodec());
 
@@ -39,8 +39,20 @@ test('投稿を旧ログ互換のフィールドを持つJSONLとして追記す
             ->and($record['post_id'])->toBe(1)
             ->and($record['thread_id'])->toBe(1)
             ->and($record['location'])->toBe('main')
+            ->and($record['posted_at'])->toMatch('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/')
             ->and($record['message'])->toBe("本文,です\n二行目")
+            ->and($record['auto_link'])->toBeTrue()
             ->and($record['reply_to'])->toBeNull();
+
+        $legacyRecord = $record;
+        $legacyRecord['posted_at'] = 1_700_000_000;
+        expect((new PostRecordCodec())->decode(json_encode($legacyRecord, JSON_THROW_ON_ERROR)))->toBeNull();
+
+        unset($record['auto_link']);
+        $decoded = (new PostRecordCodec())->decode(json_encode($record, JSON_THROW_ON_ERROR));
+        expect($decoded)->not->toBeNull();
+        assert(is_array($decoded));
+        expect($decoded['auto_link'])->toBeTrue();
 
         $records = $log->all();
         expect($records)
@@ -53,7 +65,7 @@ test('投稿を旧ログ互換のフィールドを持つJSONLとして追記す
 
         $imported['post_id'] = 10;
         $imported['thread_id'] = 10;
-        $imported['posted_at'] = 1_700_000_000;
+        $imported['posted_at'] = '2023-11-14T22:13:20Z';
         expect($log->import($imported))->toBeTrue()
             ->and($log->all()[0]['post_id'])->toBe(10)
             ->and($log->append([

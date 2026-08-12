@@ -1,10 +1,13 @@
 parameters:
     app.title: '%env(APP_TITLE)%'
+    app.timezone: '%env(APP_TIMEZONE)%'
 
 services:
     _defaults:
         autowire: true
         autoconfigure: true
+        bind:
+            string $appTimezone: '%app.timezone%'
 
     App\:
         resource: '../src/'

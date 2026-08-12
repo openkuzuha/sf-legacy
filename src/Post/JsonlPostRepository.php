@@ -2,6 +2,8 @@
 
 namespace App\Post;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use RuntimeException;
 
 /**
@@ -154,7 +156,7 @@ final class JsonlPostRepository implements PostRepository
     private function record(int $postId, array $post): array
     {
         return [
-            'posted_at' => time(),
+            'posted_at' => (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s\Z'),
             'post_id' => $postId,
             'thread_id' => $postId,
             'location' => $this->location,
@@ -164,6 +166,7 @@ final class JsonlPostRepository implements PostRepository
             'email' => $post['email'],
             'title' => $post['title'],
             'message' => $post['message'],
+            'auto_link' => true,
             'reply_to' => null,
         ];
     }

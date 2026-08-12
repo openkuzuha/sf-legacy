@@ -15,12 +15,18 @@ docker compose up --build
 `redis://localhost:6379` で接続できます。データはDockerの
 `valkey_data` ボリュームへAOF形式で永続化され、メモリ上限到達時には
 データを削除せず書き込みエラーにする `noeviction` を使用します。
-Compose内のアプリは `POST_STORAGE=valkey` でValkeyを使用します。
+保存先はDocker内でも `.env` の `POST_STORAGE` を使用します。既定の
+`POST_STORAGE=jsonl` では `/app/var/data/posts.jsonl`（ホスト側の
+`var/data/posts.jsonl`）へ保存されます。Valkeyを使用する場合だけ
+`POST_STORAGE=valkey` に変更してください。
 
 保存処理は共通の `PostRepository` を介しており、通常のローカル実行では
 `POST_STORAGE=jsonl` による単純なUTF-8 JSON Linesファイルも使用できます。
 Valkeyにも同じJSONテキストを格納するため、データの取り出しや移行時に
 Valkey固有形式を解釈する必要はありません。
+投稿日時はUTCのRFC 3339形式（例: `2026-08-11T23:10:00Z`）で保存し、
+取込時の解釈と画面表示には `APP_TIMEZONE`（既定値: `Asia/Tokyo`）を使用します。
+投稿ごとに自動リンクの有効・無効を `auto_link` で保持し、取込時は省略すると有効になります。
 
 Valkeyだけを起動して疎通を確認する場合は次を実行します。
 

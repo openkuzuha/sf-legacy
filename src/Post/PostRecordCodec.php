@@ -2,6 +2,8 @@
 
 namespace App\Post;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use JsonException;
 
 /** @phpstan-import-type PostRecord from PostTypes */
@@ -22,6 +24,10 @@ final class PostRecordCodec
             return null;
         }
 
+        if (is_array($record) && !array_key_exists('auto_link', $record)) {
+            $record['auto_link'] = true;
+        }
+
         if (!$this->isPostRecord($record)) {
             return null;
         }
@@ -34,7 +40,8 @@ final class PostRecordCodec
     {
         return is_array($record)
             && isset($record['posted_at'], $record['post_id'], $record['thread_id'], $record['location'])
-            && is_int($record['posted_at'])
+            && is_string($record['posted_at'])
+            && $this->isUtcDateTime($record['posted_at'])
             && is_int($record['post_id'])
             && is_int($record['thread_id'])
             && is_string($record['location'])
@@ -47,7 +54,20 @@ final class PostRecordCodec
             && is_string($record['email'])
             && is_string($record['title'])
             && is_string($record['message'])
+            && isset($record['auto_link'])
+            && is_bool($record['auto_link'])
             && array_key_exists('reply_to', $record)
             && (is_int($record['reply_to']) || $record['reply_to'] === null);
+    }
+
+    private function isUtcDateTime(string $value): bool
+    {
+        $date = DateTimeImmutable::createFromFormat(
+            '!Y-m-d\TH:i:s\Z',
+            $value,
+            new DateTimeZone('UTC'),
+        );
+
+        return $date !== false && $date->format('Y-m-d\TH:i:s\Z') === $value;
     }
 }

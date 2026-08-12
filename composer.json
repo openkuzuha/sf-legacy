@@ -4,6 +4,7 @@
     "license": "proprietary",
     "require": {
         "php": ">=8.2",
+        "nesbot/carbon": "^3.0",
         "pentatrion/vite-bundle": "^8.2",
         "predis/predis": "^2.3",
         "symfony/console": "7.4.*",
