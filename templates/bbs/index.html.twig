@@ -51,7 +51,7 @@
                         </span>
                     </span>
                     <blockquote>
-                        <pre>{{ post.message }}</pre>
+                        <pre>{% if post.auto_link %}{{ post.message|auto_link }}{% else %}{{ post.message }}{% endif %}</pre>
                     </blockquote>
                 </div>
                 {% if not loop.last %}
