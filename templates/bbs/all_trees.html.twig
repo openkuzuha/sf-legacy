@@ -1,0 +1,22 @@
+{% extends 'base.html.twig' %}
+
+{% import 'bbs/_tree.html.twig' as tree %}
+
+{% block content %}
+            {{ include('bbs/_post_form.html.twig', {reply: null, reply_message: '', return_to: path('app_tree')}) }}
+            {% if trees %}
+                <hr>
+            {% endif %}
+            {% for item in trees %}
+                <section class="tree-thread">
+                    <p class="tree-updated">
+                        <a href="{{ path('app_thread', {threadId: item.thread_id}) }}" aria-label="スレッド表示" title="スレッド表示">◆</a>
+                        更新日：<time datetime="{{ item.updated_at }}">{{ item.updated_at|bbs_datetime }}</time>
+                    </p>
+                    {{ tree.branches(item.children, 'root', path('app_tree')) }}
+                </section>
+                <hr>
+            {% else %}
+                <p>記事はありません。</p>
+            {% endfor %}
+{% endblock %}

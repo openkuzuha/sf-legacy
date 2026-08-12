@@ -115,7 +115,6 @@ a.help { text-decoration-line: underline; }
     background: #009090;
 }
 .tree-branches:not(.tree-root) > li:last-child::after { bottom: auto; height: 0.65em; }
-.tree-post::before { content: "■"; }
 .tree-post pre {
     display: inline;
     font-family: inherit;

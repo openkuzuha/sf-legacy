@@ -13,6 +13,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Twig\Environment;
 
+/** @phpstan-import-type PostRecord from \App\Post\PostTypes */
 final class BbsController
 {
     private const int DEFAULT_PAGE_SIZE = 40;
@@ -148,11 +149,16 @@ final class BbsController
         if ($reply === null) {
             throw new NotFoundHttpException('返信先が見つかりません。');
         }
+        $returnTo = $request->query->getString('return_to');
+        if ($returnTo !== '/tree' && $returnTo !== sprintf('/tree/%d', $reply['thread_id'])) {
+            $returnTo = null;
+        }
 
         return new Response($this->twig->render('bbs/reply.html.twig', [
             'app_title' => $this->appTitle,
             'reply' => $reply,
             'reply_message' => $this->quotedReply($reply['message']),
+            'return_to' => $returnTo,
             'display_count' => max(1, min(
                 self::MAX_PAGE_SIZE,
                 $request->cookies->getInt('bbs_display_count', self::DEFAULT_PAGE_SIZE),
@@ -224,10 +230,47 @@ final class BbsController
     }
 
     #[Route('/tree', name: 'app_tree', methods: ['GET'])]
-    public function allTrees(): Response
+    public function allTrees(Request $request): Response
     {
-        return new Response($this->twig->render('bbs/tree_wip.html.twig', [
+        $threads = [];
+        foreach ($this->posts->all() as $post) {
+            $threads[$post['thread_id']][] = $post;
+        }
+
+        $trees = array_map(
+            fn (array $thread): array => $this->buildTree($thread),
+            array_values($threads),
+        );
+        usort(
+            $trees,
+            static fn (array $left, array $right): int => strcmp($right['updated_at'], $left['updated_at']),
+        );
+
+        try {
+            $visitorCount = $this->visitorCounter->count($request->getClientIp() ?? 'unknown');
+        } catch (\RuntimeException) {
+            $visitorCount = '参加者ファイル出力エラー';
+        }
+
+        try {
+            $pageViewCount = $this->pageViewCounter->increment();
+        } catch (\RuntimeException) {
+            $pageViewCount = 'カウンターエラー';
+        }
+
+        return new Response($this->twig->render('bbs/all_trees.html.twig', [
             'app_title' => $this->appTitle,
+            'trees' => $trees,
+            'display_count' => max(1, min(
+                self::MAX_PAGE_SIZE,
+                $request->cookies->getInt('bbs_display_count', self::DEFAULT_PAGE_SIZE),
+            )),
+            'auto_link_enabled' => $request->cookies->getString('bbs_auto_link', '1') !== '0',
+            'visitor_count' => $visitorCount,
+            'visitor_limit' => $this->visitorCounter->limit(),
+            'page_view_count' => $pageViewCount,
+            'page_view_started_at' => $this->pageViewStartedAt,
+            'central_post_limit' => $this->centralPostLimit,
         ]));
     }
 
@@ -242,8 +285,24 @@ final class BbsController
             throw new NotFoundHttpException('スレッドが見つかりません。');
         }
 
+        $tree = $this->buildTree($thread);
+
+        return new Response($this->twig->render('bbs/tree.html.twig', [
+            'app_title' => $this->appTitle,
+            'thread_id' => $tree['thread_id'],
+            'updated_at' => $tree['updated_at'],
+            'children' => $tree['children'],
+        ]));
+    }
+
+    /**
+     * @param non-empty-list<PostRecord> $thread
+     * @return array{thread_id: int, updated_at: string, children: array<array-key, list<PostRecord>>}
+     */
+    private function buildTree(array $thread): array
+    {
         usort($thread, static fn (array $left, array $right): int => $left['post_id'] <=> $right['post_id']);
-        $updatedAt = $thread[array_key_last($thread)]['posted_at'];
+        $updatedAt = max(array_column($thread, 'posted_at'));
         $postIds = array_fill_keys(array_column($thread, 'post_id'), true);
         $parentByPostId = [];
         foreach ($thread as $post) {
@@ -261,12 +320,11 @@ final class BbsController
             $children[$key][] = $post;
         }
 
-        return new Response($this->twig->render('bbs/tree.html.twig', [
-            'app_title' => $this->appTitle,
-            'thread_id' => $threadId,
+        return [
+            'thread_id' => $thread[0]['thread_id'],
             'updated_at' => $updatedAt,
             'children' => $children,
-        ]));
+        ];
     }
 
     /** @param array<int, int|null> $parentByPostId */

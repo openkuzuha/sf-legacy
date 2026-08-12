@@ -41,16 +41,23 @@ test('個別スレッドをreply_toに従って階層表示する', function () 
         ]);
 
         $client = $this->createClient();
+        $client->disableReboot();
         $this->getContainer()->set(PostRepository::class, $repository);
-        $client->request('GET', '/tree/100');
+        $crawler = $client->request('GET', '/tree/100');
 
         $this->assertResponseIsSuccessful();
         $this->assertSelectorTextSame('title', 'Open Kuzuha');
         $this->assertSelectorTextContains('h1 a[href="/"]', 'Open Kuzuha');
+        $this->assertSelectorTextSame('.page-header a.header-link[href="/"]', '標準画面');
+        $this->assertSelectorCount(0, '.page-header a.header-link[href="/tree"]');
         $this->assertSelectorCount(1, '.tree-branches > li > #m100');
         $this->assertSelectorCount(1, '.tree-branches > li > .tree-branches > li > #m101');
         $this->assertSelectorTextNotContains('#m101', '> 最初の投稿');
         $this->assertSelectorTextContains('#m101', '一段目');
+        $this->assertSelectorExists('#m101 a[title="Reply"][href="/reply/101?return_to=/tree/100"]');
+        $this->assertSelectorCount(0, '#m101 a[title="スレッド表示"]');
+        $this->assertSelectorExists('#m100 a[title="Reply"][href="/reply/100?return_to=/tree/100"]');
+        $this->assertSelectorExists('.tree-updated a[title="スレッド表示"][href="/thread/100"]');
         $this->assertSelectorCount(
             1,
             '.tree-branches > li > .tree-branches > li > .tree-branches > li > #m102',
@@ -61,6 +68,85 @@ test('個別スレッドをreply_toに従って階層表示する', function () 
             'footer a[href="https://github.com/openkuzuha/sf-legacy"]',
             'Open Kuzuha / sf-legacy',
         );
+        $replyCrawler = $client->click($crawler->filter('#m101 a[title="Reply"]')->link());
+        $this->assertSelectorExists('#post-form input[name="return_to"][value="/tree/100"]');
+        $client->submit($replyCrawler->selectButton('投稿／リロード')->form([
+            'content' => '個別ツリーからの返信',
+        ]));
+        $this->assertResponseRedirects('/tree/100');
+    } finally {
+        if (is_file($filename)) {
+            unlink($filename);
+        }
+    }
+});
+
+test('全ツリーをスレッドの更新順で階層表示する', function () {
+    /** @var TestCase $this */
+    $filename = sys_get_temp_dir() . '/sf-legacy-all-trees-' . bin2hex(random_bytes(8)) . '.jsonl';
+    $repository = new JsonlPostRepository($filename, new PostRecordCodec());
+    $base = [
+        'location' => 'main',
+        'host' => null,
+        'user_agent' => null,
+        'author' => '',
+        'email' => '',
+        'title' => '',
+        'auto_link' => true,
+    ];
+
+    try {
+        $repository->import($base + [
+            'posted_at' => '2026-08-12T02:00:00Z',
+            'post_id' => 100,
+            'thread_id' => 100,
+            'message' => '古いスレッド',
+            'reply_to' => null,
+        ]);
+        $repository->import($base + [
+            'posted_at' => '2026-08-12T04:00:00Z',
+            'post_id' => 101,
+            'thread_id' => 100,
+            'message' => '古いスレッドへの返信',
+            'reply_to' => 100,
+        ]);
+        $repository->import($base + [
+            'posted_at' => '2026-08-12T03:00:00Z',
+            'post_id' => 200,
+            'thread_id' => 200,
+            'message' => '新しいスレッド',
+            'reply_to' => null,
+        ]);
+
+        $client = $this->createClient();
+        $client->disableReboot();
+        $this->getContainer()->set(PostRepository::class, $repository);
+        $crawler = $client->request('GET', '/tree');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorCount(2, '.tree-thread');
+        $this->assertSelectorCount(2, '.tree-thread + hr');
+        $this->assertSelectorExists('#post-form input[name="return_to"][value="/tree"]');
+        $this->assertSelectorExists('#m200 a[title="Reply"][href="/reply/200?return_to=/tree"]');
+        $this->assertSelectorExists('.tree-thread .tree-updated a[title="スレッド表示"][href="/thread/200"]');
+        $this->assertSelectorCount(1, '#m100 + .tree-branches > li > #m101');
+        expect($crawler->filter('.tree-thread')->eq(0)->filter('.tree-post')->first()->attr('id'))
+            ->toBe('m100');
+
+        $replyCrawler = $client->click($crawler->filter('#m200 a[title="Reply"]')->link());
+        $this->assertSelectorExists('#post-form input[name="return_to"][value="/tree"]');
+        $client->submit($replyCrawler->selectButton('投稿／リロード')->form([
+            'content' => '全体ツリーからの返信',
+        ]));
+        $this->assertResponseRedirects('/tree');
+
+        $crawler = $client->request('GET', '/tree');
+        $client->submitForm('投稿／リロード', ['content' => 'ツリーからの投稿']);
+        $this->assertResponseRedirects('/tree');
+
+        $crawler = $client->followRedirect();
+        $client->submit($crawler->selectButton('投稿／リロード')->form());
+        $this->assertResponseRedirects('/tree');
     } finally {
         if (is_file($filename)) {
             unlink($filename);

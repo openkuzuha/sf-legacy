@@ -1,36 +1,13 @@
 {% extends 'base.html.twig' %}
 
-{% macro prefix(has_children) %}<span class="tree-message-prefix{{ has_children ? ' has-children' : '' }}"></span>{% endmacro %}
-
-{% macro message(post, has_children) %}
-    {%- for line in post.message|split('\n') -%}
-        {%- if not loop.first -%}<br>{{ _self.prefix(has_children) }}{%- endif -%}
-        {%- if post.auto_link -%}{{ line|auto_link }}{%- else -%}{{ line }}{%- endif -%}
-    {%- endfor -%}
-{% endmacro %}
-
-{% macro branches(children, parent) %}
-    {% if children[parent] is defined %}
-        <ul class="tree-branches{% if parent == 'root' %} tree-root{% endif %}">
-            {% for post in children[parent] %}
-                <li>
-                    {% set has_children = children[post.post_id ~ ''] is defined %}
-                    <article class="tree-post" id="m{{ post.post_id }}">
-                        {% if post.author|trim %}<span class="tree-author">投稿者：{{ post.author }}</span><br>{{ _self.prefix(has_children) }}{% endif %}
-                        <pre>{{ _self.message(post, has_children) }}</pre>
-                    </article>
-                    {{ _self.branches(children, post.post_id ~ '') }}
-                </li>
-            {% endfor %}
-        </ul>
-    {% endif %}
-{% endmacro %}
+{% import 'bbs/_tree.html.twig' as tree %}
 
 {% block content %}
             <nav><a href="{{ path('app_hello') }}">掲示板へ戻る</a></nav>
             <hr>
             <p class="tree-updated">
-                ◆ 更新日：<time datetime="{{ updated_at }}">{{ updated_at|bbs_datetime }}</time>
+                <a href="{{ path('app_thread', {threadId: thread_id}) }}" aria-label="スレッド表示" title="スレッド表示">◆</a>
+                更新日：<time datetime="{{ updated_at }}">{{ updated_at|bbs_datetime }}</time>
             </p>
-            {{ _self.branches(children, 'root') }}
+            {{ tree.branches(children, 'root', path('app_thread_tree', {threadId: thread_id})) }}
 {% endblock %}

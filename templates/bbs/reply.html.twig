@@ -18,5 +18,5 @@
             </div>
             <hr>
             <p>フォロー記事投稿(返信)　<a href="{{ path('app_hello') }}">戻る</a></p>
-            {{ include('bbs/_post_form.html.twig', {reply: reply, reply_message: reply_message}) }}
+            {{ include('bbs/_post_form.html.twig', {reply: reply, reply_message: reply_message, return_to: return_to}) }}
 {% endblock %}

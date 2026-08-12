@@ -1,0 +1,30 @@
+{% macro prefix(has_children) %}<span class="tree-message-prefix{{ has_children ? ' has-children' : '' }}"></span>{% endmacro %}
+
+{% macro message(post, has_children) %}
+    {%- for line in post.message|split('\n') -%}
+        {%- if not loop.first -%}<br>{{ _self.prefix(has_children) }}{%- endif -%}
+        {%- if post.auto_link -%}{{ line|auto_link }}{%- else -%}{{ line }}{%- endif -%}
+    {%- endfor -%}
+{% endmacro %}
+
+{% macro branches(children, parent, return_to) %}
+    {% if children[parent] is defined %}
+        <ul class="tree-branches{% if parent == 'root' %} tree-root{% endif %}">
+            {% for post in children[parent] %}
+                <li>
+                    {% set has_children = children[post.post_id ~ ''] is defined %}
+                    <article class="tree-post" id="m{{ post.post_id }}">
+                        <a
+                            href="{{ path('app_reply', {postId: post.post_id, return_to: return_to}) }}"
+                            aria-label="Reply"
+                            title="Reply"
+                        >■</a>
+                        {% if post.author|trim %}<span class="tree-author">投稿者：{{ post.author }}</span><br>{{ _self.prefix(has_children) }}{% endif %}
+                        <pre>{{ _self.message(post, has_children) }}</pre>
+                    </article>
+                    {{ _self.branches(children, post.post_id ~ '', return_to) }}
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endmacro %}

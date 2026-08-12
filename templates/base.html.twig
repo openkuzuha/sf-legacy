@@ -15,7 +15,11 @@
                 <a class="header-link" href="#">広報室</a>
                 <a class="header-link" href="#">連絡先</a>
                 <a class="header-link" href="{{ path('app_archive') }}">過去ログ</a>
-                <a class="header-link" href="{{ path('app_tree') }}">ツリー表示</a>
+                {% if app.current_route in ['app_tree', 'app_thread_tree'] %}
+                    <a class="header-link" href="{{ path('app_hello') }}">標準画面</a>
+                {% else %}
+                    <a class="header-link" href="{{ path('app_tree') }}">ツリー表示</a>
+                {% endif %}
             </header>
             {% block content %}{% endblock %}
         </main>

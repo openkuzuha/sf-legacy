@@ -59,9 +59,11 @@ final class SubmitController
 
     private function redirectToBbs(Request $request, int $displayCount, bool $autoLink): RedirectResponse
     {
-        $parameters = $displayCount === 40 ? [] : ['display_count' => $displayCount];
+        $returnTo = $request->request->getString('return_to');
+        $isTree = preg_match('#^/tree(?:/\d+)?$#D', $returnTo) === 1;
+        $parameters = !$isTree && $displayCount !== 40 ? ['display_count' => $displayCount] : [];
         $response = new RedirectResponse(
-            $this->urlGenerator->generate('app_hello', $parameters),
+            $isTree ? $returnTo : $this->urlGenerator->generate('app_hello', $parameters),
             Response::HTTP_SEE_OTHER,
         );
         $expires = new \DateTimeImmutable('+1 year');

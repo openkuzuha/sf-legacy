@@ -43,13 +43,17 @@ test('トップページに設定したアプリケーション名が表示さ�
     $this->assertSelectorExists('#page-bottom');
 });
 
-test('全ツリー表示ページはWIP表示を返す', function () {
+test('全ツリー表示ページを表示する', function () {
     /** @var TestCase $this */
     $client = $this->createClient();
     $client->request('GET', '/tree');
 
     $this->assertResponseIsSuccessful();
-    $this->assertSelectorTextContains('main', '全ツリー表示は現在作成中です。');
+    $this->assertSelectorExists('main');
+    $this->assertSelectorTextNotContains('main', '全ツリー表示は現在作成中です。');
+    $this->assertSelectorExists('form#post-form[action="/submit"][method="post"]');
+    $this->assertSelectorTextSame('.page-header a.header-link[href="/"]', '標準画面');
+    $this->assertSelectorCount(0, '.page-header a.header-link[href="/tree"]');
 });
 
 test('過去ログページは一覧見出しを表示する', function () {

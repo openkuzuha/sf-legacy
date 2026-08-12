@@ -1,4 +1,7 @@
 <form id="post-form" class="flex w-full flex-col items-start gap-2" action="{{ path('app_submit') }}" method="post">
+    {% if return_to|default(null) %}
+        <input type="hidden" name="return_to" value="{{ return_to }}">
+    {% endif %}
     {% if reply %}
         <input type="hidden" name="reply_to" value="{{ reply.post_id }}">
     {% endif %}
