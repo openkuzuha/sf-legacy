@@ -32,11 +32,21 @@ test('トップページに設定したアプリケーション名が表示さ�
     expect($crawler->filter('.page-view-counter')->text())->toMatch('/^2026\/08\/12 から \d+$/');
     $this->assertSelectorTextContains('#post-form .small + div', '過去ログ');
     $this->assertSelectorExists('#post-form .archive-heading a[href="/archive"]');
+    $this->assertSelectorExists('.page-header a[href="/tree"]');
     $this->assertSelectorExists('#post-form .small + div > hr + div + hr');
     $this->assertSelectorTextContains('#post-form .archive-heading', '■ : フォロー投稿(返信)');
     $this->assertSelectorExists('#post-form .archive-heading > hr:last-child');
     $this->assertSelectorExists('#post-form .small + div + .post-form-actions');
     $this->assertSelectorExists('#page-bottom');
+});
+
+test('全ツリー表示ページはWIP表示を返す', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient();
+    $client->request('GET', '/tree');
+
+    $this->assertResponseIsSuccessful();
+    $this->assertSelectorTextContains('main', '全ツリー表示は現在作成中です。');
 });
 
 test('過去ログページは一覧見出しを表示する', function () {
@@ -145,8 +155,11 @@ test('■から引用付きReplyを投稿する', function () {
         $this->assertResponseIsSuccessful();
         $this->assertSelectorTextSame('title', 'Open Kuzuha');
         $this->assertSelectorTextContains('#m100', '一行目');
-        $this->assertSelectorTextContains('p', 'Reply記事投稿');
+        $this->assertSelectorTextContains('p', 'フォロー記事投稿(返信)');
         $this->assertSelectorExists('#post-form input[name="reply_to"][value="100"]');
+        $this->assertSelectorCount(0, '#post-form input[name="display_count"]');
+        $this->assertSelectorExists('#post-form input[name="auto_link"]');
+        $this->assertSelectorCount(0, '#post-form > .post-form-actions');
         $this->assertInputValueSame('title', '＞元投稿者');
         $form = $crawler->selectButton('投稿／リロード')->form();
         $contentField = $form->get('content');

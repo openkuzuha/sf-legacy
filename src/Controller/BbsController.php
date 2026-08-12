@@ -190,6 +190,14 @@ final class BbsController
         ]));
     }
 
+    #[Route('/tree', name: 'app_tree', methods: ['GET'])]
+    public function allTrees(): Response
+    {
+        return new Response($this->twig->render('bbs/tree_wip.html.twig', [
+            'app_title' => $this->appTitle,
+        ]));
+    }
+
     #[Route('/tree/{threadId<\d+>}', name: 'app_thread_tree', methods: ['GET'])]
     public function tree(int $threadId): Response
     {

@@ -20,6 +20,19 @@ a:active { color: #f00; }
 a:hover { color: #10e0e0; }
 a.help { text-decoration-line: underline; }
 
+.page-header { margin-bottom: 1em; }
+.page-title {
+    display: inline;
+    font-size: large;
+    font-weight: bold;
+    text-align: left;
+}
+.page-title a {
+    margin-right: 1em;
+    text-decoration: none;
+}
+.header-link { font-size: 14px; }
+
 .m blockquote { margin: 0 0 0 27px; }
 .m pre {
     font-family: inherit;
@@ -47,6 +60,8 @@ a.help { text-decoration-line: underline; }
 .page-actions { display: flex; gap: 0.5rem; }
 .post-form-actions { display: flex; gap: 0.5rem; }
 .archive-heading { align-self: stretch; }
+.lower-links { font-size: 13px; }
+.post-help { font-size: 13px; }
 
 .post-fields { max-width: 100%; }
 .post-title-actions {
@@ -54,11 +69,24 @@ a.help { text-decoration-line: underline; }
     flex-shrink: 0;
     gap: 0.5rem;
 }
+.post-field-help {
+    font-size: 13px;
+    font-style: italic;
+}
 .post-content {
+    display: block;
     box-sizing: border-box;
     max-width: 100%;
     width: 36rem;
 }
+.post-settings {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    font-size: small;
+}
+.post-settings input[name="display_count"] { width: 4em; }
+.bbs-stats { font-size: 14px; }
 
 .tree-branches {
     list-style: none;

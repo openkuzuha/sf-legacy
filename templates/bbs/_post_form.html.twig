@@ -20,31 +20,41 @@
             </span>
         </div>
     </div>
-    <label for="content">内容</label>
-    <textarea class="post-content" id="content" name="content" rows="5" cols="70">{{ reply_message }}</textarea>
-    <div class="flex items-center gap-3">
-        <label>
-            表示件数
-            <input class="w-20" name="display_count" type="number" min="1" max="1000" value="{{ display_count|default(40) }}">
-        </label>
+    <div class="post-content-field">
+        <label for="content">内容</label>
+        <span class="post-field-help">（適当に改行を入れてください。タグは使えません。）</span>
+        <textarea class="post-content" id="content" name="content" rows="5" cols="70">{{ reply_message }}</textarea>
+    </div>
+    <div class="post-settings">
+        {% if not reply %}
+            <label>
+                表示件数
+                <input name="display_count" type="number" min="1" max="1000" value="{{ display_count|default(40) }}">
+            </label>
+        {% endif %}
         <label><input name="auto_link" type="checkbox" value="1"{% if auto_link_enabled|default(true) %} checked{% endif %}> URL自動リンク</label>
     </div>
     {% if page_view_count is defined and visitor_count is defined %}
-        <div class="small">
+        <div class="small bbs-stats">
             <span class="page-view-counter">{{ page_view_started_at }} から {{ page_view_count }}</span>
             <span>　 現在の参加者 : {{ visitor_count }}人 ({{ visitor_limit }}秒以内)</span>
             <span>　 最大記事件数 : {{ central_post_limit }}件</span>
         </div>
         <div class="archive-heading">
             <hr>
-            <div><a href="{{ path('app_archive') }}">過去ログ</a></div>
+            <div class="lower-links">
+                <a href="#">広報室</a>
+                | <a href="{{ path('app_archive') }}">過去ログ</a>
+            </div>
             <hr>
-            <div>■ : フォロー投稿(返信)</div>
+            <div class="post-help">■ : フォロー投稿(返信)</div>
             <hr>
         </div>
     {% endif %}
-    <span class="post-form-actions">
-        <button type="submit" name="post" class="btn">投稿／リロード</button>
-        <button type="button" data-scroll-target="page-bottom" aria-label="一番下へ">▼</button>
-    </span>
+    {% if not reply %}
+        <span class="post-form-actions">
+            <button type="submit" name="post" class="btn">投稿／リロード</button>
+            <button type="button" data-scroll-target="page-bottom" aria-label="一番下へ">▼</button>
+        </span>
+    {% endif %}
 </form>
