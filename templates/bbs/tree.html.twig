@@ -1,13 +1,21 @@
 {% extends 'base.html.twig' %}
 
+{% macro message(post, has_children) %}
+    {%- for line in post.message|split("\n") -%}
+        {%- if not loop.first -%}<br><span class="tree-message-prefix">{{ has_children ? '│' : '　' }}</span>{%- endif -%}
+        {%- if post.auto_link -%}{{ line|auto_link }}{%- else -%}{{ line }}{%- endif -%}
+    {%- endfor -%}
+{% endmacro %}
+
 {% macro branches(children, parent) %}
     {% if children[parent] is defined %}
         <ul class="tree-branches{% if parent == 'root' %} tree-root{% endif %}">
             {% for post in children[parent] %}
                 <li>
+                    {% set has_children = children[post.post_id ~ ''] is defined %}
                     <article class="tree-post" id="m{{ post.post_id }}">
                         {% if post.author|trim %}<span class="tree-author">投稿者：{{ post.author }}</span>{% endif %}
-                        <pre>{% if post.auto_link %}{{ post.message|auto_link }}{% else %}{{ post.message }}{% endif %}</pre>
+                        <pre>{{ _self.message(post, has_children) }}</pre>
                     </article>
                     {{ _self.branches(children, post.post_id ~ '') }}
                 </li>
