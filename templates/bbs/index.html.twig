@@ -2,7 +2,6 @@
 
 {% block content %}
             {{ include('bbs/_post_form.html.twig', {reply: null, reply_message: ''}) }}
-            <div class="small">現在の参加者 : {{ visitor_count }}人 ({{ visitor_limit }}秒以内)</div>
             {% if posts %}
                 <hr>
             {% endif %}

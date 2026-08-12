@@ -46,6 +46,7 @@ a.help { text-decoration-line: underline; }
 }
 .page-actions { display: flex; gap: 0.5rem; }
 .post-form-actions { display: flex; gap: 0.5rem; }
+.archive-heading { align-self: stretch; }
 
 .post-fields { max-width: 100%; }
 .post-title-actions {

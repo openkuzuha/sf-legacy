@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\PageView\PageViewCounter;
 use App\Post\PostRepository;
 use App\Visitor\VisitorCounter;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -23,6 +24,9 @@ final class BbsController
         private readonly Environment $twig,
         private readonly PostRepository $posts,
         private readonly VisitorCounter $visitorCounter,
+        private readonly PageViewCounter $pageViewCounter,
+        #[Autowire(param: 'app.page_view_started_at')]
+        private readonly string $pageViewStartedAt,
     ) {
     }
 
@@ -84,6 +88,12 @@ final class BbsController
             $visitorCount = '参加者ファイル出力エラー';
         }
 
+        try {
+            $pageViewCount = $this->pageViewCounter->increment();
+        } catch (\RuntimeException) {
+            $pageViewCount = 'カウンターエラー';
+        }
+
         return new Response($this->twig->render('bbs/index.html.twig', [
             'app_title' => $this->appTitle,
             'posts' => $posts,
@@ -94,6 +104,8 @@ final class BbsController
             'auto_link_enabled' => $request->cookies->getString('bbs_auto_link', '1') !== '0',
             'visitor_count' => $visitorCount,
             'visitor_limit' => $this->visitorCounter->limit(),
+            'page_view_count' => $pageViewCount,
+            'page_view_started_at' => $this->pageViewStartedAt,
         ]));
     }
 

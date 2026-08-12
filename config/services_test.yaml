@@ -1,0 +1,2 @@
+parameters:
+    app.page_view_filename: '%kernel.cache_dir%/page-views.txt'

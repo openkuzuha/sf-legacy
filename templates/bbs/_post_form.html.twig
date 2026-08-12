@@ -1,4 +1,4 @@
-<form id="post-form" class="flex flex-col items-start gap-2" action="{{ path('app_submit') }}" method="post">
+<form id="post-form" class="flex w-full flex-col items-start gap-2" action="{{ path('app_submit') }}" method="post">
     {% if reply %}
         <input type="hidden" name="reply_to" value="{{ reply.post_id }}">
     {% endif %}
@@ -29,6 +29,19 @@
         </label>
         <label><input name="auto_link" type="checkbox" value="1"{% if auto_link_enabled|default(true) %} checked{% endif %}> URL自動リンク</label>
     </div>
+    {% if page_view_count is defined and visitor_count is defined %}
+        <div class="small">
+            <span class="page-view-counter">{{ page_view_started_at }} から {{ page_view_count }}</span>
+            <span>　 現在の参加者 : {{ visitor_count }}人 ({{ visitor_limit }}秒以内)</span>
+        </div>
+        <div class="archive-heading">
+            <hr>
+            <div>過去ログ</div>
+            <hr>
+            <div>■ : フォロー投稿(返信)</div>
+            <hr>
+        </div>
+    {% endif %}
     <span class="post-form-actions">
         <button type="submit" name="post" class="btn">投稿／リロード</button>
         <button type="button" data-scroll-target="page-bottom" aria-label="一番下へ">▼</button>

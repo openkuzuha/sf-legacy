@@ -2,6 +2,9 @@ parameters:
     app.title: '%env(APP_TITLE)%'
     app.timezone: '%env(APP_TIMEZONE)%'
     app.visitor_limit: 300
+    app.page_view_started_at: '2026/08/12'
+    app.page_view_initial_value: 0
+    app.page_view_filename: '%kernel.project_dir%/var/data/page-views.txt'
 
 services:
     _defaults:
@@ -17,6 +20,9 @@ services:
 
     App\Post\PostRepository:
         factory: ['@App\Post\PostRepositoryFactory', 'create']
+
+    App\PageView\PageViewCounter:
+        factory: ['@App\PageView\PageViewCounterFactory', 'create']
 
     App\Visitor\VisitorCounter:
         arguments:
