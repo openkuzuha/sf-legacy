@@ -49,6 +49,9 @@
             <div class="lower-links">
                 <a href="#">広報室</a>
                 | <a href="{{ path('app_archive') }}">過去ログ</a>
+                {% for link in additional_links|default([]) %}
+                    | <a class="additional-link" href="{{ link.url }}">{{ link.label }}</a>
+                {% endfor %}
             </div>
             <hr>
             <div class="post-help">■ : フォロー投稿(返信)　★ : 投稿者検索　◆ : スレッド表示　木 : ツリー表示</div>

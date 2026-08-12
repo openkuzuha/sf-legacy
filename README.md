@@ -76,6 +76,26 @@ docker compose run --rm app vendor/bin/phpcbf
 docker compose run --rm app vendor/bin/twig-cs-fixer fix templates
 ```
 
+## リンク集
+
+トップ画面の「広報室 | 過去ログ」に続くリンクは、`content/links.md` で管理します。
+Markdownの箇条書きとして、1行に1件ずつ表示名とURLを記述してください。
+
+```markdown
+- [openkuzuha](https://github.com/openkuzuha)
+- [sf-legacy](https://github.com/openkuzuha/sf-legacy)
+```
+
+リンクはファイル内の順番を維持し、画面上では次のように `|` 区切りで横に並びます。
+
+```text
+広報室 | 過去ログ | openkuzuha | sf-legacy
+```
+
+リンク以外のMarkdown要素は画面へ渡しません。HTMLは除去され、`javascript:` などの
+危険なURLもリンクとして表示されません。ファイルが存在しない、または読み込めない場合は、
+追加リンクを表示せずにトップ画面を表示します。
+
 ## Productionへデプロイ
 
 ProductionサーバーではDockerとVite開発サーバーを使用しません。PHP 8.4、Composer、Node.jsを用意し、Webサーバーのドキュメントルートを `public/` に設定してください。

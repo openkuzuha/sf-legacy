@@ -40,6 +40,13 @@ test('トップページに設定したアプリケーション名が表示さ�
     expect($crawler->filter('.page-view-counter')->text())->toMatch('/^2026\/08\/12 から \d+$/');
     $this->assertSelectorTextContains('#post-form .small + div', '過去ログ');
     $this->assertSelectorExists('#post-form .archive-heading a[href="/archive"]');
+    $this->assertSelectorTextSame(
+        '#post-form .archive-heading a.additional-link[href="https://github.com/openkuzuha"]',
+        'openkuzuha',
+    );
+    $this->assertSelectorCount(1, '#post-form .archive-heading a.additional-link');
+    expect($crawler->filter('#post-form .lower-links')->text(null, true))
+        ->toBe('広報室 | 過去ログ | openkuzuha');
     $this->assertSelectorExists('.page-header a[href^="/tree?p="]');
     $this->assertSelectorExists('#post-form .small + div > hr + div + hr');
     $this->assertSelectorTextContains(

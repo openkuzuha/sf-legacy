@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Content\LinkCollection;
 use App\PageView\PageViewCounter;
 use App\Post\DailyPostArchive;
 use App\Post\PostRepository;
@@ -28,6 +29,7 @@ final class BbsController
         private readonly DailyPostArchive $archive,
         private readonly VisitorCounter $visitorCounter,
         private readonly PageViewCounter $pageViewCounter,
+        private readonly LinkCollection $links,
         #[Autowire(param: 'app.page_view_started_at')]
         private readonly string $pageViewStartedAt,
         #[Autowire(param: 'app.central_post_limit')]
@@ -129,6 +131,7 @@ final class BbsController
             'page_view_count' => $pageViewCount,
             'page_view_started_at' => $this->pageViewStartedAt,
             'central_post_limit' => $this->centralPostLimit,
+            'additional_links' => $this->links->links(),
         ]));
     }
 
