@@ -1,6 +1,15 @@
 # sf-legacy
 
-Symfony標準の最小構成で、設定からアプリタイトルを読み込むHello Worldアプリです。
+## What is it?
+
+sf-legacyは、ライセンス条件が明確でないまま流通しているKuzuhaScript系の
+`bbs.php`をそのままGitHubで公開・再配布するのではなく、掲示板の挙動を参照して
+MIT Licenseのもとで再構成したクローン実装です。本リポジトリに含まれるコードは、
+可能な限り原本の表示と操作感に近い形で再実装しています。
+
+フレームワークにはSymfonyを採用しています。Symfonyアプリケーションは
+[Laravel Cloudでも動作する](https://laravel.com/cloud)一方、この規模の掲示板には
+Laravelは機能が大きすぎると判断し、必要な構成を小さく保てるSymfonyを選びました。
 
 ## Docker Composeで起動
 
