@@ -21,6 +21,8 @@ test('トップページに設定したアプリケーション名が表示さ�
     $this->assertSelectorCount(1, 'input[name="email"][type="email"]');
     $this->assertSelectorCount(1, 'input[name="title"][type="text"]');
     $this->assertSelectorCount(1, 'textarea[name="content"]');
+    $this->assertSelectorExists('.post-form-actions [data-scroll-target="page-bottom"]');
+    $this->assertSelectorExists('#page-bottom');
 });
 
 test('存在しないスレッドのツリー表示は404を返す', function () {

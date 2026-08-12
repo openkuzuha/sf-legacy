@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Post\PostRepository;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
@@ -11,6 +12,8 @@ use Twig\Environment;
 
 final class BbsController
 {
+    private const int PAGE_SIZE = 40;
+
     public function __construct(
         #[Autowire(param: 'app.title')]
         private readonly string $appTitle,
@@ -20,11 +23,33 @@ final class BbsController
     }
 
     #[Route('/', name: 'app_hello')]
-    public function __invoke(): Response
+    public function __invoke(Request $request): Response
     {
+        $beforePostId = $request->query->getInt('before');
+        $startPosition = 1;
+        if ($beforePostId > 0) {
+            $allPosts = $this->posts->all();
+            $candidates = array_values(array_filter(
+                $allPosts,
+                static fn (array $post): bool => $post['post_id'] < $beforePostId,
+            ));
+            $startPosition = count($allPosts) - count($candidates) + 1;
+        } else {
+            $candidates = $this->posts->recent(self::PAGE_SIZE + 1);
+        }
+        $hasMore = count($candidates) > self::PAGE_SIZE;
+        $posts = array_slice($candidates, 0, self::PAGE_SIZE);
+        $nextBefore = null;
+        if ($hasMore && $posts !== []) {
+            $nextBefore = $posts[count($posts) - 1]['post_id'];
+        }
+
         return new Response($this->twig->render('bbs/index.html.twig', [
             'app_title' => $this->appTitle,
-            'posts' => $this->posts->recent(40),
+            'posts' => $posts,
+            'range_start' => $startPosition,
+            'range_end' => $startPosition + count($posts) - 1,
+            'next_before' => $nextBefore,
         ]));
     }
 

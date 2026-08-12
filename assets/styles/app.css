@@ -33,6 +33,8 @@ a.help { text-decoration-line: underline; }
 .mun { font-weight: normal; }
 .nw { white-space: nowrap; }
 .request-duration { font-size: 13px; }
+.page-actions { display: flex; gap: 0.5rem; }
+.post-form-actions { display: flex; gap: 0.5rem; }
 
 .post-fields { max-width: 100%; }
 .post-title-actions {

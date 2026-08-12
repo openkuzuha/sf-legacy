@@ -26,7 +26,10 @@
                 <label for="url">URL （リンクを入れたい場合はここに記入します。）</label>
                 <input class="w-[36rem]" id="url" name="url" type="text" placeholder="https://">
                 #}
-                <button type="submit" name="post" class="btn">投稿／リロード</button>
+                <span class="post-form-actions">
+                    <button type="submit" name="post" class="btn">投稿／リロード</button>
+                    <button type="button" data-scroll-target="page-bottom" aria-label="一番下へ">▼</button>
+                </span>
             </form>
             {% if posts %}
                 <hr>
@@ -52,11 +55,28 @@
                         <pre>{% if post.auto_link %}{{ post.message|auto_link }}{% else %}{{ post.message }}{% endif %}</pre>
                     </blockquote>
                 </div>
-                {% if not loop.last %}
-                    <hr>
-                {% endif %}
+                <hr>
                 <!--  -->
             {% endfor %}
+            {% if posts %}
+                <p class="msgmore">
+                    以上は、現在登録されている新着順{{ range_start }}番目から{{ range_end }}番目までの記事です。
+                </p>
+            {% endif %}
+            {% if posts %}
+                <nav class="page-actions" aria-label="ページ操作">
+                    {% if next_before %}
+                        <form action="{{ path('app_hello') }}" method="get">
+                            <input type="hidden" name="before" value="{{ next_before }}">
+                            <button type="submit">次のページ</button>
+                        </form>
+                    {% endif %}
+                    <form action="{{ path('app_hello') }}" method="get">
+                        <button type="submit">リロード</button>
+                    </form>
+                    <button type="button" data-scroll-target="page-top" aria-label="一番上へ">▲</button>
+                </nav>
+            {% endif %}
 {% endblock %}
 
 {% block footer %}
