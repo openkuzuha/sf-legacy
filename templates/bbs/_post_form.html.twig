@@ -36,6 +36,7 @@
             </label>
         {% endif %}
         <label><input name="auto_link" type="checkbox" value="1"{% if auto_link_enabled|default(true) %} checked{% endif %}> URL自動リンク</label>
+        <a class="settings-button" href="{{ path('app_personal_settings') }}" role="button">個人用環境設定</a>
     </div>
     {% if page_view_count is defined and visitor_count is defined %}
         <div class="small bbs-stats">

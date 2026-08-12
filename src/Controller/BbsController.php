@@ -136,6 +136,14 @@ final class BbsController
         ]));
     }
 
+    #[Route('/personal-settings', name: 'app_personal_settings', methods: ['GET'])]
+    public function personalSettings(): Response
+    {
+        return new Response($this->twig->render('bbs/personal_settings.html.twig', [
+            'app_title' => $this->appTitle,
+        ]));
+    }
+
     #[Route('/reply/{postId<\d+>}', name: 'app_reply', methods: ['GET'])]
     public function reply(Request $request, int $postId): Response
     {

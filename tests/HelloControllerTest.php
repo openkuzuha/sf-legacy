@@ -16,6 +16,8 @@ test('トップページに設定したアプリケーション名が表示さ�
     $this->assertResponseIsSuccessful();
     $this->assertSelectorTextContains('title', $appTitle);
     $this->assertSelectorTextContains('h1', $appTitle);
+    $this->assertSelectorExists('html[style*="--bbs-background: #004040"]');
+    $this->assertSelectorExists('html[style*="--bbs-quote: #cccccc"]');
     $this->assertMatchesRegularExpression(
         '/^実行時間 : \\d+\\.\\d{6}秒$/',
         $crawler->filter('.request-duration')->text(),
@@ -26,6 +28,10 @@ test('トップページに設定したアプリケーション名が表示さ�
     $this->assertSelectorCount(1, 'input[name="title"][type="text"]');
     $this->assertSelectorCount(1, 'textarea[name="content"]');
     $this->assertSelectorExists('input[name="auto_link"][type="checkbox"][checked]');
+    $this->assertSelectorTextSame(
+        '.post-settings a.settings-button[href="/personal-settings"][role="button"]',
+        '個人用環境設定',
+    );
     $this->assertSelectorExists('.post-form-actions [data-scroll-target="page-bottom"]');
     expect($crawler->filter('.small')->text())->toMatch('/現在の参加者 : \d+人 \(300秒以内\)/');
     $this->assertSelectorTextContains('#post-form .small', '最大記事件数 : 500件');
@@ -41,6 +47,26 @@ test('トップページに設定したアプリケーション名が表示さ�
     $this->assertSelectorExists('#post-form .archive-heading > hr:last-child');
     $this->assertSelectorExists('#post-form .small + div + .post-form-actions');
     $this->assertSelectorExists('#page-bottom');
+});
+
+test('個人用環境設定に色設定UIを表示する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient();
+    $client->request('GET', '/personal-settings');
+
+    $this->assertResponseIsSuccessful();
+    $this->assertSelectorTextSame('h2', '個人用環境設定');
+    $this->assertSelectorCount(8, '.color-settings input[type="text"][minlength="3"][maxlength="6"][pattern]');
+    $this->assertInputValueSame('C_TEXT', 'ffffff');
+    $this->assertInputValueSame('C_BACKGROUND', '004040');
+    $this->assertInputValueSame('C_A_COLOR', 'eeffee');
+    $this->assertInputValueSame('C_A_VISITED', 'dddddd');
+    $this->assertInputValueSame('C_A_ACTIVE', 'ff0000');
+    $this->assertInputValueSame('C_A_HOVER', '10e0e0');
+    $this->assertInputValueSame('C_SUBJ', 'fffffe');
+    $this->assertInputValueSame('C_QMSG', 'cccccc');
+    $this->assertSelectorTextSame('.personal-settings-form button[type="submit"]', '登録');
+    $this->assertSelectorTextSame('.personal-settings-form button[data-reset-colors]', '初期設定に戻す');
 });
 
 test('全ツリー表示ページを表示する', function () {

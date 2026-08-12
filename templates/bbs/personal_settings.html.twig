@@ -1,0 +1,42 @@
+{% extends 'base.html.twig' %}
+
+{% block content %}
+    <h2>個人用環境設定</h2>
+    <form class="personal-settings-form" data-color-settings data-home-url="{{ path('app_hello') }}">
+        <ul>
+            <li>
+                <strong>表示設定</strong>
+                <table class="color-settings">
+                    <tbody>
+                        <tr>
+                            <td><label for="C_TEXT">文字色</label></td>
+                            <td>#<input id="C_TEXT" type="text" name="C_TEXT" size="7" minlength="3" maxlength="6" pattern="[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?" value="{{ bbs_colors.text|trim('#', 'left') }}" data-color-key="text"></td>
+                            <td><label for="C_BACKGROUND">背景色</label></td>
+                            <td>#<input id="C_BACKGROUND" type="text" name="C_BACKGROUND" size="7" minlength="3" maxlength="6" pattern="[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?" value="{{ bbs_colors.background|trim('#', 'left') }}" data-color-key="background"></td>
+                        </tr>
+                        <tr>
+                            <td><label for="C_A_COLOR">リンク色</label></td>
+                            <td>#<input id="C_A_COLOR" type="text" name="C_A_COLOR" size="7" minlength="3" maxlength="6" pattern="[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?" value="{{ bbs_colors.link|trim('#', 'left') }}" data-color-key="link"></td>
+                            <td><label for="C_A_VISITED">訪問済リンク色</label></td>
+                            <td>#<input id="C_A_VISITED" type="text" name="C_A_VISITED" size="7" minlength="3" maxlength="6" pattern="[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?" value="{{ bbs_colors.visited_link|trim('#', 'left') }}" data-color-key="visitedLink"></td>
+                        </tr>
+                        <tr>
+                            <td><label for="C_A_ACTIVE">選択リンク色</label></td>
+                            <td>#<input id="C_A_ACTIVE" type="text" name="C_A_ACTIVE" size="7" minlength="3" maxlength="6" pattern="[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?" value="{{ bbs_colors.active_link|trim('#', 'left') }}" data-color-key="activeLink"></td>
+                            <td><label for="C_A_HOVER">マウスオーバーリンク色</label></td>
+                            <td>#<input id="C_A_HOVER" type="text" name="C_A_HOVER" size="7" minlength="3" maxlength="6" pattern="[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?" value="{{ bbs_colors.hover_link|trim('#', 'left') }}" data-color-key="hoverLink"></td>
+                        </tr>
+                        <tr>
+                            <td><label for="C_SUBJ">題名色</label></td>
+                            <td>#<input id="C_SUBJ" type="text" name="C_SUBJ" size="7" minlength="3" maxlength="6" pattern="[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?" value="{{ bbs_colors.subject|trim('#', 'left') }}" data-color-key="subject"></td>
+                            <td><label for="C_QMSG">引用色</label></td>
+                            <td>#<input id="C_QMSG" type="text" name="C_QMSG" size="7" minlength="3" maxlength="6" pattern="[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?" value="{{ bbs_colors.quote|trim('#', 'left') }}" data-color-key="quote"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </li>
+        </ul>
+        <button type="submit">登録</button>
+        <button type="button" data-reset-colors>初期設定に戻す</button>
+    </form>
+{% endblock %}

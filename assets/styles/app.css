@@ -5,19 +5,26 @@
 
 @source "../../templates";
 
-@theme {
-    --color-brand: #004040;
+:root {
+    --bbs-background: #004040;
+    --bbs-text: #ffffff;
+    --bbs-link: #eeffee;
+    --bbs-visited-link: #dddddd;
+    --bbs-active-link: #ff0000;
+    --bbs-hover-link: #10e0e0;
+    --bbs-subject: #fffffe;
+    --bbs-quote: #cccccc;
 }
 
 body {
-    background: var(--color-brand);
-    color: #fff;
+    background: var(--bbs-background);
+    color: var(--bbs-text);
 }
 
-a:link { color: #efe; transition:0.1s; }
-a:visited { color: #ddd; }
-a:active { color: #f00; }
-a:hover { color: #10e0e0; }
+a:link { color: var(--bbs-link); transition:0.1s; }
+a:visited { color: var(--bbs-visited-link); }
+a:active { color: var(--bbs-active-link); }
+a:hover { color: var(--bbs-hover-link); }
 a.help { text-decoration-line: underline; }
 
 .page-header { margin-bottom: 1em; }
@@ -41,8 +48,8 @@ a.help { text-decoration-line: underline; }
     white-space: pre-wrap;
     overflow-wrap: break-word;
 }
-.q { color: #cccccc; }
-.ms { font-size: 17px; font-weight: bold; }
+.q { color: var(--bbs-quote); }
+.ms { color: var(--bbs-subject); font-size: 17px; font-weight: bold; }
 .mu, .mun, .md { font-size: 14px; }
 .mun { font-weight: normal; }
 .nw { white-space: nowrap; }
@@ -83,10 +90,26 @@ a.help { text-decoration-line: underline; }
 .post-settings {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 0.5em;
     font-size: small;
 }
 .post-settings input[name="display_count"] { width: 4em; }
+.settings-button {
+    appearance: auto;
+    border: 2px outset buttonborder;
+    border-radius: 2px;
+    background: buttonface;
+    color: buttontext !important;
+    padding: 1px 6px;
+    text-decoration: none;
+}
+.settings-button:active { border-style: inset; }
+.color-settings {
+    border-spacing: 0;
+    margin-top: 1rem;
+}
+.color-settings td { padding: 3px; }
 .bbs-stats { font-size: 14px; }
 
 .tree-branches {
@@ -144,6 +167,11 @@ a.help { text-decoration-line: underline; }
 .tree-updated { margin-bottom: 0.25rem; }
 
 @media (max-width: 640px) {
+    .color-settings,
+    .color-settings tbody,
+    .color-settings tr,
+    .color-settings td { display: block; }
+    .color-settings td:nth-child(3) { margin-top: 0.5rem; }
     .post-fields { width: 100%; }
     .post-title-row { flex-wrap: wrap; }
     .post-title-row input {

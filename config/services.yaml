@@ -7,6 +7,15 @@ parameters:
     app.page_view_filename: '%kernel.project_dir%/var/data/page-views.txt'
     app.post_archive_directory: '%kernel.project_dir%/var/data/archive'
     app.central_post_limit: 500
+    app.colors:
+        background: '#004040'
+        text: '#ffffff'
+        link: '#eeffee'
+        visited_link: '#dddddd'
+        active_link: '#ff0000'
+        hover_link: '#10e0e0'
+        subject: '#fffffe'
+        quote: '#cccccc'
 
 services:
     _defaults:
