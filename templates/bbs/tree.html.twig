@@ -1,0 +1,37 @@
+{% macro branches(children, parent) %}
+    {% if children[parent] is defined %}
+        <ul class="tree-branches{% if parent == 'root' %} tree-root{% endif %}">
+            {% for post in children[parent] %}
+                <li>
+                    <article class="tree-post" id="m{{ post.post_id }}">
+                        {% if post.author|trim %}<span class="tree-author">投稿者：{{ post.author }}</span>{% endif %}
+                        <pre>{% if post.auto_link %}{{ post.message|auto_link }}{% else %}{{ post.message }}{% endif %}</pre>
+                    </article>
+                    {{ _self.branches(children, post.post_id ~ '') }}
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endmacro %}
+
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{{ app_title }} ツリー表示</title>
+        {{ vite_entry_link_tags('app') }}
+        {{ vite_entry_script_tags('app') }}
+    </head>
+    <body>
+        <main>
+            <h1>{{ app_title }} ツリー表示</h1>
+            <nav><a href="{{ path('app_hello') }}">掲示板へ戻る</a></nav>
+            <hr>
+            <p class="tree-updated">
+                ◆ 更新日：<time datetime="{{ updated_at }}">{{ updated_at|bbs_datetime }}</time>
+            </p>
+            {{ _self.branches(children, 'root') }}
+        </main>
+    </body>
+</html>

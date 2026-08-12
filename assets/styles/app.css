@@ -33,6 +33,34 @@ a.help { text-decoration-line: underline; }
 .mun { font-weight: normal; }
 .nw { white-space: nowrap; }
 
+.tree-branches {
+    list-style: none;
+    margin: 0;
+    padding-left: 1rem;
+}
+.tree-branches.tree-root { padding-left: 1rem; }
+.tree-branches li { position: relative; margin: 0; }
+.tree-branches:not(.tree-root) > li::before {
+    content: "├";
+    position: absolute;
+    top: 0;
+    left: -1rem;
+}
+.tree-branches:not(.tree-root) > li:last-child::before { content: "└"; }
+.tree-post::before { content: "■"; }
+.tree-post pre {
+    display: inline;
+    font-family: inherit;
+    font-size: 16px;
+    line-height: 1.3;
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+}
+.tree-author { font-size: 14px; }
+.tree-author::after { content: " "; }
+.tree-updated { margin-bottom: 0.25rem; }
+
 @media (max-width: 640px) {
     .m blockquote { margin-left: 10px; }
     .nw { white-space: normal; }

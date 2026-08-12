@@ -25,7 +25,6 @@ final class LegacyHtmlReader
         }
 
         $posts = [];
-        $threadOf = [];
         for ($i = 1; $i < count($chunks); $i += 2) {
             $postId = (int) $chunks[$i];
             $body = $chunks[$i + 1] ?? '';
@@ -44,19 +43,11 @@ final class LegacyHtmlReader
                     ?? ''
             );
 
-            if ($replyTo !== null && isset($threadOf[$replyTo])) {
-                $threadId = $threadOf[$replyTo];
-            } elseif ($replyTo === null) {
-                $threadId = $postId;
-            } else {
-                $threadId = $replyTo;
-            }
-            $threadOf[$postId] = $threadId;
-
             $posts[] = [
                 'posted_at' => $postedAt,
                 'post_id' => $postId,
-                'thread_id' => $threadId,
+                // HTML上の並び順に依存せず、全投稿のreply_toを読んだ後で確定する。
+                'thread_id' => $postId,
                 'location' => $location,
                 'host' => null,
                 'user_agent' => null,
@@ -69,7 +60,42 @@ final class LegacyHtmlReader
             ];
         }
 
+        $replyToByPostId = [];
+        foreach ($posts as $post) {
+            $replyToByPostId[$post['post_id']] = $post['reply_to'];
+        }
+        foreach ($posts as &$post) {
+            $post['thread_id'] = $this->resolveThreadId($post['post_id'], $replyToByPostId);
+        }
+        unset($post);
+
         return $posts;
+    }
+
+    /** @param array<int, int|null> $replyToByPostId */
+    private function resolveThreadId(int $postId, array $replyToByPostId): int
+    {
+        $current = $postId;
+        $visited = [];
+
+        while (true) {
+            if (isset($visited[$current])) {
+                // 壊れた循環参照で取込処理が停止しないよう、この投稿を起点として扱う。
+                return $postId;
+            }
+            $visited[$current] = true;
+
+            if (!array_key_exists($current, $replyToByPostId)) {
+                // 公開HTMLから親が流れている場合も、参照先IDをスレッド起点として保持する。
+                return $current;
+            }
+
+            $replyTo = $replyToByPostId[$current];
+            if ($replyTo === null) {
+                return $current;
+            }
+            $current = $replyTo;
+        }
     }
 
     private function parseDate(string $body): ?string
