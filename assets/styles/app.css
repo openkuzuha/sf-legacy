@@ -67,13 +67,24 @@ a.help { text-decoration-line: underline; }
 .tree-branches.tree-root { padding-left: 1rem; }
 .tree-branches li { position: relative; margin: 0; }
 .tree-branches:not(.tree-root) > li::before {
-    content: "├";
+    content: "";
+    position: absolute;
+    top: 0.65em;
+    left: -1rem;
+    width: 1rem;
+    height: 1px;
+    background: #009090;
+}
+.tree-branches:not(.tree-root) > li::after {
+    content: "";
     position: absolute;
     top: 0;
+    bottom: 0;
     left: -1rem;
-    color: #009090;
+    width: 1px;
+    background: #009090;
 }
-.tree-branches:not(.tree-root) > li:last-child::before { content: "└"; }
+.tree-branches:not(.tree-root) > li:last-child::after { bottom: auto; height: 0.65em; }
 .tree-post::before { content: "■"; }
 .tree-post pre {
     display: inline;
@@ -86,11 +97,21 @@ a.help { text-decoration-line: underline; }
 }
 .tree-message-prefix {
     display: inline-block;
+    position: relative;
     width: 1rem;
-    color: #009090;
+    height: 1.3em;
+    vertical-align: top;
+}
+.tree-message-prefix.has-children::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 1px;
+    background: #009090;
 }
 .tree-author { font-size: 14px; }
-.tree-author::after { content: " "; }
 .tree-updated { margin-bottom: 0.25rem; }
 
 @media (max-width: 640px) {
