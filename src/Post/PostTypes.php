@@ -9,7 +9,9 @@ namespace App\Post;
  *     title: string,
  *     message: string,
  *     host: ?string,
- *     user_agent: ?string
+ *     user_agent: ?string,
+ *     thread_id: ?int,
+ *     reply_to: ?int
  * }
  * @phpstan-type PostRecord array{
  *     posted_at: string,

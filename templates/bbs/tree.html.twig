@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {% macro message(post, has_children) %}
-    {%- for line in post.message|split("\n") -%}
+    {%- for line in post.message|split('\n') -%}
         {%- if not loop.first -%}<br><span class="tree-message-prefix">{{ has_children ? '│' : '　' }}</span>{%- endif -%}
         {%- if post.auto_link -%}{{ line|auto_link }}{%- else -%}{{ line }}{%- endif -%}
     {%- endfor -%}

@@ -1,0 +1,18 @@
+{% extends 'base.html.twig' %}
+
+{% block content %}
+            <hr>
+            <div class="m" id="m{{ reply.post_id }}">
+                <span class="nw">
+                    <span class="ms">{{ reply.title }}</span>&nbsp;&nbsp;
+                    <span class="mu">投稿者：<span class="mun">{{ reply.author }}</span></span>&nbsp;&nbsp;
+                    <span class="md">投稿日：<time datetime="{{ reply.posted_at }}">{{ reply.posted_at|bbs_datetime }}</time></span>
+                </span>
+                <blockquote>
+                    <pre>{% if reply.auto_link %}{{ reply.message|auto_link }}{% else %}{{ reply.message }}{% endif %}</pre>
+                </blockquote>
+            </div>
+            <hr>
+            <p>Reply記事投稿　<a href="{{ path('app_hello') }}">戻る</a></p>
+            {{ include('bbs/_post_form.html.twig', {reply: reply, reply_message: reply_message}) }}
+{% endblock %}

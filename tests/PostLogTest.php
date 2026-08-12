@@ -15,6 +15,8 @@ test('投稿日時をUTCのRFC 3339形式でJSONLへ追記する', function () {
             'message' => "本文,です\n二行目",
             'host' => '127.0.0.1',
             'user_agent' => 'Test Browser',
+            'thread_id' => null,
+            'reply_to' => null,
         ]))->toBe(1);
 
         expect($log->append([
@@ -24,6 +26,8 @@ test('投稿日時をUTCのRFC 3339形式でJSONLへ追記する', function () {
             'message' => '続き',
             'host' => null,
             'user_agent' => null,
+            'thread_id' => null,
+            'reply_to' => null,
         ]))->toBe(2);
 
         $lines = file($filename, FILE_IGNORE_NEW_LINES);
@@ -75,6 +79,8 @@ test('投稿日時をUTCのRFC 3339形式でJSONLへ追記する', function () {
                 'message' => '',
                 'host' => null,
                 'user_agent' => null,
+                'thread_id' => null,
+                'reply_to' => null,
             ]))->toBe(11);
     } finally {
         if (is_file($filename)) {

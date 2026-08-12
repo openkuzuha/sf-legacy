@@ -31,7 +31,7 @@ final class ValkeyPostRepository implements PostRepository
         $record = [
             'posted_at' => (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s\Z'),
             'post_id' => $postId,
-            'thread_id' => $postId,
+            'thread_id' => $post['thread_id'] ?? $postId,
             'location' => $this->location,
             'host' => $post['host'],
             'user_agent' => $post['user_agent'],
@@ -40,7 +40,7 @@ final class ValkeyPostRepository implements PostRepository
             'title' => $post['title'],
             'message' => $post['message'],
             'auto_link' => true,
-            'reply_to' => null,
+            'reply_to' => $post['reply_to'],
         ];
 
         $transaction = $this->client->transaction();

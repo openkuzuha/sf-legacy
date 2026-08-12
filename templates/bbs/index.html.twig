@@ -1,36 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {% block content %}
-            <form class="flex flex-col items-start gap-2" action="{{ path('app_submit') }}" method="post">
-                <div class="post-fields flex flex-col gap-0">
-                    <div class="flex items-center gap-2">
-                        <label class="w-14" for="author">投稿者</label>
-                        <input id="author" name="author" type="text">
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <label class="w-14" for="email">メール</label>
-                        <input class="w-72" id="email" name="email" type="email">
-                    </div>
-                    <div class="post-title-row flex items-center gap-2">
-                        <label class="w-14" for="title">題名</label>
-                        <input class="w-72" id="title" name="title" type="text">
-                        <span class="post-title-actions">
-                            <button type="submit" name="post" class="btn">投稿／リロード</button>
-                            <button type="reset" class="btn">消す</button>
-                        </span>
-                    </div>
-                </div>
-                <label for="content">内容</label>
-                <textarea class="post-content" id="content" name="content" rows="5" cols="70"></textarea>
-                {#
-                <label for="url">URL （リンクを入れたい場合はここに記入します。）</label>
-                <input class="w-[36rem]" id="url" name="url" type="text" placeholder="https://">
-                #}
-                <span class="post-form-actions">
-                    <button type="submit" name="post" class="btn">投稿／リロード</button>
-                    <button type="button" data-scroll-target="page-bottom" aria-label="一番下へ">▼</button>
-                </span>
-            </form>
+            {{ include('bbs/_post_form.html.twig', {reply: null, reply_message: ''}) }}
             {% if posts %}
                 <hr>
             {% endif %}
@@ -46,13 +17,25 @@
                             >&nbsp;</a>
                         </span>
                         &nbsp;<a
+                            href="{{ path('app_reply', {postId: post.post_id}) }}"
+                            aria-label="Reply"
+                            title="Reply"
+                        >■</a>
+                        &nbsp;<a
+                            href="{{ path('app_thread', {threadId: post.thread_id}) }}"
+                            aria-label="スレッド表示"
+                            title="スレッド表示"
+                        >◆</a>
+                        &nbsp;<a
                             href="{{ path('app_thread_tree', {threadId: post.thread_id}) }}"
                             aria-label="ツリー表示"
                             title="ツリー表示"
                         >木</a>
                     </span>
                     <blockquote>
-                        <pre>{% if post.auto_link %}{{ post.message|auto_link }}{% else %}{{ post.message }}{% endif %}</pre>
+                        <pre>{% if post.auto_link %}{{ post.message|auto_link }}{% else %}{{ post.message }}{% endif %}{% if post.reference is defined and post.reference %}
+
+<a href="{{ path('app_thread_tree', {threadId: post.thread_id}) }}#m{{ post.reference.post_id }}">参考：{{ post.reference.posted_at|bbs_datetime }}</a>{% endif %}</pre>
                     </blockquote>
                 </div>
                 <hr>

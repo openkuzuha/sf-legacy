@@ -25,6 +25,20 @@ final class SubmitController
             return $this->redirectToBbs();
         }
 
+        $replyTo = $request->request->getInt('reply_to') ?: null;
+        $threadId = null;
+        if ($replyTo !== null) {
+            foreach ($this->posts->all() as $post) {
+                if ($post['post_id'] === $replyTo) {
+                    $threadId = $post['thread_id'];
+                    break;
+                }
+            }
+            if ($threadId === null) {
+                return $this->redirectToBbs();
+            }
+        }
+
         $this->posts->append([
             'author' => $request->request->getString('author'),
             'email' => $request->request->getString('email'),
@@ -32,6 +46,8 @@ final class SubmitController
             'message' => $message,
             'host' => $request->getClientIp(),
             'user_agent' => $request->headers->get('User-Agent'),
+            'thread_id' => $threadId,
+            'reply_to' => $replyTo,
         ]);
 
         return $this->redirectToBbs();

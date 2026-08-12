@@ -27,6 +27,7 @@ final class BbsController
     {
         $beforePostId = $request->query->getInt('before');
         $startPosition = 1;
+        $allPosts = null;
         if ($beforePostId > 0) {
             $allPosts = $this->posts->all();
             $candidates = array_values(array_filter(
@@ -44,12 +45,84 @@ final class BbsController
             $nextBefore = $posts[count($posts) - 1]['post_id'];
         }
 
+        $hasReplies = false;
+        foreach ($posts as $post) {
+            if ($post['reply_to'] !== null) {
+                $hasReplies = true;
+                break;
+            }
+        }
+        if ($hasReplies) {
+            $allPosts ??= $this->posts->all();
+            $postsById = [];
+            foreach ($allPosts as $post) {
+                $postsById[$post['post_id']] = $post;
+            }
+            foreach ($posts as &$post) {
+                $replyTo = $post['reply_to'];
+                $post['reference'] = $replyTo !== null && isset($postsById[$replyTo])
+                    ? $postsById[$replyTo]
+                    : null;
+            }
+            unset($post);
+        }
+
         return new Response($this->twig->render('bbs/index.html.twig', [
             'app_title' => $this->appTitle,
             'posts' => $posts,
             'range_start' => $startPosition,
             'range_end' => $startPosition + count($posts) - 1,
             'next_before' => $nextBefore,
+        ]));
+    }
+
+    #[Route('/reply/{postId<\d+>}', name: 'app_reply', methods: ['GET'])]
+    public function reply(int $postId): Response
+    {
+        $reply = null;
+        foreach ($this->posts->all() as $post) {
+            if ($post['post_id'] === $postId) {
+                $reply = $post;
+                break;
+            }
+        }
+        if ($reply === null) {
+            throw new NotFoundHttpException('返信先が見つかりません。');
+        }
+
+        return new Response($this->twig->render('bbs/reply.html.twig', [
+            'app_title' => $this->appTitle,
+            'reply' => $reply,
+            'reply_message' => $this->quotedReply($reply['message']),
+        ]));
+    }
+
+    #[Route('/thread/{threadId<\d+>}', name: 'app_thread', methods: ['GET'])]
+    public function thread(int $threadId): Response
+    {
+        $thread = array_values(array_filter(
+            $this->posts->all(),
+            static fn (array $post): bool => $post['thread_id'] === $threadId,
+        ));
+        if ($thread === []) {
+            throw new NotFoundHttpException('スレッドが見つかりません。');
+        }
+
+        $postsById = [];
+        foreach ($thread as $post) {
+            $postsById[$post['post_id']] = $post;
+        }
+        foreach ($thread as &$post) {
+            $replyTo = $post['reply_to'];
+            $post['reference'] = $replyTo !== null && isset($postsById[$replyTo])
+                ? $postsById[$replyTo]
+                : null;
+        }
+        unset($post);
+
+        return new Response($this->twig->render('bbs/thread.html.twig', [
+            'app_title' => $this->appTitle,
+            'posts' => $thread,
         ]));
     }
 
@@ -123,5 +196,18 @@ final class BbsController
         );
 
         return trim(implode("\n", $lines));
+    }
+
+    private function quotedReply(string $message): string
+    {
+        $lines = preg_split('/\R/u', trim($message));
+        if ($lines === false) {
+            return '> ' . trim($message) . "\n\n";
+        }
+
+        return implode("\n", array_map(
+            static fn (string $line): string => $line === '' ? '>' : '> ' . $line,
+            $lines,
+        )) . "\n\n";
     }
 }
