@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\PageView\PageViewCounter;
+use App\Post\DailyPostArchive;
 use App\Post\PostRepository;
 use App\Visitor\VisitorCounter;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -23,6 +24,7 @@ final class BbsController
         private readonly string $appTitle,
         private readonly Environment $twig,
         private readonly PostRepository $posts,
+        private readonly DailyPostArchive $archive,
         private readonly VisitorCounter $visitorCounter,
         private readonly PageViewCounter $pageViewCounter,
         #[Autowire(param: 'app.page_view_started_at')]
@@ -109,6 +111,27 @@ final class BbsController
             'page_view_count' => $pageViewCount,
             'page_view_started_at' => $this->pageViewStartedAt,
             'central_post_limit' => $this->centralPostLimit,
+        ]));
+    }
+
+    #[Route('/archive', name: 'app_archive', methods: ['GET'])]
+    public function archive(Request $request): Response
+    {
+        $archives = $this->archive->entries();
+        $selectedArchives = $request->query->all('archives');
+        $selectedArchives = array_values(array_filter($selectedArchives, 'is_string'));
+        if (!$request->query->has('keyword') && $archives !== []) {
+            $selectedArchives = [$archives[array_key_last($archives)]['date']];
+        }
+        $keyword = trim($request->query->getString('keyword'));
+
+        return new Response($this->twig->render('bbs/archive.html.twig', [
+            'app_title' => $this->appTitle,
+            'archives' => $archives,
+            'selected_archives' => $selectedArchives,
+            'keyword' => $keyword,
+            'search_performed' => $request->query->has('keyword'),
+            'posts' => $this->archive->search($selectedArchives, $keyword),
         ]));
     }
 

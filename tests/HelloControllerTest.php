@@ -31,11 +31,23 @@ test('トップページに設定したアプリケーション名が表示さ�
     $this->assertSelectorTextContains('#post-form .small', '最大記事件数 : 500件');
     expect($crawler->filter('.page-view-counter')->text())->toMatch('/^2026\/08\/12 から \d+$/');
     $this->assertSelectorTextContains('#post-form .small + div', '過去ログ');
+    $this->assertSelectorExists('#post-form .archive-heading a[href="/archive"]');
     $this->assertSelectorExists('#post-form .small + div > hr + div + hr');
     $this->assertSelectorTextContains('#post-form .archive-heading', '■ : フォロー投稿(返信)');
     $this->assertSelectorExists('#post-form .archive-heading > hr:last-child');
     $this->assertSelectorExists('#post-form .small + div + .post-form-actions');
     $this->assertSelectorExists('#page-bottom');
+});
+
+test('過去ログページは一覧見出しを表示する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient();
+    $client->request('GET', '/archive');
+
+    $this->assertResponseIsSuccessful();
+    $this->assertSelectorTextSame('h2', '過去ログ一覧');
+    $this->assertSelectorExists('form[action="/archive"][method="get"]');
+    $this->assertSelectorExists('input[name="keyword"]');
 });
 
 test('存在しないスレッドのツリー表示は404を返す', function () {

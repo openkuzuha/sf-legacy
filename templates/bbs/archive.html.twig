@@ -1,0 +1,51 @@
+{% extends 'base.html.twig' %}
+
+{% block content %}
+    <style>
+        .search-highlight { background: #ff0; color: #000; }
+    </style>
+    <h2>過去ログ一覧</h2>
+    <form action="{{ path('app_archive') }}" method="get">
+        <ul style="list-style: none;">
+            {% for archive in archives %}
+                <li>
+                    <label>
+                        <input type="checkbox" name="archives[]" value="{{ archive.date }}"{% if archive.date in selected_archives %} checked{% endif %}>
+                        {{ archive.date }} {{ archive.formatted_size }} {{ archive.post_count }}件
+                    </label>
+                </li>
+            {% endfor %}
+        </ul>
+        {% if archives %}
+            <button type="button" data-toggle-archive-selection>全選択／解除</button>
+        {% endif %}
+        <hr>
+        <div>
+            <label for="archive-keyword">キーワード指定</label><br>
+            <input id="archive-keyword" name="keyword" type="text" size="40" value="{{ keyword }}" style="max-width: 100%; box-sizing: border-box;">
+            <button type="submit">検索</button>
+        </div>
+    </form>
+    {% if search_performed %}
+        <hr>
+        {% for post in posts %}
+            <div class="m" id="m{{ post.post_id }}">
+                <span class="nw">
+                    <span class="ms">{{ post.title|search_highlight(keyword) }}</span>&nbsp;&nbsp;
+                    <span class="mu">投稿者：<span class="mun">{{ post.author|search_highlight(keyword) }}</span></span>&nbsp;&nbsp;
+                    <span class="md">投稿日：<time datetime="{{ post.posted_at }}">{{ post.posted_at|bbs_datetime }}</time></span>
+                </span>
+                <blockquote><pre>{% if post.auto_link %}{{ post.message|auto_link(keyword) }}{% else %}{{ post.message|search_highlight(keyword) }}{% endif %}</pre></blockquote>
+            </div>
+            <hr>
+        {% endfor %}
+        <p>{{ posts|length }}件見つかりました。</p>
+    {% endif %}
+    <script>
+        document.querySelector('[data-toggle-archive-selection]')?.addEventListener('click', (event) => {
+            const checkboxes = event.currentTarget.form.querySelectorAll('input[name="archives[]"]');
+            const selectAll = Array.from(checkboxes).some((checkbox) => !checkbox.checked);
+            checkboxes.forEach((checkbox) => checkbox.checked = selectAll);
+        });
+    </script>
+{% endblock %}

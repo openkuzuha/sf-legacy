@@ -20,15 +20,39 @@ test('投稿をローカル時刻の日別に保存し月単位では結合し�
         'auto_link' => true,
         'reply_to' => null,
     ];
+    $nextRecord = $record;
+    $nextRecord['posted_at'] = '2026-08-01T15:30:00Z';
+    $nextRecord['post_id'] = 2;
+    $nextRecord['thread_id'] = 2;
 
     try {
         expect($archive->put($record))->toBeTrue()
             ->and($archive->put($record))->toBeFalse()
+            ->and($archive->put($nextRecord))->toBeTrue()
             ->and($directory . '/2026/08/01.jsonl')->toBeFile()
-            ->and($archive->month('2026-08'))->toBe([$record]);
+            ->and($archive->month('2026-08'))->toBe([$record, $nextRecord])
+            ->and($archive->search(['2026/08/02'], '本文'))->toBe([$nextRecord])
+            ->and($archive->search(['../../etc/passwd'], '本文'))->toBe([])
+            ->and($archive->entries())->toBe([
+                [
+                    'date' => '2026/08/01',
+                    'size' => filesize($directory . '/2026/08/01.jsonl'),
+                    'formatted_size' => filesize($directory . '/2026/08/01.jsonl') . ' B',
+                    'post_count' => 1,
+                ],
+                [
+                    'date' => '2026/08/02',
+                    'size' => filesize($directory . '/2026/08/02.jsonl'),
+                    'formatted_size' => filesize($directory . '/2026/08/02.jsonl') . ' B',
+                    'post_count' => 1,
+                ],
+            ]);
     } finally {
         if (is_file($directory . '/2026/08/01.jsonl')) {
             unlink($directory . '/2026/08/01.jsonl');
+        }
+        if (is_file($directory . '/2026/08/02.jsonl')) {
+            unlink($directory . '/2026/08/02.jsonl');
         }
         @rmdir($directory . '/2026/08');
         @rmdir($directory . '/2026');

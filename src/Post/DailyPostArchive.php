@@ -87,6 +87,100 @@ final class DailyPostArchive
         return $records;
     }
 
+    /** @return list<array{date: string, size: int, formatted_size: string, post_count: int}> */
+    public function entries(): array
+    {
+        $filenames = glob(sprintf('%s/*/*/*.jsonl', rtrim($this->directory, '/')));
+        if ($filenames === false) {
+            throw new RuntimeException('日別アーカイブを列挙できません。');
+        }
+        sort($filenames, SORT_STRING);
+
+        $entries = [];
+        foreach ($filenames as $filename) {
+            $relative = substr($filename, strlen(rtrim($this->directory, '/')) + 1);
+            if (preg_match('#^(\d{4})/(\d{2})/(\d{2})\.jsonl$#D', $relative, $matches) !== 1) {
+                continue;
+            }
+            $size = filesize($filename);
+            if ($size === false) {
+                throw new RuntimeException(sprintf('アーカイブファイル "%s" のサイズを取得できません。', $filename));
+            }
+            $postCount = 0;
+            foreach (file($filename, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
+                if ($this->codec->decode($line) !== null) {
+                    ++$postCount;
+                }
+            }
+            $entries[] = [
+                'date' => sprintf('%s/%s/%s', $matches[1], $matches[2], $matches[3]),
+                'size' => $size,
+                'formatted_size' => self::formatBytes($size),
+                'post_count' => $postCount,
+            ];
+        }
+
+        return $entries;
+    }
+
+    /**
+     * @param list<string> $dates
+     * @return list<PostRecord>
+     */
+    public function search(array $dates, string $keyword): array
+    {
+        if ($keyword === '') {
+            return [];
+        }
+
+        $records = [];
+        foreach (array_unique($dates) as $date) {
+            if (preg_match('#^\d{4}/\d{2}/\d{2}$#D', $date) !== 1) {
+                continue;
+            }
+            $filename = sprintf('%s/%s.jsonl', rtrim($this->directory, '/'), $date);
+            if (!is_file($filename)) {
+                continue;
+            }
+            foreach (file($filename, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
+                $record = $this->codec->decode($line);
+                if ($record === null) {
+                    continue;
+                }
+                $target = implode("\n", [
+                    $record['author'],
+                    $record['email'],
+                    $record['title'],
+                    $record['message'],
+                ]);
+                if (mb_stripos($target, $keyword) !== false) {
+                    $records[] = $record;
+                }
+            }
+        }
+        usort($records, static fn (array $left, array $right): int => $left['posted_at'] <=> $right['posted_at']);
+
+        return $records;
+    }
+
+    private static function formatBytes(int $bytes): string
+    {
+        if ($bytes < 1024) {
+            return sprintf('%d B', $bytes);
+        }
+
+        $units = ['KB', 'MB', 'GB', 'TB'];
+        $size = $bytes / 1024;
+        foreach ($units as $unit) {
+            if ($size < 1024 || $unit === 'TB') {
+                return sprintf('%s %s', number_format($size, 1), $unit);
+            }
+            $size /= 1024;
+        }
+
+        return sprintf('%d B', $bytes);
+    }
+
     private function filename(string $postedAt): string
     {
         $date = (new DateTimeImmutable($postedAt))->setTimezone($this->timezone);
