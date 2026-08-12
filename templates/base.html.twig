@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{{ app_title }}</title>
+        {{ vite_entry_link_tags('app') }}
+        {{ vite_entry_script_tags('app') }}
+    </head>
+    <body>
+        <main>
+            <h1><a href="{{ path('app_hello') }}">{{ app_title }}</a></h1>
+            {% block content %}{% endblock %}
+        </main>
+        {% block footer %}{% endblock %}
+        <div class="request-duration">実行時間 : {{ request_duration() }}秒</div>
+    </body>
+</html>

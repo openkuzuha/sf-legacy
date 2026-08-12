@@ -1,17 +1,8 @@
-<!DOCTYPE html>
-<html lang="ja">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>{{ app_title }}</title>
-        {{ vite_entry_link_tags('app') }}
-        {{ vite_entry_script_tags('app') }}
-    </head>
-    <body>
-        <main>
-            <h1>{{ app_title }}</h1>
+{% extends 'base.html.twig' %}
+
+{% block content %}
             <form class="flex flex-col items-start gap-2" action="{{ path('app_submit') }}" method="post">
-                <div class="flex flex-col gap-0">
+                <div class="post-fields flex flex-col gap-0">
                     <div class="flex items-center gap-2">
                         <label class="w-14" for="author">投稿者</label>
                         <input id="author" name="author" type="text">
@@ -20,15 +11,17 @@
                         <label class="w-14" for="email">メール</label>
                         <input class="w-72" id="email" name="email" type="email">
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="post-title-row flex items-center gap-2">
                         <label class="w-14" for="title">題名</label>
                         <input class="w-72" id="title" name="title" type="text">
-                        <button type="submit" name="post" class="btn">投稿／リロード</button>
-                        <button type="reset" class="btn">消す</button>
+                        <span class="post-title-actions">
+                            <button type="submit" name="post" class="btn">投稿／リロード</button>
+                            <button type="reset" class="btn">消す</button>
+                        </span>
                     </div>
                 </div>
                 <label for="content">内容</label>
-                <textarea id="content" name="content" rows="5" cols="70"></textarea>
+                <textarea class="post-content" id="content" name="content" rows="5" cols="70"></textarea>
                 {#
                 <label for="url">URL （リンクを入れたい場合はここに記入します。）</label>
                 <input class="w-[36rem]" id="url" name="url" type="text" placeholder="https://">
@@ -64,12 +57,13 @@
                 {% endif %}
                 <!--  -->
             {% endfor %}
-        </main>
+{% endblock %}
+
+{% block footer %}
         <footer class="text-[13px] text-right">
             <hr>
             <a href="https://github.com/openkuzuha/sf-legacy" target="_blank" rel="noopener noreferrer">
                 Open Kuzuha / sf-legacy
             </a>
         </footer>
-    </body>
-</html>
+{% endblock %}

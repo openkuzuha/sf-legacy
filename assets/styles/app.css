@@ -32,6 +32,19 @@ a.help { text-decoration-line: underline; }
 .mu, .mun, .md { font-size: 14px; }
 .mun { font-weight: normal; }
 .nw { white-space: nowrap; }
+.request-duration { font-size: 13px; }
+
+.post-fields { max-width: 100%; }
+.post-title-actions {
+    display: flex;
+    flex-shrink: 0;
+    gap: 0.5rem;
+}
+.post-content {
+    box-sizing: border-box;
+    max-width: 100%;
+    width: 36rem;
+}
 
 .tree-branches {
     list-style: none;
@@ -62,6 +75,17 @@ a.help { text-decoration-line: underline; }
 .tree-updated { margin-bottom: 0.25rem; }
 
 @media (max-width: 640px) {
+    .post-fields { width: 100%; }
+    .post-title-row { flex-wrap: wrap; }
+    .post-title-row input {
+        box-sizing: border-box;
+        flex: 1 1 0;
+        min-width: 0;
+    }
+    .post-title-actions {
+        margin-left: 3.5rem;
+        white-space: nowrap;
+    }
     .m blockquote { margin-left: 10px; }
     .nw { white-space: normal; }
 }

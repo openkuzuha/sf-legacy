@@ -45,7 +45,7 @@ test('個別スレッドをreply_toに従って階層表示する', function () 
         $client->request('GET', '/tree/100');
 
         $this->assertResponseIsSuccessful();
-        $this->assertSelectorTextContains('h1', 'ツリー表示');
+        $this->assertSelectorTextContains('h1 a[href="/"]', 'Open Kuzuha');
         $this->assertSelectorCount(1, '.tree-branches > li > #m100');
         $this->assertSelectorCount(1, '.tree-branches > li > .tree-branches > li > #m101');
         $this->assertSelectorTextNotContains('#m101', '> 最初の投稿');
