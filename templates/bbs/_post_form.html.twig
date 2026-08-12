@@ -22,6 +22,13 @@
     </div>
     <label for="content">内容</label>
     <textarea class="post-content" id="content" name="content" rows="5" cols="70">{{ reply_message }}</textarea>
+    <div class="flex items-center gap-3">
+        <label>
+            表示件数
+            <input class="w-20" name="display_count" type="number" min="1" max="1000" value="{{ display_count|default(40) }}">
+        </label>
+        <label><input name="auto_link" type="checkbox" value="1"{% if auto_link_enabled|default(true) %} checked{% endif %}> URL自動リンク</label>
+    </div>
     <span class="post-form-actions">
         <button type="submit" name="post" class="btn">投稿／リロード</button>
         <button type="button" data-scroll-target="page-bottom" aria-label="一番下へ">▼</button>

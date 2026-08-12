@@ -30,10 +30,22 @@ test('投稿日時をUTCのRFC 3339形式でJSONLへ追記する', function () {
             'reply_to' => null,
         ]))->toBe(2);
 
+        expect($log->append([
+            'author' => '三人目',
+            'email' => '',
+            'title' => '',
+            'message' => '自動リンクなし',
+            'auto_link' => false,
+            'host' => null,
+            'user_agent' => null,
+            'thread_id' => null,
+            'reply_to' => null,
+        ]))->toBe(3);
+
         $lines = file($filename, FILE_IGNORE_NEW_LINES);
         expect($lines)->toBeArray();
         assert(is_array($lines));
-        expect($lines)->toHaveCount(2);
+        expect($lines)->toHaveCount(3);
 
         $record = json_decode($lines[0], true, flags: JSON_THROW_ON_ERROR);
         expect($record)->toBeArray();
@@ -60,9 +72,11 @@ test('投稿日時をUTCのRFC 3339形式でJSONLへ追記する', function () {
 
         $records = $log->all();
         expect($records)
-            ->toHaveCount(2)
-            ->and($records[0]['post_id'])->toBe(2)
-            ->and($records[1]['post_id'])->toBe(1);
+            ->toHaveCount(3)
+            ->and($records[0]['post_id'])->toBe(3)
+            ->and($records[0]['auto_link'])->toBeFalse()
+            ->and($records[1]['post_id'])->toBe(2)
+            ->and($records[2]['post_id'])->toBe(1);
 
         $imported = $records[0];
         expect($log->import($imported))->toBeFalse();

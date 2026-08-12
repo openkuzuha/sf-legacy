@@ -39,7 +39,7 @@ final class ValkeyPostRepository implements PostRepository
             'email' => $post['email'],
             'title' => $post['title'],
             'message' => $post['message'],
-            'auto_link' => true,
+            'auto_link' => $post['auto_link'] ?? true,
             'reply_to' => $post['reply_to'],
         ];
 

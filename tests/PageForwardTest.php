@@ -64,3 +64,51 @@ test('最後の記事を基準に古い記事へ送る', function () {
         }
     }
 });
+
+test('投稿フォームで表示件数を選択して引き継ぐ', function () {
+    /** @var TestCase $this */
+    $filename = sys_get_temp_dir() . '/sf-legacy-display-count-' . bin2hex(random_bytes(8)) . '.jsonl';
+    $repository = new JsonlPostRepository($filename, new PostRecordCodec());
+
+    try {
+        for ($postId = 1; $postId <= 5; ++$postId) {
+            $repository->import([
+                'posted_at' => '2026-08-12T02:24:41Z',
+                'post_id' => $postId,
+                'thread_id' => $postId,
+                'location' => 'main',
+                'host' => null,
+                'user_agent' => null,
+                'author' => '',
+                'email' => '',
+                'title' => '投稿' . $postId,
+                'message' => '本文' . $postId,
+                'auto_link' => true,
+                'reply_to' => null,
+            ]);
+        }
+
+        $client = $this->createClient();
+        $client->disableReboot();
+        $this->getContainer()->set(PostRepository::class, $repository);
+        $crawler = $client->request('GET', '/');
+
+        $this->assertInputValueSame('display_count', '40');
+        $form = $crawler->filter('#post-form')->selectButton('投稿／リロード')->last()->form();
+        $client->submit($form, ['display_count' => '2']);
+        $this->assertResponseRedirects('/?display_count=2');
+
+        $client->followRedirect();
+        $this->assertSelectorCount(2, '.m');
+        $this->assertInputValueSame('display_count', '2');
+        $this->assertSelectorExists('.page-actions input[name="display_count"][value="2"]');
+
+        $client->request('GET', '/');
+        $this->assertSelectorCount(2, '.m');
+        $this->assertInputValueSame('display_count', '2');
+    } finally {
+        if (is_file($filename)) {
+            unlink($filename);
+        }
+    }
+});

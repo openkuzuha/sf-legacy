@@ -52,10 +52,12 @@
                     {% if next_before %}
                         <form action="{{ path('app_hello') }}" method="get">
                             <input type="hidden" name="before" value="{{ next_before }}">
+                            <input type="hidden" name="display_count" value="{{ display_count }}">
                             <button type="submit">次のページ</button>
                         </form>
                     {% endif %}
                     <form action="{{ path('app_hello') }}" method="get">
+                        <input type="hidden" name="display_count" value="{{ display_count }}">
                         <button type="submit">リロード</button>
                     </form>
                     <button type="button" data-scroll-target="page-top" aria-label="一番上へ">▲</button>

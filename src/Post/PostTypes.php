@@ -8,6 +8,7 @@ namespace App\Post;
  *     email: string,
  *     title: string,
  *     message: string,
+ *     auto_link?: bool,
  *     host: ?string,
  *     user_agent: ?string,
  *     thread_id: ?int,

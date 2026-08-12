@@ -25,6 +25,7 @@ test('トップページに設定したアプリケーション名が表示さ�
     $this->assertSelectorCount(1, 'input[name="email"][type="email"]');
     $this->assertSelectorCount(1, 'input[name="title"][type="text"]');
     $this->assertSelectorCount(1, 'textarea[name="content"]');
+    $this->assertSelectorExists('input[name="auto_link"][type="checkbox"][checked]');
     $this->assertSelectorExists('.post-form-actions [data-scroll-target="page-bottom"]');
     expect($crawler->filter('.small')->text())->toMatch('/現在の参加者 : \d+人 \(300秒以内\)/');
     $this->assertSelectorExists('#page-bottom');
@@ -136,12 +137,16 @@ test('■から引用付きReplyを投稿する', function () {
         $client->submitForm('投稿／リロード', [
             'author' => '返信者',
             'content' => "> 一行目\n> 二行目\n\n返信本文",
+            'auto_link' => false,
         ]);
         $this->assertResponseRedirects('/');
+        expect($client->getCookieJar()->get('bbs_display_count')?->getValue())->toBe('40')
+            ->and($client->getCookieJar()->get('bbs_auto_link')?->getValue())->toBe('0');
 
         $reply = $repository->all()[0];
         expect($reply['thread_id'])->toBe(100)
             ->and($reply['reply_to'])->toBe(100)
+            ->and($reply['auto_link'])->toBeFalse()
             ->and($reply['message'])->toEndWith('返信本文');
     } finally {
         if (is_file($filename)) {

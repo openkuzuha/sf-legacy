@@ -13,7 +13,9 @@ use Twig\Environment;
 
 final class BbsController
 {
-    private const int PAGE_SIZE = 40;
+    private const int DEFAULT_PAGE_SIZE = 40;
+
+    private const int MAX_PAGE_SIZE = 1000;
 
     public function __construct(
         #[Autowire(param: 'app.title')]
@@ -27,6 +29,13 @@ final class BbsController
     #[Route('/', name: 'app_hello')]
     public function __invoke(Request $request): Response
     {
+        $storedPageSize = $request->cookies->getInt('bbs_display_count', self::DEFAULT_PAGE_SIZE);
+        $pageSize = max(1, min(
+            self::MAX_PAGE_SIZE,
+            $request->query->has('display_count')
+                ? $request->query->getInt('display_count')
+                : $storedPageSize,
+        ));
         $beforePostId = $request->query->getInt('before');
         $startPosition = 1;
         $allPosts = null;
@@ -38,10 +47,10 @@ final class BbsController
             ));
             $startPosition = count($allPosts) - count($candidates) + 1;
         } else {
-            $candidates = $this->posts->recent(self::PAGE_SIZE + 1);
+            $candidates = $this->posts->recent($pageSize + 1);
         }
-        $hasMore = count($candidates) > self::PAGE_SIZE;
-        $posts = array_slice($candidates, 0, self::PAGE_SIZE);
+        $hasMore = count($candidates) > $pageSize;
+        $posts = array_slice($candidates, 0, $pageSize);
         $nextBefore = null;
         if ($hasMore && $posts !== []) {
             $nextBefore = $posts[count($posts) - 1]['post_id'];
@@ -81,13 +90,15 @@ final class BbsController
             'range_start' => $startPosition,
             'range_end' => $startPosition + count($posts) - 1,
             'next_before' => $nextBefore,
+            'display_count' => $pageSize,
+            'auto_link_enabled' => $request->cookies->getString('bbs_auto_link', '1') !== '0',
             'visitor_count' => $visitorCount,
             'visitor_limit' => $this->visitorCounter->limit(),
         ]));
     }
 
     #[Route('/reply/{postId<\d+>}', name: 'app_reply', methods: ['GET'])]
-    public function reply(int $postId): Response
+    public function reply(Request $request, int $postId): Response
     {
         $reply = null;
         foreach ($this->posts->all() as $post) {
@@ -104,6 +115,11 @@ final class BbsController
             'app_title' => $this->appTitle,
             'reply' => $reply,
             'reply_message' => $this->quotedReply($reply['message']),
+            'display_count' => max(1, min(
+                self::MAX_PAGE_SIZE,
+                $request->cookies->getInt('bbs_display_count', self::DEFAULT_PAGE_SIZE),
+            )),
+            'auto_link_enabled' => $request->cookies->getString('bbs_auto_link', '1') !== '0',
         ]));
     }
 
