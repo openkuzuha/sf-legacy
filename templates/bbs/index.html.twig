@@ -35,6 +35,30 @@
                 #}
                 <button type="submit" name="post" class="btn">投稿／リロード</button>
             </form>
+            {% if posts %}
+                <hr>
+            {% endif %}
+            {% for post in posts %}
+                <div class="m" id="m{{ post.post_id }}">
+                    <span class="nw">
+                        <span class="ms">{{ post.title }}</span>&nbsp;&nbsp;
+                        <span class="mu">投稿者：<span class="mun">{{ post.author }}</span></span>&nbsp;&nbsp;
+                        <span class="md">
+                            投稿日：{{ post.posted_at_display }}<a
+                                name="a{{ post.post_id }}"
+                                id="a{{ post.post_id }}"
+                            >&nbsp;</a>
+                        </span>
+                    </span>
+                    <blockquote>
+                        <pre>{{ post.message }}</pre>
+                    </blockquote>
+                </div>
+                {% if not loop.last %}
+                    <hr>
+                {% endif %}
+                <!--  -->
+            {% endfor %}
         </main>
         <footer class="text-[13px] text-right">
             <hr>
