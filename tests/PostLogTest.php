@@ -1,10 +1,11 @@
 <?php
 
-use App\Log\PostLog;
+use App\Post\JsonlPostRepository;
+use App\Post\PostRecordCodec;
 
 test('投稿を旧ログ互換のフィールドを持つJSONLとして追記する', function () {
     $filename = sys_get_temp_dir() . '/sf-legacy-post-log-' . bin2hex(random_bytes(8)) . '.jsonl';
-    $log = new PostLog($filename);
+    $log = new JsonlPostRepository($filename, new PostRecordCodec());
 
     try {
         expect($log->append([
@@ -37,6 +38,7 @@ test('投稿を旧ログ互換のフィールドを持つJSONLとして追記す
             ->not->toHaveKey('protect')
             ->and($record['post_id'])->toBe(1)
             ->and($record['thread_id'])->toBe(1)
+            ->and($record['location'])->toBe('main')
             ->and($record['message'])->toBe("本文,です\n二行目")
             ->and($record['reply_to'])->toBeNull();
 
@@ -45,6 +47,23 @@ test('投稿を旧ログ互換のフィールドを持つJSONLとして追記す
             ->toHaveCount(2)
             ->and($records[0]['post_id'])->toBe(2)
             ->and($records[1]['post_id'])->toBe(1);
+
+        $imported = $records[0];
+        expect($log->import($imported))->toBeFalse();
+
+        $imported['post_id'] = 10;
+        $imported['thread_id'] = 10;
+        $imported['posted_at'] = 1_700_000_000;
+        expect($log->import($imported))->toBeTrue()
+            ->and($log->all()[0]['post_id'])->toBe(10)
+            ->and($log->append([
+                'author' => '採番確認',
+                'email' => '',
+                'title' => '',
+                'message' => '',
+                'host' => null,
+                'user_agent' => null,
+            ]))->toBe(11);
     } finally {
         if (is_file($filename)) {
             unlink($filename);

@@ -1,0 +1,170 @@
+<?php
+
+namespace App\Post;
+
+use RuntimeException;
+
+/**
+ * The deliberately simple text implementation: one UTF-8 JSON object per line.
+ *
+ * @phpstan-import-type PostInput from PostTypes
+ * @phpstan-import-type PostRecord from PostTypes
+ */
+final class JsonlPostRepository implements PostRepository
+{
+    public function __construct(
+        private readonly string $filename,
+        private readonly PostRecordCodec $codec,
+        private readonly string $location = 'main',
+    ) {
+    }
+
+    /** @param PostInput $post */
+    public function append(array $post): int
+    {
+        $directory = dirname($this->filename);
+        if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
+            throw new RuntimeException(sprintf('ログディレクトリ "%s" を作成できません。', $directory));
+        }
+
+        $handle = fopen($this->filename, 'c+');
+        if ($handle === false) {
+            throw new RuntimeException(sprintf('ログファイル "%s" を開けません。', $this->filename));
+        }
+
+        try {
+            if (!flock($handle, LOCK_EX)) {
+                throw new RuntimeException('ログファイルをロックできません。');
+            }
+
+            $postId = $this->nextPostId($handle);
+            $record = $this->record($postId, $post);
+            if (fseek($handle, 0, SEEK_END) !== 0 || fwrite($handle, $this->codec->encode($record) . "\n") === false) {
+                throw new RuntimeException('投稿をログファイルへ書き込めません。');
+            }
+
+            fflush($handle);
+            flock($handle, LOCK_UN);
+
+            return $postId;
+        } finally {
+            fclose($handle);
+        }
+    }
+
+    /** @param PostRecord $post */
+    public function import(array $post): bool
+    {
+        $directory = dirname($this->filename);
+        if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
+            throw new RuntimeException(sprintf('ログディレクトリ "%s" を作成できません。', $directory));
+        }
+
+        $handle = fopen($this->filename, 'c+');
+        if ($handle === false) {
+            throw new RuntimeException(sprintf('ログファイル "%s" を開けません。', $this->filename));
+        }
+
+        try {
+            if (!flock($handle, LOCK_EX)) {
+                throw new RuntimeException('ログファイルをロックできません。');
+            }
+            rewind($handle);
+            while (($line = fgets($handle)) !== false) {
+                $existing = $this->codec->decode($line);
+                if (
+                    $existing !== null
+                    && $existing['location'] === $post['location']
+                    && $existing['post_id'] === $post['post_id']
+                ) {
+                    if ($existing === $post) {
+                        return false;
+                    }
+                    throw new RuntimeException(sprintf('投稿ID %d は異なる内容で既に存在します。', $post['post_id']));
+                }
+            }
+            if (fseek($handle, 0, SEEK_END) !== 0 || fwrite($handle, $this->codec->encode($post) . "\n") === false) {
+                throw new RuntimeException('投稿をログファイルへ書き込めません。');
+            }
+            fflush($handle);
+
+            return true;
+        } finally {
+            flock($handle, LOCK_UN);
+            fclose($handle);
+        }
+    }
+
+    /** @return list<PostRecord> */
+    public function all(): array
+    {
+        if (!is_file($this->filename)) {
+            return [];
+        }
+
+        $handle = fopen($this->filename, 'r');
+        if ($handle === false) {
+            throw new RuntimeException(sprintf('ログファイル "%s" を開けません。', $this->filename));
+        }
+
+        $records = [];
+        try {
+            if (!flock($handle, LOCK_SH)) {
+                throw new RuntimeException('ログファイルをロックできません。');
+            }
+            while (($line = fgets($handle)) !== false) {
+                $record = $this->codec->decode($line);
+                if ($record !== null && $record['location'] === $this->location) {
+                    $records[] = $record;
+                }
+            }
+            flock($handle, LOCK_UN);
+        } finally {
+            fclose($handle);
+        }
+
+        return array_reverse($records);
+    }
+
+    /** @return list<PostRecord> */
+    public function recent(int $limit): array
+    {
+        return array_slice($this->all(), 0, max(0, $limit));
+    }
+
+    /** @param resource $handle */
+    private function nextPostId($handle): int
+    {
+        rewind($handle);
+        $maximum = 0;
+        while (($line = fgets($handle)) !== false) {
+            $record = $this->codec->decode($line);
+            if ($record !== null) {
+                $maximum = max($maximum, $record['post_id']);
+            }
+        }
+
+        return $maximum + 1;
+    }
+
+    /**
+     * @param PostInput $post
+     * @return PostRecord
+     */
+    private function record(int $postId, array $post): array
+    {
+        return [
+            'posted_at' => time(),
+            'post_id' => $postId,
+            'thread_id' => $postId,
+            'location' => $this->location,
+            'host' => $post['host'],
+            'user_agent' => $post['user_agent'],
+            'author' => $post['author'],
+            'email' => $post['email'],
+            'title' => $post['title'],
+            'message' => $post['message'],
+            'reply_to' => null,
+        ];
+    }
+}

@@ -8,9 +8,31 @@ services:
         environment:
             APP_ENV: dev
             APP_DEBUG: '1'
+            POST_STORAGE: valkey
+            VALKEY_URL: redis://valkey:6379
         volumes:
             - .:/app
             - vendor:/app/vendor
+
+    valkey:
+        image: valkey/valkey:8-alpine
+        command:
+            - valkey-server
+            - --appendonly
+            - 'yes'
+            - --appendfsync
+            - everysec
+            - --maxmemory-policy
+            - noeviction
+        ports:
+            - '6379:6379'
+        volumes:
+            - valkey_data:/data
+        healthcheck:
+            test: ['CMD', 'valkey-cli', 'ping']
+            interval: 5s
+            timeout: 3s
+            retries: 5
 
     vite:
         build:
@@ -24,4 +46,5 @@ services:
 
 volumes:
     node_modules:
+    valkey_data:
     vendor:

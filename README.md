@@ -10,6 +10,36 @@ docker compose up --build
 
 ブラウザで <http://localhost:8000> を開いてください。
 
+開発用Valkeyも同時に起動します。アプリコンテナからは
+`redis://valkey:6379`（環境変数 `VALKEY_URL`）、ホストからは
+`redis://localhost:6379` で接続できます。データはDockerの
+`valkey_data` ボリュームへAOF形式で永続化され、メモリ上限到達時には
+データを削除せず書き込みエラーにする `noeviction` を使用します。
+Compose内のアプリは `POST_STORAGE=valkey` でValkeyを使用します。
+
+保存処理は共通の `PostRepository` を介しており、通常のローカル実行では
+`POST_STORAGE=jsonl` による単純なUTF-8 JSON Linesファイルも使用できます。
+Valkeyにも同じJSONテキストを格納するため、データの取り出しや移行時に
+Valkey固有形式を解釈する必要はありません。
+
+Valkeyだけを起動して疎通を確認する場合は次を実行します。
+
+```bash
+docker compose up -d valkey
+docker compose exec valkey valkey-cli ping
+```
+
+旧掲示板の公開HTMLまたは交換用JSON Linesは、共通Repositoryへ直接取り込めます。
+元の投稿ID、日時、スレッド、返信関係を維持し、同じ投稿の再実行はスキップします。
+
+```bash
+docker compose run --rm app php bin/console bbs:import archive.html --format=legacy-html
+docker compose run --rm app php bin/console bbs:import posts.jsonl --format=jsonl
+cat posts.jsonl | docker compose run --rm -T app php bin/console bbs:import - --format=jsonl
+```
+
+`--dry-run`を付けると解析だけを行い、保存しません。入力URLも指定できます。
+
 Twig、CSS、JavaScriptの変更はViteによってブラウザへ自動反映されます。Viteの開発サーバーは <http://localhost:5173> を使用します。
 
 本番用アセットをDockerで生成する場合は次を実行します。
