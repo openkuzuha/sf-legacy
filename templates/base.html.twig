@@ -18,7 +18,7 @@
                 {% if app.current_route in ['app_tree', 'app_thread_tree'] %}
                     <a class="header-link" href="{{ path('app_hello') }}">標準画面</a>
                 {% else %}
-                    <a class="header-link" href="{{ path('app_tree') }}">ツリー表示</a>
+                    <a class="header-link" href="{{ path('app_tree', latest_post_id is defined ? {p: latest_post_id} : {}) }}">ツリー表示</a>
                 {% endif %}
             </header>
             {% block content %}{% endblock %}

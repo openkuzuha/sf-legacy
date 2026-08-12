@@ -58,7 +58,15 @@
     {% if not reply %}
         <span class="post-form-actions">
             <button type="submit" name="post" class="btn">投稿／リロード</button>
+            <button type="submit" class="btn" form="unread-form">未読</button>
             <button type="button" data-scroll-target="page-bottom" aria-label="一番下へ">▼</button>
         </span>
     {% endif %}
 </form>
+{% if not reply %}
+    <form id="unread-form" action="{{ return_to|default(path('app_hello')) }}" method="get" hidden>
+        <input type="hidden" name="readnew" value="1">
+        <input type="hidden" name="p" value="{{ latest_post_id|default(0) }}">
+        <input type="hidden" name="display_count" value="{{ display_count|default(40) }}">
+    </form>
+{% endif %}

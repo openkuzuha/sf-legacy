@@ -34,7 +34,7 @@
                             title="スレッド表示"
                         >◆</a>
                         &nbsp;<a
-                            href="{{ path('app_thread_tree', {threadId: post.thread_id}) }}"
+                            href="{{ path('app_thread_tree', {threadId: post.thread_id, p: latest_post_id}) }}"
                             aria-label="ツリー表示"
                             title="ツリー表示"
                         >木</a>
@@ -50,8 +50,14 @@
             {% endfor %}
             {% if posts %}
                 <p class="msgmore">
-                    以上は、現在登録されている新着順{{ range_start }}番目から{{ range_end }}番目までの記事です。
+                    {% if unread_requested %}
+                        以上は、画面表示後に投稿された未読記事です。
+                    {% else %}
+                        以上は、現在登録されている新着順{{ range_start }}番目から{{ range_end }}番目までの記事です。
+                    {% endif %}
                 </p>
+            {% elseif unread_requested %}
+                <p class="msgmore">未読メッセージはありません。</p>
             {% endif %}
             {% if posts %}
                 <nav class="page-actions" aria-label="ページ操作">

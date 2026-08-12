@@ -33,12 +33,14 @@ test('トップページに設定したアプリケーション名が表示さ�
         '個人用環境設定',
     );
     $this->assertSelectorExists('.post-form-actions [data-scroll-target="page-bottom"]');
+    $this->assertSelectorTextSame('.post-form-actions button[form="unread-form"]', '未読');
+    $this->assertSelectorExists('#unread-form input[name="p"]');
     expect($crawler->filter('.small')->text())->toMatch('/現在の参加者 : \d+人 \(300秒以内\)/');
     $this->assertSelectorTextContains('#post-form .small', '最大記事件数 : 500件');
     expect($crawler->filter('.page-view-counter')->text())->toMatch('/^2026\/08\/12 から \d+$/');
     $this->assertSelectorTextContains('#post-form .small + div', '過去ログ');
     $this->assertSelectorExists('#post-form .archive-heading a[href="/archive"]');
-    $this->assertSelectorExists('.page-header a[href="/tree"]');
+    $this->assertSelectorExists('.page-header a[href^="/tree?p="]');
     $this->assertSelectorExists('#post-form .small + div > hr + div + hr');
     $this->assertSelectorTextContains(
         '#post-form .archive-heading',
@@ -142,7 +144,7 @@ test('返信には参照元の投稿日時へのリンクを表示する', funct
             ->and($actions->eq(3)->text())->toBe('木')
             ->and($actions->eq(1)->attr('href'))->toBe('/author?name=%E6%8A%95%E7%A8%BF%E8%80%85')
             ->and($actions->eq(2)->attr('href'))->toBe('/thread/100')
-            ->and($actions->eq(3)->attr('href'))->toBe('/tree/100');
+            ->and($actions->eq(3)->attr('href'))->toBe('/tree/100?p=101');
         $this->assertSelectorTextContains(
             '#m101 a[href="/reply/100"]',
             '参考：2026/08/12(水) 14:30:47',

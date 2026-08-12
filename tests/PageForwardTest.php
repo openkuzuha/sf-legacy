@@ -112,3 +112,50 @@ test('投稿フォームで表示件数を選択して引き継ぐ', function ()
         }
     }
 });
+
+test('画面表示時の最新IDより後に投稿された未読記事だけを表示する', function () {
+    /** @var TestCase $this */
+    $filename = sys_get_temp_dir() . '/sf-legacy-unread-' . bin2hex(random_bytes(8)) . '.jsonl';
+    $repository = new JsonlPostRepository($filename, new PostRecordCodec());
+    $base = [
+        'posted_at' => '2026-08-12T02:24:41Z',
+        'thread_id' => 1,
+        'location' => 'main',
+        'host' => null,
+        'user_agent' => null,
+        'author' => '',
+        'email' => '',
+        'title' => '題名',
+        'auto_link' => true,
+        'reply_to' => null,
+    ];
+
+    try {
+        $repository->import($base + ['post_id' => 1, 'message' => '既読']);
+        $client = $this->createClient();
+        $client->disableReboot();
+        $this->getContainer()->set(PostRepository::class, $repository);
+        $crawler = $client->request('GET', '/');
+        $this->assertInputValueSame('p', '1');
+
+        $repository->import($base + ['post_id' => 2, 'message' => '未読1']);
+        $repository->import($base + ['post_id' => 3, 'message' => '未読2']);
+        $client->submit($crawler->filter('#unread-form')->form());
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorCount(2, '.m');
+        $this->assertSelectorCount(0, '#m1');
+        $this->assertSelectorCount(1, '#m2');
+        $this->assertSelectorCount(1, '#m3');
+        $this->assertSelectorTextContains('.msgmore', '画面表示後に投稿された未読記事');
+        $this->assertInputValueSame('p', '3');
+
+        $client->request('GET', '/?readnew=1&p=3');
+        $this->assertSelectorCount(0, '.m');
+        $this->assertSelectorTextSame('.msgmore', '未読メッセージはありません。');
+    } finally {
+        if (is_file($filename)) {
+            unlink($filename);
+        }
+    }
+});

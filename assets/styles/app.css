@@ -164,6 +164,7 @@ a.help { text-decoration-line: underline; }
     background: #009090;
 }
 .tree-author { font-size: 14px; }
+.tree-post pre.tree-unread-message { color: #ffccaa; }
 .tree-updated { margin-bottom: 0.25rem; }
 
 @media (max-width: 640px) {

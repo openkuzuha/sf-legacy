@@ -9,5 +9,5 @@
                 <a href="{{ path('app_thread', {threadId: thread_id}) }}" aria-label="スレッド表示" title="スレッド表示">◆</a>
                 更新日：<time datetime="{{ updated_at }}">{{ updated_at|bbs_datetime }}</time>
             </p>
-            {{ tree.branches(children, 'root', path('app_thread_tree', {threadId: thread_id})) }}
+            {{ tree.branches(children, 'root', path('app_thread_tree', {threadId: thread_id}), unread_after_post_id) }}
 {% endblock %}

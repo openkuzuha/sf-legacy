@@ -7,7 +7,7 @@
     {%- endfor -%}
 {% endmacro %}
 
-{% macro branches(children, parent, return_to) %}
+{% macro branches(children, parent, return_to, unread_after_post_id) %}
     {% if children[parent] is defined %}
         <ul class="tree-branches{% if parent == 'root' %} tree-root{% endif %}">
             {% for post in children[parent] %}
@@ -20,9 +20,9 @@
                             title="Reply"
                         >■</a>
                         {% if post.author|trim %}<span class="tree-author">投稿者：{{ post.author }}</span><br>{{ _self.prefix(has_children) }}{% endif %}
-                        <pre>{{ _self.message(post, has_children) }}</pre>
+                        <pre{% if unread_after_post_id > 0 and post.post_id > unread_after_post_id %} class="tree-unread-message"{% endif %}>{{ _self.message(post, has_children) }}</pre>
                     </article>
-                    {{ _self.branches(children, post.post_id ~ '', return_to) }}
+                    {{ _self.branches(children, post.post_id ~ '', return_to, unread_after_post_id) }}
                 </li>
             {% endfor %}
         </ul>

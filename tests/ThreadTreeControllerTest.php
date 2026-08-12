@@ -63,6 +63,11 @@ test('個別スレッドをreply_toに従って階層表示する', function () 
             '.tree-branches > li > .tree-branches > li > .tree-branches > li > #m102',
         );
         $this->assertSelectorExists('footer#page-bottom');
+
+        $client->request('GET', '/tree/100?p=101');
+        $this->assertSelectorCount(1, '#m102 pre.tree-unread-message');
+        $this->assertSelectorCount(0, '#m101 pre.tree-unread-message');
+
         $this->assertSelectorTextContains('footer .request-duration', '実行時間 : ');
         $this->assertSelectorTextContains(
             'footer a[href="https://github.com/openkuzuha/sf-legacy"]',
@@ -132,6 +137,34 @@ test('全ツリーをスレッドの更新順で階層表示する', function ()
         $this->assertSelectorCount(1, '#m100 + .tree-branches > li > #m101');
         expect($crawler->filter('.tree-thread')->eq(0)->filter('.tree-post')->first()->attr('id'))
             ->toBe('m100');
+
+        $repository->import($base + [
+            'posted_at' => '2026-08-12T05:00:00Z',
+            'post_id' => 201,
+            'thread_id' => 100,
+            'message' => '未読の返信',
+            'reply_to' => 101,
+        ]);
+
+        $client->request('GET', '/tree?p=200');
+        $this->assertSelectorCount(2, '.tree-thread');
+        $this->assertSelectorCount(1, '#m201 pre.tree-unread-message');
+        $this->assertSelectorCount(0, '#m200 pre.tree-unread-message');
+
+        $client->submit($crawler->filter('#unread-form')->form());
+        $this->assertSelectorCount(1, '.tree-thread');
+        $this->assertSelectorCount(0, '#m200');
+        $this->assertSelectorCount(1, '#m100');
+        $this->assertSelectorCount(1, '#m101');
+        $this->assertSelectorCount(1, '#m201 pre.tree-unread-message');
+        $this->assertSelectorCount(0, '#m100 pre.tree-unread-message');
+        $this->assertSelectorCount(0, '#m101 pre.tree-unread-message');
+        $this->assertInputValueSame('p', '201');
+
+        $client->request('GET', '/tree?readnew=1&p=201');
+        $this->assertSelectorTextSame('main > p', '未読メッセージはありません。');
+
+        $crawler = $client->request('GET', '/tree');
 
         $replyCrawler = $client->click($crawler->filter('#m200 a[title="Reply"]')->link());
         $this->assertSelectorExists('#post-form input[name="return_to"][value="/tree"]');

@@ -13,10 +13,10 @@
                         <a href="{{ path('app_thread', {threadId: item.thread_id}) }}" aria-label="スレッド表示" title="スレッド表示">◆</a>
                         更新日：<time datetime="{{ item.updated_at }}">{{ item.updated_at|bbs_datetime }}</time>
                     </p>
-                    {{ tree.branches(item.children, 'root', path('app_tree')) }}
+                    {{ tree.branches(item.children, 'root', path('app_tree'), unread_after_post_id) }}
                 </section>
                 <hr>
             {% else %}
-                <p>記事はありません。</p>
+                <p>{% if unread_requested %}未読メッセージはありません。{% else %}記事はありません。{% endif %}</p>
             {% endfor %}
 {% endblock %}

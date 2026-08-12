@@ -46,9 +46,20 @@ final class BbsController
                 : $storedPageSize,
         ));
         $beforePostId = $request->query->getInt('before');
+        $unreadRequested = $request->query->has('readnew');
+        $unreadAfterPostId = max(0, $request->query->getInt('p'));
         $startPosition = 1;
         $allPosts = null;
-        if ($beforePostId > 0) {
+        $candidates = [];
+        $posts = [];
+        $nextBefore = null;
+        if ($unreadRequested) {
+            $allPosts = $this->posts->all();
+            $posts = array_values(array_filter(
+                $allPosts,
+                static fn (array $post): bool => $post['post_id'] > $unreadAfterPostId,
+            ));
+        } elseif ($beforePostId > 0) {
             $allPosts = $this->posts->all();
             $candidates = array_values(array_filter(
                 $allPosts,
@@ -58,12 +69,17 @@ final class BbsController
         } else {
             $candidates = $this->posts->recent($pageSize + 1);
         }
-        $hasMore = count($candidates) > $pageSize;
-        $posts = array_slice($candidates, 0, $pageSize);
-        $nextBefore = null;
-        if ($hasMore && $posts !== []) {
-            $nextBefore = $posts[count($posts) - 1]['post_id'];
+        if (!$unreadRequested) {
+            $hasMore = count($candidates) > $pageSize;
+            $posts = array_slice($candidates, 0, $pageSize);
+            $nextBefore = null;
+            if ($hasMore && $posts !== []) {
+                $nextBefore = $posts[count($posts) - 1]['post_id'];
+            }
         }
+
+        $allPosts ??= $this->posts->all();
+        $latestPostId = $allPosts === [] ? 0 : max(array_column($allPosts, 'post_id'));
 
         $hasReplies = false;
         foreach ($posts as $post) {
@@ -73,7 +89,6 @@ final class BbsController
             }
         }
         if ($hasReplies) {
-            $allPosts ??= $this->posts->all();
             $postsById = [];
             foreach ($allPosts as $post) {
                 $postsById[$post['post_id']] = $post;
@@ -105,6 +120,8 @@ final class BbsController
             'range_start' => $startPosition,
             'range_end' => $startPosition + count($posts) - 1,
             'next_before' => $nextBefore,
+            'latest_post_id' => $latestPostId,
+            'unread_requested' => $unreadRequested,
             'display_count' => $pageSize,
             'auto_link_enabled' => $request->cookies->getString('bbs_auto_link', '1') !== '0',
             'visitor_count' => $visitorCount,
@@ -240,9 +257,27 @@ final class BbsController
     #[Route('/tree', name: 'app_tree', methods: ['GET'])]
     public function allTrees(Request $request): Response
     {
+        $allPosts = $this->posts->all();
+        $latestPostId = $allPosts === [] ? 0 : max(array_column($allPosts, 'post_id'));
+        $unreadRequested = $request->query->has('readnew');
+        $unreadAfterPostId = max(0, $request->query->getInt('p'));
         $threads = [];
-        foreach ($this->posts->all() as $post) {
+        foreach ($allPosts as $post) {
             $threads[$post['thread_id']][] = $post;
+        }
+        if ($unreadRequested) {
+            $threads = array_filter(
+                $threads,
+                static function (array $thread) use ($unreadAfterPostId): bool {
+                    foreach ($thread as $post) {
+                        if ($post['post_id'] > $unreadAfterPostId) {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                },
+            );
         }
 
         $trees = array_map(
@@ -269,6 +304,9 @@ final class BbsController
         return new Response($this->twig->render('bbs/all_trees.html.twig', [
             'app_title' => $this->appTitle,
             'trees' => $trees,
+            'latest_post_id' => $latestPostId,
+            'unread_requested' => $unreadRequested,
+            'unread_after_post_id' => $unreadAfterPostId,
             'display_count' => max(1, min(
                 self::MAX_PAGE_SIZE,
                 $request->cookies->getInt('bbs_display_count', self::DEFAULT_PAGE_SIZE),
@@ -283,7 +321,7 @@ final class BbsController
     }
 
     #[Route('/tree/{threadId<\d+>}', name: 'app_thread_tree', methods: ['GET'])]
-    public function tree(int $threadId): Response
+    public function tree(Request $request, int $threadId): Response
     {
         $thread = array_values(array_filter(
             $this->posts->all(),
@@ -300,6 +338,7 @@ final class BbsController
             'thread_id' => $tree['thread_id'],
             'updated_at' => $tree['updated_at'],
             'children' => $tree['children'],
+            'unread_after_post_id' => max(0, $request->query->getInt('p')),
         ]));
     }
 
