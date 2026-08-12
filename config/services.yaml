@@ -5,6 +5,8 @@ parameters:
     app.page_view_started_at: '2026/08/12'
     app.page_view_initial_value: 0
     app.page_view_filename: '%kernel.project_dir%/var/data/page-views.txt'
+    app.post_archive_directory: '%kernel.project_dir%/var/data/archive'
+    app.central_post_limit: 500
 
 services:
     _defaults:
@@ -20,6 +22,14 @@ services:
 
     App\Post\PostRepository:
         factory: ['@App\Post\PostRepositoryFactory', 'create']
+
+    App\Post\DailyPostArchive:
+        arguments:
+            $directory: '%app.post_archive_directory%'
+
+    App\Post\PostRepositoryFactory:
+        arguments:
+            $centralPostLimit: '%app.central_post_limit%'
 
     App\PageView\PageViewCounter:
         factory: ['@App\PageView\PageViewCounterFactory', 'create']

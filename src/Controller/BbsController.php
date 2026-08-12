@@ -27,6 +27,8 @@ final class BbsController
         private readonly PageViewCounter $pageViewCounter,
         #[Autowire(param: 'app.page_view_started_at')]
         private readonly string $pageViewStartedAt,
+        #[Autowire(param: 'app.central_post_limit')]
+        private readonly int $centralPostLimit,
     ) {
     }
 
@@ -106,6 +108,7 @@ final class BbsController
             'visitor_limit' => $this->visitorCounter->limit(),
             'page_view_count' => $pageViewCount,
             'page_view_started_at' => $this->pageViewStartedAt,
+            'central_post_limit' => $this->centralPostLimit,
         ]));
     }
 

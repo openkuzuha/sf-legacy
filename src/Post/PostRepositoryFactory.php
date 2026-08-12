@@ -7,8 +7,11 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 final class PostRepositoryFactory
 {
-    public function __construct(private readonly PostRecordCodec $codec)
-    {
+    public function __construct(
+        private readonly PostRecordCodec $codec,
+        private readonly DailyPostArchive $archive,
+        private readonly int $centralPostLimit,
+    ) {
     }
 
     public function create(
@@ -20,7 +23,12 @@ final class PostRepositoryFactory
         string $jsonlFilename,
     ): PostRepository {
         return match ($storage) {
-            'jsonl' => new JsonlPostRepository($jsonlFilename, $this->codec),
+            'jsonl' => new JsonlPostRepository(
+                $jsonlFilename,
+                $this->codec,
+                archive: $this->archive,
+                maximumRecords: $this->centralPostLimit,
+            ),
             'valkey' => new ValkeyPostRepository($valkeyUrl, $this->codec),
             default => throw new InvalidArgumentException(sprintf('未対応のPOST_STORAGE "%s" です。', $storage)),
         };

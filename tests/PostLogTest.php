@@ -102,3 +102,46 @@ test('投稿日時をUTCのRFC 3339形式でJSONLへ追記する', function () {
         }
     }
 });
+
+test('中央ログは設定件数に切り詰めても日別アーカイブには全件を残す', function () {
+    $directory = sys_get_temp_dir() . '/sf-legacy-post-limit-' . bin2hex(random_bytes(8));
+    $filename = $directory . '/posts.jsonl';
+    $codec = new PostRecordCodec();
+    $archive = new \App\Post\DailyPostArchive($directory . '/archive', $codec, 'UTC');
+    $log = new JsonlPostRepository($filename, $codec, archive: $archive, maximumRecords: 2);
+    $input = [
+        'author' => '',
+        'email' => '',
+        'title' => '',
+        'message' => '',
+        'host' => null,
+        'user_agent' => null,
+        'thread_id' => null,
+        'reply_to' => null,
+    ];
+
+    try {
+        $log->append($input);
+        $log->append($input);
+        $log->append($input);
+
+        expect($log->all())->toHaveCount(2)
+            ->and(array_column($log->all(), 'post_id'))->toBe([3, 2]);
+        $archiveFiles = glob($directory . '/archive/*/*/*.jsonl');
+        expect($archiveFiles)->toBeArray()->toHaveCount(1);
+        assert(is_array($archiveFiles));
+        expect(file($archiveFiles[0], FILE_IGNORE_NEW_LINES))->toHaveCount(3);
+    } finally {
+        if (is_dir($directory)) {
+            $iterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS),
+                RecursiveIteratorIterator::CHILD_FIRST,
+            );
+            foreach ($iterator as $item) {
+                assert($item instanceof SplFileInfo);
+                $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname());
+            }
+            rmdir($directory);
+        }
+    }
+});

@@ -18,7 +18,12 @@ final class JsonlPostRepository implements PostRepository
         private readonly string $filename,
         private readonly PostRecordCodec $codec,
         private readonly string $location = 'main',
+        private readonly ?DailyPostArchive $archive = null,
+        private readonly int $maximumRecords = 500,
     ) {
+        if ($this->maximumRecords < 1) {
+            throw new RuntimeException('中央ログの最大件数は1以上で指定してください。');
+        }
     }
 
     /** @param PostInput $post */
@@ -46,6 +51,8 @@ final class JsonlPostRepository implements PostRepository
             }
 
             fflush($handle);
+            $this->archive?->put($record);
+            $this->trim($handle);
             flock($handle, LOCK_UN);
 
             return $postId;
@@ -80,15 +87,21 @@ final class JsonlPostRepository implements PostRepository
                     && $existing['post_id'] === $post['post_id']
                 ) {
                     if ($existing === $post) {
+                        $this->trim($handle);
+
                         return false;
                     }
                     throw new RuntimeException(sprintf('投稿ID %d は異なる内容で既に存在します。', $post['post_id']));
                 }
             }
+            if ($this->archive !== null && !$this->archive->put($post)) {
+                return false;
+            }
             if (fseek($handle, 0, SEEK_END) !== 0 || fwrite($handle, $this->codec->encode($post) . "\n") === false) {
                 throw new RuntimeException('投稿をログファイルへ書き込めません。');
             }
             fflush($handle);
+            $this->trim($handle);
 
             return true;
         } finally {
@@ -147,6 +160,30 @@ final class JsonlPostRepository implements PostRepository
         }
 
         return $maximum + 1;
+    }
+
+    /** @param resource $handle */
+    private function trim($handle): void
+    {
+        rewind($handle);
+        $lines = [];
+        while (($line = fgets($handle)) !== false) {
+            $lines[] = $line;
+        }
+        if (count($lines) <= $this->maximumRecords) {
+            return;
+        }
+
+        $lines = array_slice($lines, -$this->maximumRecords);
+        if (!ftruncate($handle, 0) || rewind($handle) === false) {
+            throw new RuntimeException('中央ログを切り詰められません。');
+        }
+        foreach ($lines as $line) {
+            if (fwrite($handle, $line) === false) {
+                throw new RuntimeException('中央ログを切り詰められません。');
+            }
+        }
+        fflush($handle);
     }
 
     /**

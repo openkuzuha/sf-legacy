@@ -28,6 +28,7 @@ test('トップページに設定したアプリケーション名が表示さ�
     $this->assertSelectorExists('input[name="auto_link"][type="checkbox"][checked]');
     $this->assertSelectorExists('.post-form-actions [data-scroll-target="page-bottom"]');
     expect($crawler->filter('.small')->text())->toMatch('/現在の参加者 : \d+人 \(300秒以内\)/');
+    $this->assertSelectorTextContains('#post-form .small', '最大記事件数 : 500件');
     expect($crawler->filter('.page-view-counter')->text())->toMatch('/^2026\/08\/12 から \d+$/');
     $this->assertSelectorTextContains('#post-form .small + div', '過去ログ');
     $this->assertSelectorExists('#post-form .small + div > hr + div + hr');

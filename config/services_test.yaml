@@ -1,2 +1,3 @@
 parameters:
     app.page_view_filename: '%kernel.cache_dir%/page-views.txt'
+    app.post_archive_directory: '%kernel.cache_dir%/archive'
