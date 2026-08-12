@@ -13,7 +13,31 @@ final class AutoLinkExtension extends AbstractExtension
         return [
             new TwigFilter('auto_link', $this->autoLink(...), ['is_safe' => ['html']]),
             new TwigFilter('search_highlight', $this->highlight(...), ['is_safe' => ['html']]),
+            new TwigFilter('message_html', $this->messageHtml(...), ['is_safe' => ['html']]),
         ];
+    }
+
+    public function messageHtml(string $message, bool $autoLink, string $keyword = ''): string
+    {
+        $parts = preg_split('/(\R)/u', $message, flags: PREG_SPLIT_DELIM_CAPTURE);
+        if ($parts === false) {
+            return $autoLink ? $this->autoLink($message, $keyword) : $this->highlight($message, $keyword);
+        }
+
+        foreach ($parts as $index => &$part) {
+            if ($index % 2 === 1) {
+                continue;
+            }
+
+            $quoted = str_starts_with($part, '>');
+            $part = $autoLink ? $this->autoLink($part, $keyword) : $this->highlight($part, $keyword);
+            if ($quoted) {
+                $part = '<span class="q">' . $part . '</span>';
+            }
+        }
+        unset($part);
+
+        return implode('', $parts);
     }
 
     public function autoLink(string $message, string $keyword = ''): string

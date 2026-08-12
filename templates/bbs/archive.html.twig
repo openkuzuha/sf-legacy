@@ -35,7 +35,7 @@
                     <span class="mu">投稿者：<span class="mun">{{ post.author|search_highlight(keyword) }}</span></span>&nbsp;&nbsp;
                     <span class="md">投稿日：<time datetime="{{ post.posted_at }}">{{ post.posted_at|bbs_datetime }}</time></span>
                 </span>
-                <blockquote><pre>{% if post.auto_link %}{{ post.message|auto_link(keyword) }}{% else %}{{ post.message|search_highlight(keyword) }}{% endif %}</pre></blockquote>
+                <blockquote><pre>{{ post.message|message_html(post.auto_link, keyword) }}</pre></blockquote>
             </div>
             <hr>
         {% endfor %}

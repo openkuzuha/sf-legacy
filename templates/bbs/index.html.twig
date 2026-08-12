@@ -21,6 +21,13 @@
                             aria-label="Reply"
                             title="Reply"
                         >■</a>
+                        {% if post.author|replace({　: ''})|trim %}
+                        &nbsp;<a
+                            href="{{ path('app_author_search', {name: post.author|trim}) }}"
+                            aria-label="投稿者検索"
+                            title="投稿者検索"
+                        >★</a>
+                        {% endif %}
                         &nbsp;<a
                             href="{{ path('app_thread', {threadId: post.thread_id}) }}"
                             aria-label="スレッド表示"
@@ -35,7 +42,7 @@
                     <blockquote>
                         {% set reference = post.reference is defined ? post.reference : null %}
                         {% set message = reference ? post.message|trim(null, 'right') : post.message %}
-                        <pre>{% if post.auto_link %}{{ message|auto_link }}{% else %}{{ message }}{% endif %}{% if reference %}{{ '\n\n' }}<a href="{{ path('app_thread_tree', {threadId: post.thread_id}) }}#m{{ reference.post_id }}">参考：{{ reference.posted_at|bbs_datetime }}</a>{% endif %}</pre>
+                        <pre>{{ message|message_html(post.auto_link) }}{% if reference %}{{ '\n\n' }}<a href="{{ path('app_reply', {postId: reference.post_id}) }}">参考：{{ reference.posted_at|bbs_datetime }}</a>{% endif %}</pre>
                     </blockquote>
                 </div>
                 <hr>

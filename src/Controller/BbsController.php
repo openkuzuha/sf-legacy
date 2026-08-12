@@ -161,6 +161,39 @@ final class BbsController
         ]));
     }
 
+    #[Route('/author', name: 'app_author_search', methods: ['GET'])]
+    public function authorSearch(Request $request): Response
+    {
+        $author = trim($request->query->getString('name'), " \n\r\t\v\0　");
+        if ($author === '') {
+            throw new NotFoundHttpException('投稿者が指定されていません。');
+        }
+
+        $allPosts = $this->posts->all();
+        $postsById = [];
+        foreach ($allPosts as $post) {
+            $postsById[$post['post_id']] = $post;
+        }
+
+        $posts = array_values(array_filter(
+            $allPosts,
+            static fn (array $post): bool => trim($post['author'], " \n\r\t\v\0　") === $author,
+        ));
+        foreach ($posts as &$post) {
+            $replyTo = $post['reply_to'];
+            $post['reference'] = $replyTo !== null && isset($postsById[$replyTo])
+                ? $postsById[$replyTo]
+                : null;
+        }
+        unset($post);
+
+        return new Response($this->twig->render('bbs/author.html.twig', [
+            'app_title' => $this->appTitle,
+            'author' => $author,
+            'posts' => $posts,
+        ]));
+    }
+
     #[Route('/thread/{threadId<\d+>}', name: 'app_thread', methods: ['GET'])]
     public function thread(int $threadId): Response
     {

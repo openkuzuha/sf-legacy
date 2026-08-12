@@ -41,6 +41,7 @@ a.help { text-decoration-line: underline; }
     white-space: pre-wrap;
     overflow-wrap: break-word;
 }
+.q { color: #cccccc; }
 .ms { font-size: 17px; font-weight: bold; }
 .mu, .mun, .md { font-size: 14px; }
 .mun { font-weight: normal; }

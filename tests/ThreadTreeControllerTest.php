@@ -105,7 +105,7 @@ test('◆はスレッド内の記事を新着順で表示する', function () {
         $this->assertSelectorCount(2, '.m');
         expect($crawler->filter('.m')->eq(0)->attr('id'))->toBe('m101');
         $this->assertSelectorTextContains('#m101', '返信本文');
-        $this->assertSelectorExists('#m101 a[href="#m100"]');
+        $this->assertSelectorExists('#m101 a[href="/reply/100"]');
         $this->assertSelectorTextContains('p', '2件見つかりました。');
     } finally {
         if (is_file($filename)) {

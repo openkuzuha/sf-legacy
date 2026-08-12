@@ -34,7 +34,10 @@ test('トップページに設定したアプリケーション名が表示さ�
     $this->assertSelectorExists('#post-form .archive-heading a[href="/archive"]');
     $this->assertSelectorExists('.page-header a[href="/tree"]');
     $this->assertSelectorExists('#post-form .small + div > hr + div + hr');
-    $this->assertSelectorTextContains('#post-form .archive-heading', '■ : フォロー投稿(返信)');
+    $this->assertSelectorTextContains(
+        '#post-form .archive-heading',
+        '■ : フォロー投稿(返信)　★ : 投稿者検索　◆ : スレッド表示　木 : ツリー表示',
+    );
     $this->assertSelectorExists('#post-form .archive-heading > hr:last-child');
     $this->assertSelectorExists('#post-form .small + div + .post-form-actions');
     $this->assertSelectorExists('#page-bottom');
@@ -104,18 +107,20 @@ test('返信には参照元の投稿日時へのリンクを表示する', funct
         $this->assertResponseIsSuccessful();
         $actions = $client->getCrawler()->filter('#m101 .nw > a');
         expect($actions->eq(0)->text())->toBe('■')
-            ->and($actions->eq(1)->text())->toBe('◆')
-            ->and($actions->eq(2)->text())->toBe('木')
-            ->and($actions->eq(1)->attr('href'))->toBe('/thread/100')
-            ->and($actions->eq(2)->attr('href'))->toBe('/tree/100');
+            ->and($actions->eq(1)->text())->toBe('★')
+            ->and($actions->eq(2)->text())->toBe('◆')
+            ->and($actions->eq(3)->text())->toBe('木')
+            ->and($actions->eq(1)->attr('href'))->toBe('/author?name=%E6%8A%95%E7%A8%BF%E8%80%85')
+            ->and($actions->eq(2)->attr('href'))->toBe('/thread/100')
+            ->and($actions->eq(3)->attr('href'))->toBe('/tree/100');
         $this->assertSelectorTextContains(
-            '#m101 a[href="/tree/100#m100"]',
+            '#m101 a[href="/reply/100"]',
             '参考：2026/08/12(水) 14:30:47',
         );
         $responseHtml = $client->getResponse()->getContent();
         expect($responseHtml)->toBeString()
-            ->and($responseHtml)->toContain("返信\n\n<a href=\"/tree/100#m100\"")
-            ->and($responseHtml)->not->toContain("返信\n\n\n<a href=\"/tree/100#m100\"");
+            ->and($responseHtml)->toContain("返信\n\n<a href=\"/reply/100\"")
+            ->and($responseHtml)->not->toContain("返信\n\n\n<a href=\"/reply/100\"");
         $this->assertSelectorCount(0, '#m100 blockquote a');
     } finally {
         if (is_file($filename)) {
@@ -155,6 +160,15 @@ test('■から引用付きReplyを投稿する', function () {
         $this->assertResponseIsSuccessful();
         $this->assertSelectorTextSame('title', 'Open Kuzuha');
         $this->assertSelectorTextContains('#m100', '一行目');
+        $actions = $crawler->filter('#m100 .nw > a');
+        expect($actions->eq(0)->text())->toBe('■')
+            ->and($actions->eq(0)->attr('href'))->toBe('/reply/100')
+            ->and($actions->eq(1)->text())->toBe('★')
+            ->and($actions->eq(1)->attr('href'))->toBe('/author?name=%E5%85%83%E6%8A%95%E7%A8%BF%E8%80%85')
+            ->and($actions->eq(2)->text())->toBe('◆')
+            ->and($actions->eq(2)->attr('href'))->toBe('/thread/100')
+            ->and($actions->eq(3)->text())->toBe('木')
+            ->and($actions->eq(3)->attr('href'))->toBe('/tree/100');
         $this->assertSelectorTextContains('p', 'フォロー記事投稿(返信)');
         $this->assertSelectorExists('#post-form input[name="reply_to"][value="100"]');
         $this->assertSelectorCount(0, '#post-form input[name="display_count"]');
@@ -180,6 +194,54 @@ test('■から引用付きReplyを投稿する', function () {
             ->and($reply['reply_to'])->toBe(100)
             ->and($reply['auto_link'])->toBeFalse()
             ->and($reply['message'])->toEndWith('返信本文');
+    } finally {
+        if (is_file($filename)) {
+            unlink($filename);
+        }
+    }
+});
+
+test('投稿者名がある記事だけ★から投稿者検索できる', function () {
+    /** @var TestCase $this */
+    $filename = sys_get_temp_dir() . '/sf-legacy-author-' . bin2hex(random_bytes(8)) . '.jsonl';
+    $repository = new JsonlPostRepository($filename, new PostRecordCodec());
+    $base = [
+        'thread_id' => 100,
+        'location' => 'main',
+        'host' => null,
+        'user_agent' => null,
+        'email' => '',
+        'title' => '題名',
+        'message' => '本文',
+        'auto_link' => true,
+        'reply_to' => null,
+    ];
+
+    try {
+        $repository->import($base + ['posted_at' => '2026-08-12T05:30:00Z', 'post_id' => 100, 'author' => '名前']);
+        $repository->import($base + ['posted_at' => '2026-08-12T05:31:00Z', 'post_id' => 101, 'author' => '']);
+        $repository->import($base + ['posted_at' => '2026-08-12T05:32:00Z', 'post_id' => 102, 'author' => '別人']);
+        $repository->import($base + ['posted_at' => '2026-08-12T05:33:00Z', 'post_id' => 103, 'author' => '名前']);
+
+        $client = $this->createClient();
+        $client->disableReboot();
+        $this->getContainer()->set(PostRepository::class, $repository);
+        $client->request('GET', '/');
+
+        $namedActions = $client->getCrawler()->filter('#m103 .nw > a');
+        expect($namedActions->eq(0)->text())->toBe('■')
+            ->and($namedActions->eq(1)->text())->toBe('★')
+            ->and($namedActions->eq(2)->text())->toBe('◆')
+            ->and($namedActions->eq(3)->text())->toBe('木')
+            ->and($namedActions->eq(1)->attr('href'))->toBe('/author?name=%E5%90%8D%E5%89%8D');
+        $this->assertSelectorCount(0, '#m101 a[title="投稿者検索"]');
+
+        $client->request('GET', '/author?name=' . rawurlencode('名前'));
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextContains('.author-search-heading', '投稿者検索：名前');
+        $this->assertSelectorCount(2, 'main .m');
+        $this->assertSelectorCount(0, '#m102');
+        $this->assertSelectorTextContains('.author-search-summary', '2件見つかりました。');
     } finally {
         if (is_file($filename)) {
             unlink($filename);

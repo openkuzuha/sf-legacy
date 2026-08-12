@@ -31,3 +31,16 @@ test('検索語を安全にハイライトする', function () {
         ->toContain('<mark class="search-highlight">KEY</mark>')
         ->toContain('<mark class="search-highlight">key</mark>');
 });
+
+test('行頭が引用記号の行をレガシーと同じ引用色用要素で囲む', function () {
+    $extension = new AutoLinkExtension();
+
+    expect($extension->messageHtml("> 引用\n> > 多重引用\n本文", false))
+        ->toBe(
+            '<span class="q">&gt; 引用</span>' . "\n"
+            . '<span class="q">&gt; &gt; 多重引用</span>' . "\n"
+            . '本文',
+        )
+        ->and($extension->messageHtml('> https://example.com/', true))
+        ->toContain('<span class="q">&gt; <a href="https://example.com/"');
+});
