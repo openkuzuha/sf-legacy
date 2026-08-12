@@ -55,6 +55,12 @@ test('個別スレッドをreply_toに従って階層表示する', function () 
             1,
             '.tree-branches > li > .tree-branches > li > .tree-branches > li > #m102',
         );
+        $this->assertSelectorExists('footer#page-bottom');
+        $this->assertSelectorTextContains('footer .request-duration', '実行時間 : ');
+        $this->assertSelectorTextContains(
+            'footer a[href="https://github.com/openkuzuha/sf-legacy"]',
+            'Open Kuzuha / sf-legacy',
+        );
     } finally {
         if (is_file($filename)) {
             unlink($filename);

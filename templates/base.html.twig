@@ -13,7 +13,16 @@
             <h1><a href="{{ path('app_hello') }}">{{ app_title }}</a></h1>
             {% block content %}{% endblock %}
         </main>
-        {% block footer %}{% endblock %}
-        <div id="page-bottom" class="request-duration">実行時間 : {{ request_duration() }}秒</div>
+        <footer id="page-bottom" class="text-[13px] text-right">
+            <hr>
+            <div class="request-duration">実行時間 : {{ request_duration() }}秒</div>
+            <a href="https://github.com/openkuzuha/sf-legacy" target="_blank" rel="noopener noreferrer">
+                Open Kuzuha / sf-legacy
+            </a>
+            <br>
+            <a class="credit-logo" href="{{ path('app_hello') }}" aria-label="トップへ">
+                <img src="/logo.svg" alt="" width="32" height="32">
+            </a>
+        </footer>
     </body>
 </html>
