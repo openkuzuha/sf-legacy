@@ -136,7 +136,7 @@ final class LegacyHtmlReader
     private function parseMessage(string $block): array
     {
         $replyTo = null;
-        if (preg_match('/<a href="#a(\d+)">参考：[^<]*<\/a>\s*$/', $block, $match)) {
+        if (preg_match('/\s*<a href="#a(\d+)">参考：[^<]*<\/a>\s*$/', $block, $match)) {
             $replyTo = (int) $match[1];
             $block = substr($block, 0, -strlen($match[0]));
         }

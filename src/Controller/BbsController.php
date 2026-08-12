@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Post\PostRepository;
+use App\Visitor\VisitorCounter;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,6 +20,7 @@ final class BbsController
         private readonly string $appTitle,
         private readonly Environment $twig,
         private readonly PostRepository $posts,
+        private readonly VisitorCounter $visitorCounter,
     ) {
     }
 
@@ -67,12 +69,20 @@ final class BbsController
             unset($post);
         }
 
+        try {
+            $visitorCount = $this->visitorCounter->count($request->getClientIp() ?? 'unknown');
+        } catch (\RuntimeException) {
+            $visitorCount = '参加者ファイル出力エラー';
+        }
+
         return new Response($this->twig->render('bbs/index.html.twig', [
             'app_title' => $this->appTitle,
             'posts' => $posts,
             'range_start' => $startPosition,
             'range_end' => $startPosition + count($posts) - 1,
             'next_before' => $nextBefore,
+            'visitor_count' => $visitorCount,
+            'visitor_limit' => $this->visitorCounter->limit(),
         ]));
     }
 

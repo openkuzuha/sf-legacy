@@ -1,6 +1,7 @@
 parameters:
     app.title: '%env(APP_TITLE)%'
     app.timezone: '%env(APP_TIMEZONE)%'
+    app.visitor_limit: 300
 
 services:
     _defaults:
@@ -16,3 +17,8 @@ services:
 
     App\Post\PostRepository:
         factory: ['@App\Post\PostRepositoryFactory', 'create']
+
+    App\Visitor\VisitorCounter:
+        arguments:
+            $filename: '%kernel.cache_dir%/visitors.json'
+            $limit: '%app.visitor_limit%'

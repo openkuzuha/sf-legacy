@@ -26,6 +26,7 @@ test('トップページに設定したアプリケーション名が表示さ�
     $this->assertSelectorCount(1, 'input[name="title"][type="text"]');
     $this->assertSelectorCount(1, 'textarea[name="content"]');
     $this->assertSelectorExists('.post-form-actions [data-scroll-target="page-bottom"]');
+    expect($crawler->filter('.small')->text())->toMatch('/現在の参加者 : \d+人 \(300秒以内\)/');
     $this->assertSelectorExists('#page-bottom');
 });
 
@@ -62,7 +63,7 @@ test('返信には参照元の投稿日時へのリンクを表示する', funct
         $repository->import($base + [
             'posted_at' => '2026-08-12T05:31:00Z',
             'post_id' => 101,
-            'message' => '返信',
+            'message' => "返信\r\r",
             'reply_to' => 100,
         ]);
 
@@ -81,6 +82,10 @@ test('返信には参照元の投稿日時へのリンクを表示する', funct
             '#m101 a[href="/tree/100#m100"]',
             '参考：2026/08/12(水) 14:30:47',
         );
+        $responseHtml = $client->getResponse()->getContent();
+        expect($responseHtml)->toBeString()
+            ->and($responseHtml)->toContain("返信\n\n<a href=\"/tree/100#m100\"")
+            ->and($responseHtml)->not->toContain("返信\n\n\n<a href=\"/tree/100#m100\"");
         $this->assertSelectorCount(0, '#m100 blockquote a');
     } finally {
         if (is_file($filename)) {

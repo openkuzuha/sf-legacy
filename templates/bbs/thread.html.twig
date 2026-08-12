@@ -15,9 +15,8 @@
                         &nbsp;<a href="{{ path('app_thread_tree', {threadId: post.thread_id}) }}" aria-label="ツリー表示" title="ツリー表示">木</a>
                     </span>
                     <blockquote>
-                        <pre>{% if post.auto_link %}{{ post.message|auto_link }}{% else %}{{ post.message }}{% endif %}{% if post.reference %}
-
-<a href="#m{{ post.reference.post_id }}">参考：{{ post.reference.posted_at|bbs_datetime }}</a>{% endif %}</pre>
+                        {% set message = post.reference ? post.message|trim(null, 'right') : post.message %}
+                    <pre>{% if post.auto_link %}{{ message|auto_link }}{% else %}{{ message }}{% endif %}{% if post.reference %}{{ '\n\n' }}<a href="#m{{ post.reference.post_id }}">参考：{{ post.reference.posted_at|bbs_datetime }}</a>{% endif %}</pre>
                     </blockquote>
                 </div>
                 <hr>
