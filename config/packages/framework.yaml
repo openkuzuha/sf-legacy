@@ -1,5 +1,6 @@
 framework:
     secret: '%env(APP_SECRET)%'
+    session: true
 
 when@test:
     framework:

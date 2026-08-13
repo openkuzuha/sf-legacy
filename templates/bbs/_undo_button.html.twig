@@ -1,0 +1,7 @@
+{% set undo = app.session.get('post_undo') %}
+{% if undo is iterable and undo.post_id|default(null) is same as(post.post_id) and undo.expires_at|default(0) >= date().timestamp %}
+    <form action="{{ path('app_post_undo', {postId: post.post_id}) }}" method="post" style="display: inline">
+        <input type="hidden" name="_token" value="{{ undo.token }}">
+        <button type="submit" aria-label="自分の投稿を消す" title="自分の投稿を消す">×</button>
+    </form>
+{% endif %}

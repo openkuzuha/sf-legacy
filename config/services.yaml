@@ -7,7 +7,7 @@ parameters:
     app.page_view_filename: '%kernel.project_dir%/var/data/page-views.txt'
     app.post_archive_directory: '%kernel.project_dir%/var/data/archive'
     app.central_post_limit: 500
-    app.links_filename: '%kernel.project_dir%/content/links.md'
+    app.links_filename: '%kernel.project_dir%/config/links.md'
     app.colors:
         background: '#004040'
         text: '#ffffff'

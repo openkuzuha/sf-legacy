@@ -11,6 +11,16 @@ MIT Licenseのもとで再構成したクローン実装です。本リポジト
 [Laravel Cloudでも動作する](https://laravel.com/cloud)一方、この規模の掲示板には
 Laravelは機能が大きすぎると判断し、必要な構成を小さく保てるSymfonyを選びました。
 
+---
+
+## 仕様
+
+
+
+
+
+
+
 ## Docker Composeで起動
 
 ```bash
@@ -78,7 +88,7 @@ docker compose run --rm app vendor/bin/twig-cs-fixer fix templates
 
 ## リンク集
 
-トップ画面の「広報室 | 過去ログ」に続くリンクは、`content/links.md` で管理します。
+トップ画面の「広報室 | 過去ログ」に続くリンクは、`config/links.md` で管理します。
 Markdownの箇条書きとして、1行に1件ずつ表示名とURLを記述してください。
 
 ```markdown

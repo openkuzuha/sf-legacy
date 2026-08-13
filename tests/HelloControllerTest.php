@@ -78,6 +78,27 @@ test('個人用環境設定に色設定UIを表示する', function () {
     $this->assertSelectorTextSame('.personal-settings-form button[data-reset-colors]', '初期設定に戻す');
 });
 
+test('自分の直前の投稿だけを×ボタンから削除する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient();
+    $suffix = bin2hex(random_bytes(8));
+    $keptMessage = '残る投稿-' . $suffix;
+    $deletedMessage = '消す投稿-' . $suffix;
+    $client->request('POST', '/submit', ['title' => '一件目', 'content' => $keptMessage]);
+    $client->request('POST', '/submit', ['title' => '二件目', 'content' => $deletedMessage]);
+    $crawler = $client->followRedirect();
+
+    $undoForm = $crawler->filter('.m form[action$="/undo"][method="post"]');
+    $this->assertCount(1, $undoForm);
+    expect($undoForm->ancestors()->filter('.m')->text())->toContain($deletedMessage);
+    $client->submit($undoForm->form());
+    $crawler = $client->followRedirect();
+
+    $this->assertSelectorTextContains('main', $keptMessage);
+    $this->assertSelectorTextNotContains('main', $deletedMessage);
+    $this->assertSelectorCount(0, 'form[action$="/undo"]');
+});
+
 test('全ツリー表示ページを表示する', function () {
     /** @var TestCase $this */
     $client = $this->createClient();

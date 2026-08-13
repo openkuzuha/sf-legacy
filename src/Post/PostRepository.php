@@ -24,4 +24,7 @@ interface PostRepository
 
     /** @return list<PostRecord> */
     public function recent(int $limit): array;
+
+    /** @return bool 投稿が存在し、削除できた場合はtrue */
+    public function delete(int $postId): bool;
 }

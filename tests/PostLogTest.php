@@ -103,6 +103,29 @@ test('投稿日時をUTCのRFC 3339形式でJSONLへ追記する', function () {
     }
 });
 
+test('投稿を中央ログと日別アーカイブの両方から削除する', function () {
+    $directory = sys_get_temp_dir() . '/sf-legacy-post-delete-' . bin2hex(random_bytes(8));
+    $codec = new PostRecordCodec();
+    $archive = new \App\Post\DailyPostArchive($directory . '/archive', $codec, 'Asia/Tokyo');
+    $log = new JsonlPostRepository($directory . '/posts.jsonl', $codec, archive: $archive);
+
+    try {
+        $postId = $log->append([
+            'author' => '投稿者', 'email' => '', 'title' => '削除対象', 'message' => '本文',
+            'host' => null, 'user_agent' => null, 'thread_id' => null, 'reply_to' => null,
+        ]);
+
+        expect($log->delete($postId))->toBeTrue()
+            ->and($log->all())->toBe([])
+            ->and($archive->entries()[0]['post_count'])->toBe(0)
+            ->and($log->delete($postId))->toBeFalse();
+    } finally {
+        if (is_dir($directory)) {
+            exec(sprintf('rm -rf %s', escapeshellarg($directory)));
+        }
+    }
+});
+
 test('中央ログは設定件数に切り詰めても日別アーカイブには全件を残す', function () {
     $directory = sys_get_temp_dir() . '/sf-legacy-post-limit-' . bin2hex(random_bytes(8));
     $filename = $directory . '/posts.jsonl';

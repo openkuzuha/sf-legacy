@@ -99,6 +99,23 @@ final class ValkeyPostRepository implements PostRepository
         return $limit < 1 ? [] : $this->readRange(0, $limit - 1);
     }
 
+    public function delete(int $postId): bool
+    {
+        $result = $this->client->eval(
+            <<<'LUA'
+            if redis.call('DEL', KEYS[1]) == 0 then return 0 end
+            redis.call('ZREM', KEYS[2], ARGV[1])
+            return 1
+            LUA,
+            2,
+            $this->key('post:' . $postId),
+            $this->key('posts'),
+            (string) $postId,
+        );
+
+        return $result === 1;
+    }
+
     /** @return list<PostRecord> */
     private function readRange(int $start, int $stop): array
     {

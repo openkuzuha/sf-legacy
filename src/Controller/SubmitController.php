@@ -42,7 +42,7 @@ final class SubmitController
             }
         }
 
-        $this->posts->append([
+        $postId = $this->posts->append([
             'author' => $request->request->getString('author'),
             'email' => $request->request->getString('email'),
             'title' => $request->request->getString('title'),
@@ -52,6 +52,11 @@ final class SubmitController
             'user_agent' => $request->headers->get('User-Agent'),
             'thread_id' => $threadId,
             'reply_to' => $replyTo,
+        ]);
+        $request->getSession()->set('post_undo', [
+            'post_id' => $postId,
+            'token' => bin2hex(random_bytes(32)),
+            'expires_at' => time() + 86400,
         ]);
 
         return $this->redirectToBbs($request, $displayCount, $autoLink);

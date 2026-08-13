@@ -147,6 +147,51 @@ final class JsonlPostRepository implements PostRepository
         return array_slice($this->all(), 0, max(0, $limit));
     }
 
+    public function delete(int $postId): bool
+    {
+        if (!is_file($this->filename)) {
+            return false;
+        }
+        $handle = fopen($this->filename, 'c+');
+        if ($handle === false) {
+            throw new RuntimeException(sprintf('ログファイル "%s" を開けません。', $this->filename));
+        }
+
+        try {
+            if (!flock($handle, LOCK_EX)) {
+                throw new RuntimeException('ログファイルをロックできません。');
+            }
+            $kept = [];
+            $deleted = null;
+            while (($line = fgets($handle)) !== false) {
+                $record = $this->codec->decode($line);
+                if ($record !== null && $record['location'] === $this->location && $record['post_id'] === $postId) {
+                    $deleted = $record;
+                    continue;
+                }
+                $kept[] = $line;
+            }
+            if ($deleted === null) {
+                return false;
+            }
+            if (!ftruncate($handle, 0) || !rewind($handle)) {
+                throw new RuntimeException('中央ログから投稿を削除できません。');
+            }
+            foreach ($kept as $line) {
+                if (fwrite($handle, $line) === false) {
+                    throw new RuntimeException('中央ログから投稿を削除できません。');
+                }
+            }
+            fflush($handle);
+            $this->archive?->delete($deleted);
+
+            return true;
+        } finally {
+            flock($handle, LOCK_UN);
+            fclose($handle);
+        }
+    }
+
     /** @param resource $handle */
     private function nextPostId($handle): int
     {

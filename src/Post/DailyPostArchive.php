@@ -62,6 +62,57 @@ final class DailyPostArchive
         }
     }
 
+    /** @param PostRecord $record */
+    public function delete(array $record): bool
+    {
+        $filename = $this->filename($record['posted_at']);
+        if (!is_file($filename)) {
+            return false;
+        }
+
+        $handle = fopen($filename, 'c+');
+        if ($handle === false) {
+            throw new RuntimeException(sprintf('アーカイブファイル "%s" を開けません。', $filename));
+        }
+
+        try {
+            if (!flock($handle, LOCK_EX)) {
+                throw new RuntimeException('アーカイブファイルをロックできません。');
+            }
+            $kept = [];
+            $deleted = false;
+            while (($line = fgets($handle)) !== false) {
+                $existing = $this->codec->decode($line);
+                if (
+                    $existing !== null
+                    && $existing['location'] === $record['location']
+                    && $existing['post_id'] === $record['post_id']
+                ) {
+                    $deleted = true;
+                    continue;
+                }
+                $kept[] = $line;
+            }
+            if (!$deleted) {
+                return false;
+            }
+            if (!ftruncate($handle, 0) || !rewind($handle)) {
+                throw new RuntimeException('アーカイブから投稿を削除できません。');
+            }
+            foreach ($kept as $line) {
+                if (fwrite($handle, $line) === false) {
+                    throw new RuntimeException('アーカイブから投稿を削除できません。');
+                }
+            }
+            fflush($handle);
+
+            return true;
+        } finally {
+            flock($handle, LOCK_UN);
+            fclose($handle);
+        }
+    }
+
     /** @return list<PostRecord> */
     public function month(string $yearMonth): array
     {
