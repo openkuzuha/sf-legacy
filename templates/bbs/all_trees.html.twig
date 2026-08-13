@@ -15,7 +15,9 @@
                     </p>
                     {{ tree.branches(item.children, 'root', path('app_tree'), unread_after_post_id) }}
                 </section>
-                <hr>
+                {% if not loop.last %}
+                    <hr>
+                {% endif %}
             {% else %}
                 <p>{% if unread_requested %}未読メッセージはありません。{% else %}記事はありません。{% endif %}</p>
             {% endfor %}

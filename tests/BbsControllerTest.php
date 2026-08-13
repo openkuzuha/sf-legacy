@@ -110,6 +110,7 @@ test('全ツリー表示ページを表示する', function () {
     $this->assertSelectorExists('form#post-form[action="/submit"][method="post"]');
     $this->assertSelectorTextSame('.page-header a.header-link[href="/"]', '標準画面');
     $this->assertSelectorCount(0, '.page-header a.header-link[href="/tree"]');
+    $this->assertSelectorCount(0, 'main > hr:last-child');
 });
 
 test('過去ログページは一覧見出しを表示する', function () {
