@@ -130,7 +130,7 @@ test('全ツリーをスレッドの更新順で階層表示する', function ()
 
         $this->assertResponseIsSuccessful();
         $this->assertSelectorCount(2, '.tree-thread');
-        $this->assertSelectorCount(2, '.tree-thread + hr');
+        $this->assertSelectorCount(1, '.tree-thread + hr');
         $this->assertSelectorExists('#post-form input[name="return_to"][value="/tree"]');
         $this->assertSelectorExists('#m200 a[title="Reply"][href="/reply/200?return_to=/tree"]');
         $this->assertSelectorExists('.tree-thread .tree-updated a[title="スレッド表示"][href="/thread/200"]');

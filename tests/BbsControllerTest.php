@@ -37,7 +37,7 @@ test('トップページに設定したアプリケーション名が表示さ�
     $this->assertSelectorExists('#unread-form input[name="p"]');
     expect($crawler->filter('.small')->text())->toMatch('/現在の参加者 : \d+人 \(300秒以内\)/');
     $this->assertSelectorTextContains('#post-form .small', '最大記事件数 : 500件');
-    expect($crawler->filter('.page-view-counter')->text())->toMatch('/^2026\/08\/12 から \d+$/');
+    expect($crawler->filter('.page-view-counter')->text())->toMatch('/^2026\/08\/12（[^）]+）から \d+$/u');
     $this->assertSelectorTextContains('#post-form .small + div', '過去ログ');
     $this->assertSelectorExists('#post-form .archive-heading a[href="/archive"]');
     $this->assertSelectorTextSame(

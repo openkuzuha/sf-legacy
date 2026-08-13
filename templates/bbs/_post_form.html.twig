@@ -42,7 +42,7 @@
     </div>
     {% if page_view_count is defined and visitor_count is defined %}
         <div class="small bbs-stats">
-            <span class="page-view-counter">{{ page_view_started_at }} から {{ page_view_count }}</span>
+            <span class="page-view-counter">{{ page_view_started_at }}（{{ page_view_started_at|time_ago }}）から {{ page_view_count }}</span>
             <span>　 現在の参加者 : {{ visitor_count }}人 ({{ visitor_limit }}秒以内)</span>
             <span>　 最大記事件数 : {{ central_post_limit }}件</span>
         </div>
