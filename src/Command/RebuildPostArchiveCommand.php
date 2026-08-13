@@ -2,7 +2,7 @@
 
 namespace App\Command;
 
-use App\Post\DailyPostArchive;
+use App\Post\PostArchive;
 use App\Post\PostRepository;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -14,7 +14,7 @@ final class RebuildPostArchiveCommand extends Command
 {
     public function __construct(
         private readonly PostRepository $posts,
-        private readonly DailyPostArchive $archive,
+        private readonly PostArchive $archive,
     ) {
         parent::__construct();
     }

@@ -27,4 +27,7 @@ interface PostRepository
 
     /** @return bool 投稿が存在し、削除できた場合はtrue */
     public function delete(int $postId): bool;
+
+    /** @return int 削除した投稿件数 */
+    public function clear(): int;
 }

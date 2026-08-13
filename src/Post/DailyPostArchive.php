@@ -7,7 +7,7 @@ use DateTimeZone;
 use RuntimeException;
 
 /** @phpstan-import-type PostRecord from PostTypes */
-final class DailyPostArchive
+final class DailyPostArchive implements PostArchive
 {
     private readonly DateTimeZone $timezone;
 
@@ -212,6 +212,29 @@ final class DailyPostArchive
         usort($records, static fn (array $left, array $right): int => $left['posted_at'] <=> $right['posted_at']);
 
         return $records;
+    }
+
+    /** @return int 削除した投稿件数 */
+    public function clear(): int
+    {
+        $filenames = glob(sprintf('%s/*/*/*.jsonl', rtrim($this->directory, '/')));
+        if ($filenames === false) {
+            throw new RuntimeException('日別アーカイブを列挙できません。');
+        }
+
+        $count = 0;
+        foreach ($filenames as $filename) {
+            foreach (file($filename, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
+                if ($this->codec->decode($line) !== null) {
+                    ++$count;
+                }
+            }
+            if (!unlink($filename)) {
+                throw new RuntimeException(sprintf('アーカイブファイル "%s" を削除できません。', $filename));
+            }
+        }
+
+        return $count;
     }
 
     private static function formatBytes(int $bytes): string

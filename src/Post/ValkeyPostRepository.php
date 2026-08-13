@@ -116,6 +116,30 @@ final class ValkeyPostRepository implements PostRepository
         return $result === 1;
     }
 
+    public function clear(): int
+    {
+        $result = $this->client->eval(
+            <<<'LUA'
+            local ids = redis.call('ZRANGE', KEYS[1], 0, -1)
+            for _, id in ipairs(ids) do
+                redis.call('DEL', ARGV[1] .. id)
+            end
+            redis.call('DEL', KEYS[1], KEYS[2])
+            return #ids
+            LUA,
+            2,
+            $this->key('posts'),
+            $this->key('next-id'),
+            $this->key('post:'),
+        );
+
+        if (!is_int($result)) {
+            throw new RuntimeException('Valkeyの投稿データを初期化できません。');
+        }
+
+        return $result;
+    }
+
     /** @return list<PostRecord> */
     private function readRange(int $start, int $stop): array
     {

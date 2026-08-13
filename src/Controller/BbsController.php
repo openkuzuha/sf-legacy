@@ -4,7 +4,7 @@ namespace App\Controller;
 
 use App\Content\LinkCollection;
 use App\PageView\PageViewCounter;
-use App\Post\DailyPostArchive;
+use App\Post\PostArchive;
 use App\Post\PostRepository;
 use App\Visitor\VisitorCounter;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -26,7 +26,7 @@ final class BbsController
         private readonly string $appTitle,
         private readonly Environment $twig,
         private readonly PostRepository $posts,
-        private readonly DailyPostArchive $archive,
+        private readonly PostArchive $archive,
         private readonly VisitorCounter $visitorCounter,
         private readonly PageViewCounter $pageViewCounter,
         private readonly LinkCollection $links,

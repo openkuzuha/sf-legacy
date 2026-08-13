@@ -46,7 +46,10 @@ test('投稿をローカル時刻の日別に保存し月単位では結合し�
                     'formatted_size' => filesize($directory . '/2026/08/02.jsonl') . ' B',
                     'post_count' => 1,
                 ],
-            ]);
+            ])
+            ->and($archive->clear())->toBe(2)
+            ->and($archive->entries())->toBe([])
+            ->and($archive->clear())->toBe(0);
     } finally {
         if (is_file($directory . '/2026/08/01.jsonl')) {
             unlink($directory . '/2026/08/01.jsonl');

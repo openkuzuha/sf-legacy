@@ -168,3 +168,32 @@ test('中央ログは設定件数に切り詰めても日別アーカイブに�
         }
     }
 });
+
+test('中央ログを初期化して投稿IDを1から再開する', function () {
+    $filename = sys_get_temp_dir() . '/sf-legacy-reset-' . bin2hex(random_bytes(8)) . '.jsonl';
+    $log = new JsonlPostRepository($filename, new PostRecordCodec());
+    $input = [
+        'host' => null,
+        'user_agent' => null,
+        'author' => '',
+        'email' => '',
+        'title' => '',
+        'message' => 'reset target',
+        'thread_id' => null,
+        'reply_to' => null,
+    ];
+
+    try {
+        $log->append($input);
+        $log->append($input);
+
+        expect($log->clear())->toBe(2)
+            ->and($log->all())->toBe([])
+            ->and($log->clear())->toBe(0)
+            ->and($log->append($input))->toBe(1);
+    } finally {
+        if (is_file($filename)) {
+            unlink($filename);
+        }
+    }
+});

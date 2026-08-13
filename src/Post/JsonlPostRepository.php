@@ -18,7 +18,7 @@ final class JsonlPostRepository implements PostRepository
         private readonly string $filename,
         private readonly PostRecordCodec $codec,
         private readonly string $location = 'main',
-        private readonly ?DailyPostArchive $archive = null,
+        private readonly ?PostArchive $archive = null,
         private readonly int $maximumRecords = 500,
     ) {
         if ($this->maximumRecords < 1) {
@@ -186,6 +186,39 @@ final class JsonlPostRepository implements PostRepository
             $this->archive?->delete($deleted);
 
             return true;
+        } finally {
+            flock($handle, LOCK_UN);
+            fclose($handle);
+        }
+    }
+
+    public function clear(): int
+    {
+        if (!is_file($this->filename)) {
+            return 0;
+        }
+        $handle = fopen($this->filename, 'c+');
+        if ($handle === false) {
+            throw new RuntimeException(sprintf('ログファイル "%s" を開けません。', $this->filename));
+        }
+
+        try {
+            if (!flock($handle, LOCK_EX)) {
+                throw new RuntimeException('ログファイルをロックできません。');
+            }
+            $count = 0;
+            while (($line = fgets($handle)) !== false) {
+                $record = $this->codec->decode($line);
+                if ($record !== null && $record['location'] === $this->location) {
+                    ++$count;
+                }
+            }
+            if (!ftruncate($handle, 0)) {
+                throw new RuntimeException('中央ログを初期化できません。');
+            }
+            fflush($handle);
+
+            return $count;
         } finally {
             flock($handle, LOCK_UN);
             fclose($handle);

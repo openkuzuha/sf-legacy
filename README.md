@@ -34,13 +34,10 @@ docker compose up --build
 `redis://localhost:6379` で接続できます。データはDockerの
 `valkey_data` ボリュームへAOF形式で永続化され、メモリ上限到達時には
 データを削除せず書き込みエラーにする `noeviction` を使用します。
-保存先はDocker内でも `.env` の `POST_STORAGE` を使用します。既定の
-`POST_STORAGE=jsonl` では `/app/var/data/posts.jsonl`（ホスト側の
-`var/data/posts.jsonl`）へ保存されます。Valkeyを使用する場合だけ
-`POST_STORAGE=valkey` に変更してください。
-
-保存処理は共通の `PostRepository` を介しており、通常のローカル実行では
-`POST_STORAGE=jsonl` による単純なUTF-8 JSON Linesファイルも使用できます。
+Composeでは `CLOUD_MODE=1` により投稿とページビューをValkeyへ保存します。
+通常のローカル実行では `.env` の `CLOUD_MODE=0` により、投稿を単純なUTF-8
+JSON Linesファイル `var/data/posts.jsonl`、ページビューをファイルへ保存します。
+保存処理は共通の `PostRepository` を介しています。
 Valkeyにも同じJSONテキストを格納するため、データの取り出しや移行時に
 Valkey固有形式を解釈する必要はありません。
 投稿日時はUTCのRFC 3339形式（例: `2026-08-11T23:10:00Z`）で保存し、
@@ -53,6 +50,25 @@ Valkeyだけを起動して疎通を確認する場合は次を実行します�
 docker compose up -d valkey
 docker compose exec valkey valkey-cli ping
 ```
+
+すべての投稿と過去ログを初期化する場合は次を実行します。通常は確認を求め、
+自動実行時のみ `--force`（または `-f`）で確認を省略できます。
+
+```bash
+docker compose exec app php bin/console bbs:data:reset
+```
+
+開発用のS3互換ストレージとしてMinIOも起動します。S3 APIは
+`http://localhost:9000`、管理コンソールは `http://localhost:9001` です。
+初回起動時に `bbs-archive` バケットが自動作成され、データはDockerの
+`minio_data` ボリュームへ永続化されます。接続情報とバケット名は `.env` の
+`MINIO_ROOT_USER`、`MINIO_ROOT_PASSWORD`、`MINIO_BUCKET` で変更できます。
+アーカイブのオブジェクトキーは既定で `archives/` 以下に保存します。
+`ARCHIVE_S3_PREFIX` で変更でき、空文字を指定するとバケット直下を使用します。
+クラウドモードでは投稿ごとに
+`archives/main/YYYY/MM/DD/0000000001.json` 形式で保存します。
+Composeのアプリコンテナでは `CLOUD_MODE=1` が設定され、ホストから直接実行する
+場合は `.env` の既定値 `CLOUD_MODE=0` が使用されます。
 
 旧掲示板の公開HTMLまたは交換用JSON Linesは、共通Repositoryへ直接取り込めます。
 元の投稿ID、日時、スレッド、返信関係を維持し、同じ投稿の再実行はスキップします。

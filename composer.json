@@ -4,6 +4,7 @@
     "license": "proprietary",
     "require": {
         "php": ">=8.2",
+        "aws/aws-sdk-php": "^3.0",
         "league/commonmark": "^2.10",
         "nesbot/carbon": "^3.0",
         "pentatrion/vite-bundle": "^8.2",
@@ -39,7 +40,7 @@
         "check": [
             "@composer validate --no-check-publish",
             "@php vendor/bin/pest --colors=always",
-            "@php vendor/bin/phpstan analyse --no-progress",
+            "@php vendor/bin/phpstan analyse --no-progress --memory-limit=512M",
             "@php vendor/bin/phpcs",
             "@php bin/console lint:twig templates --show-deprecations",
             "@php vendor/bin/twig-cs-fixer lint templates --no-cache"
