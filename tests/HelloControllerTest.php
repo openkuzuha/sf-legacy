@@ -233,6 +233,7 @@ test('■から引用付きReplyを投稿する', function () {
         $this->assertSelectorExists('#post-form input[name="reply_to"][value="100"]');
         $this->assertSelectorCount(0, '#post-form input[name="display_count"]');
         $this->assertSelectorExists('#post-form input[name="auto_link"]');
+        $this->assertSelectorCount(0, '#post-form a.settings-button');
         $this->assertSelectorCount(0, '#post-form > .post-form-actions');
         $this->assertInputValueSame('title', '＞元投稿者');
         $form = $crawler->selectButton('投稿／リロード')->form();
