@@ -32,6 +32,7 @@ test('投稿をローカル時刻の日別に保存し月単位では結合し�
             ->and($directory . '/2026/08/01.jsonl')->toBeFile()
             ->and($archive->month('2026-08'))->toBe([$record, $nextRecord])
             ->and($archive->search(['2026/08/02'], '本文'))->toBe([$nextRecord])
+            ->and($archive->search(['2026/08/01', '2026/08/02'], ''))->toBe([$record, $nextRecord])
             ->and($archive->search(['../../etc/passwd'], '本文'))->toBe([])
             ->and($archive->entries())->toBe([
                 [

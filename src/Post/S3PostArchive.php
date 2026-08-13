@@ -123,9 +123,6 @@ final class S3PostArchive implements PostArchive
      */
     public function search(array $dates, string $keyword): array
     {
-        if ($keyword === '') {
-            return [];
-        }
         $records = [];
         foreach (array_unique($dates) as $date) {
             if (preg_match('#^\d{4}/\d{2}/\d{2}$#D', $date) !== 1) {
@@ -133,7 +130,7 @@ final class S3PostArchive implements PostArchive
             }
             foreach ($this->records($this->basePrefix() . $date . '/') as $record) {
                 $target = implode("\n", [$record['author'], $record['email'], $record['title'], $record['message']]);
-                if (mb_stripos($target, $keyword) !== false) {
+                if ($keyword === '' || mb_stripos($target, $keyword) !== false) {
                     $records[] = $record;
                 }
             }
