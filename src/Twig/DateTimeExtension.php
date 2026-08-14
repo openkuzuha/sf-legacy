@@ -21,12 +21,18 @@ final class DateTimeExtension extends AbstractExtension
     {
         return [
             new TwigFilter('bbs_datetime', $this->format(...)),
+            new TwigFilter('time_ago', $this->timeAgo(...)),
         ];
     }
 
     public function format(string $timestamp, string $format = 'YYYY/MM/DD(ddd) HH:mm:ss'): string
     {
         return $this->date($timestamp)->isoFormat($format);
+    }
+
+    public function timeAgo(string $timestamp): string
+    {
+        return $this->date($timestamp)->diffForHumans();
     }
 
     private function date(string $timestamp): CarbonImmutable
