@@ -14,12 +14,14 @@
                 <li>
                     {% set has_children = children[post.post_id ~ ''] is defined %}
                     <article class="tree-post" id="m{{ post.post_id }}">
+                        <span class="nb">
                         <a
                             href="{{ path('app_reply', {postId: post.post_id, return_to: return_to}) }}"
                             aria-label="Reply"
                             title="Reply"
                         >■</a>
                         {{ include('bbs/_undo_button.html.twig', {post: post}) }}
+                        </span>
                         {% if post.author|trim %}<span class="tree-author">投稿者：{{ post.author }}</span><br>{{ _self.prefix(has_children) }}{% endif %}
                         <pre{% if unread_after_post_id > 0 and post.post_id > unread_after_post_id %} class="tree-unread-message"{% endif %}>{{ _self.message(post, has_children) }}</pre>
                     </article>

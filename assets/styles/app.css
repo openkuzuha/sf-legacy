@@ -51,6 +51,7 @@ a.help { text-decoration-line: underline; }
 .q { color: var(--bbs-quote); }
 .ms { color: var(--bbs-subject); font-size: 17px; font-weight: bold; }
 .mu, .mun, .md { font-size: 14px; }
+.nb { font-size: 15px; white-space: normal; }
 .mun { font-weight: normal; }
 .nw { white-space: nowrap; }
 .undo-mark {

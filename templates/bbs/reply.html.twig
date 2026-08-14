@@ -7,10 +7,12 @@
                     <span class="ms">{{ reply.title }}</span>&nbsp;&nbsp;
                     <span class="mu">投稿者：<span class="mun">{{ reply.author }}</span></span>&nbsp;&nbsp;
                     <span class="md">投稿日：<time datetime="{{ reply.posted_at }}">{{ reply.posted_at|bbs_datetime }}</time></span>
+                    <span class="nb">
                     &nbsp;<a href="{{ path('app_reply', {postId: reply.post_id}) }}" aria-label="Reply" title="Reply">■</a>
                     {% if reply.author|replace({　: ''})|trim %}&nbsp;<a href="{{ path('app_author_search', {name: reply.author|trim}) }}" aria-label="投稿者検索" title="投稿者検索">★</a>{% endif %}
                     &nbsp;<a href="{{ path('app_thread', {threadId: reply.thread_id}) }}" aria-label="スレッド表示" title="スレッド表示">◆</a>
                     &nbsp;<a href="{{ path('app_thread_tree', {threadId: reply.thread_id}) }}" aria-label="ツリー表示" title="ツリー表示">木</a>
+                    </span>
                 </span>
                 <blockquote>
                     <pre>{{ reply.message|message_html(reply.auto_link) }}</pre>

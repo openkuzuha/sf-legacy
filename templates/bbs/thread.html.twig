@@ -10,11 +10,13 @@
                         <span class="md">
                             投稿日：<time datetime="{{ post.posted_at }}">{{ post.posted_at|bbs_datetime }}</time>
                         </span>
+                        <span class="nb">
                         &nbsp;<a href="{{ path('app_reply', {postId: post.post_id}) }}" aria-label="Reply" title="Reply">■</a>
                         {% if post.author|replace({　: ''})|trim %}&nbsp;<a href="{{ path('app_author_search', {name: post.author|trim}) }}" aria-label="投稿者検索" title="投稿者検索">★</a>{% endif %}
                         &nbsp;<a href="{{ path('app_thread', {threadId: post.thread_id}) }}" aria-label="スレッド表示" title="スレッド表示">◆</a>
                         &nbsp;<a href="{{ path('app_thread_tree', {threadId: post.thread_id}) }}" aria-label="ツリー表示" title="ツリー表示">木</a>
                         {{ include('bbs/_undo_button.html.twig', {post: post}) }}
+                        </span>
                     </span>
                     <blockquote>
                         {% set message = post.reference ? post.message|trim(null, 'right') : post.message %}

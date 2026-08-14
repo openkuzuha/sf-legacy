@@ -16,6 +16,7 @@
                                 id="a{{ post.post_id }}"
                             >&nbsp;</a>
                         </span>
+                        <span class="nb">
                         &nbsp;<a
                             href="{{ path('app_reply', {postId: post.post_id}) }}"
                             aria-label="Reply"
@@ -39,6 +40,7 @@
                             title="ツリー表示"
                         >木</a>
                         {{ include('bbs/_undo_button.html.twig', {post: post}) }}
+                        </span>
                     </span>
                     <blockquote>
                         {% set reference = post.reference is defined ? post.reference : null %}
