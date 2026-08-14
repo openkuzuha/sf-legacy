@@ -8,7 +8,7 @@
                         <span class="ms">{{ post.title }}</span>&nbsp;&nbsp;
                         <span class="mu">投稿者：<span class="mun">{{ post.author }}</span></span>&nbsp;&nbsp;
                         <span class="md">
-                            投稿日：<time datetime="{{ post.posted_at }}">{{ post.posted_at|bbs_datetime }}（{{ post.posted_at|time_ago }}）</time>
+                            投稿日：<time datetime="{{ post.posted_at }}">{{ post.posted_at|bbs_datetime }}</time>
                         </span>
                         &nbsp;<a href="{{ path('app_reply', {postId: post.post_id}) }}" aria-label="Reply" title="Reply">■</a>
                         {% if post.author|replace({　: ''})|trim %}&nbsp;<a href="{{ path('app_author_search', {name: post.author|trim}) }}" aria-label="投稿者検索" title="投稿者検索">★</a>{% endif %}
