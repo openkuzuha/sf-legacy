@@ -15,6 +15,10 @@ framework:
             limiters:
                 - post_short
                 - post_hourly
+        post_duplicate:
+            policy: sliding_window
+            limit: 1
+            interval: '3 minutes'
 
 when@test:
     framework:

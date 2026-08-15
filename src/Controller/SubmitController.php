@@ -20,6 +20,7 @@ final class SubmitController
         private readonly PostRepository $posts,
         private readonly UrlGeneratorInterface $urlGenerator,
         private readonly RateLimiterFactoryInterface $postLimiter,
+        private readonly RateLimiterFactoryInterface $postDuplicateLimiter,
         #[Autowire(param: 'app.post_max_author_chars')]
         private readonly int $maxAuthorChars,
         #[Autowire(param: 'app.post_max_email_chars')]
@@ -52,6 +53,13 @@ final class SubmitController
         if (!$limit->isAccepted()) {
             $retryAfter = max(1, $limit->getRetryAfter()->getTimestamp() - time());
             throw new TooManyRequestsHttpException($retryAfter, '投稿間隔を空けてもう一度お試しください。');
+        }
+
+        $duplicateKey = hash('sha256', ($request->getClientIp() ?? 'unknown') . '|' . $message);
+        $duplicateLimit = $this->postDuplicateLimiter->create($duplicateKey)->consume();
+        if (!$duplicateLimit->isAccepted()) {
+            $retryAfter = max(1, $duplicateLimit->getRetryAfter()->getTimestamp() - time());
+            throw new TooManyRequestsHttpException($retryAfter, '同じ内容の投稿は少し時間をおいてからもう一度お試しください。');
         }
 
         $replyTo = $request->request->getInt('reply_to') ?: null;

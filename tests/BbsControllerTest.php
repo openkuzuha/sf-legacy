@@ -333,6 +333,18 @@ test('短時間に投稿できる件数をIPアドレス単位で制限する', 
     expect($client->getResponse()->headers->get('Retry-After'))->not->toBeNull();
 });
 
+test('同一IPからの同一内容の投稿を数分間拒否する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient();
+    $content = '重複テスト' . bin2hex(random_bytes(8));
+    $client->request('POST', '/submit', ['content' => $content]);
+    $this->assertResponseRedirects();
+    $client->request('POST', '/submit', ['content' => $content]);
+
+    $this->assertResponseStatusCodeSame(429);
+    expect($client->getResponse()->headers->get('Retry-After'))->not->toBeNull();
+});
+
 test('legacy互換の入力上限を超えた投稿を拒否する', function () {
     /** @var TestCase $this */
     $client = $this->createClient();
