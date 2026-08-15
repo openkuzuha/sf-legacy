@@ -85,7 +85,9 @@ test('自分の直前の投稿だけを×ボタンから削除する', function 
     $keptMessage = '残る投稿-' . $suffix;
     $deletedMessage = '消す投稿-' . $suffix;
     $client->request('POST', '/submit', ['title' => '一件目', 'content' => $keptMessage]);
+    $this->assertResponseRedirects();
     $client->request('POST', '/submit', ['title' => '二件目', 'content' => $deletedMessage]);
+    $this->assertResponseRedirects();
     $crawler = $client->followRedirect();
 
     $undoForm = $crawler->filter('.m form[action$="/undo"][method="post"]');
@@ -309,4 +311,17 @@ test('投稿者名がある記事だけ★から投稿者検索できる', funct
             unlink($filename);
         }
     }
+});
+
+test('短時間に投稿できる件数をIPアドレス単位で制限する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient();
+    $client->request('POST', '/submit', ['content' => '制限テスト1']);
+    $this->assertResponseRedirects();
+    $client->request('POST', '/submit', ['content' => '制限テスト2']);
+    $this->assertResponseRedirects();
+    $client->request('POST', '/submit', ['content' => '制限テスト3']);
+
+    $this->assertResponseStatusCodeSame(429);
+    expect($client->getResponse()->headers->get('Retry-After'))->not->toBeNull();
 });

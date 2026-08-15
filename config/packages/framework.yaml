@@ -1,6 +1,20 @@
 framework:
     secret: '%env(APP_SECRET)%'
     session: true
+    rate_limiter:
+        post_short:
+            policy: sliding_window
+            limit: 2
+            interval: '10 seconds'
+        post_hourly:
+            policy: sliding_window
+            limit: 30
+            interval: '1 hour'
+        post:
+            policy: compound
+            limiters:
+                - post_short
+                - post_hourly
 
 when@test:
     framework:
