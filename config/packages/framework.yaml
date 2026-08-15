@@ -1,6 +1,7 @@
 framework:
     secret: '%env(APP_SECRET)%'
     session: true
+    csrf_protection: true
     rate_limiter:
         post_short:
             policy: sliding_window

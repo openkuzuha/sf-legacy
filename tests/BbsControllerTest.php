@@ -23,6 +23,7 @@ test('トップページに設定したアプリケーション名が表示さ�
         $crawler->filter('.request-duration')->text(),
     );
     $this->assertSelectorCount(1, 'form[action="/submit"][method="post"]');
+    $this->assertSelectorCount(1, '#post-form input[type="hidden"][name="_token"]');
     $this->assertSelectorCount(1, 'input[name="author"][type="text"]');
     $this->assertSelectorCount(1, 'input[name="email"][type="email"]');
     $this->assertSelectorCount(1, 'input[name="title"][type="text"]');
@@ -91,9 +92,10 @@ test('自分の直前の投稿だけを×ボタンから削除する', function 
     $suffix = bin2hex(random_bytes(8));
     $keptMessage = '残る投稿-' . $suffix;
     $deletedMessage = '消す投稿-' . $suffix;
-    $client->request('POST', '/submit', ['title' => '一件目', 'content' => $keptMessage]);
+    $token = $this->csrfToken($client);
+    $client->request('POST', '/submit', ['title' => '一件目', 'content' => $keptMessage, '_token' => $token]);
     $this->assertResponseRedirects();
-    $client->request('POST', '/submit', ['title' => '二件目', 'content' => $deletedMessage]);
+    $client->request('POST', '/submit', ['title' => '二件目', 'content' => $deletedMessage, '_token' => $token]);
     $this->assertResponseRedirects();
     $crawler = $client->followRedirect();
 
@@ -320,14 +322,25 @@ test('投稿者名がある記事だけ★から投稿者検索できる', funct
     }
 });
 
+test('CSRFトークンが不正な投稿を拒否する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient();
+    $client->request('POST', '/submit', ['content' => 'CSRFテスト1']);
+    $this->assertResponseStatusCodeSame(400);
+
+    $client->request('POST', '/submit', ['content' => 'CSRFテスト2', '_token' => '不正なトークン']);
+    $this->assertResponseStatusCodeSame(400);
+});
+
 test('短時間に投稿できる件数をIPアドレス単位で制限する', function () {
     /** @var TestCase $this */
     $client = $this->createClient();
-    $client->request('POST', '/submit', ['content' => '制限テスト1']);
+    $token = $this->csrfToken($client);
+    $client->request('POST', '/submit', ['content' => '制限テスト1', '_token' => $token]);
     $this->assertResponseRedirects();
-    $client->request('POST', '/submit', ['content' => '制限テスト2']);
+    $client->request('POST', '/submit', ['content' => '制限テスト2', '_token' => $token]);
     $this->assertResponseRedirects();
-    $client->request('POST', '/submit', ['content' => '制限テスト3']);
+    $client->request('POST', '/submit', ['content' => '制限テスト3', '_token' => $token]);
 
     $this->assertResponseStatusCodeSame(429);
     expect($client->getResponse()->headers->get('Retry-After'))->not->toBeNull();
@@ -336,10 +349,11 @@ test('短時間に投稿できる件数をIPアドレス単位で制限する', 
 test('同一IPからの同一内容の投稿を数分間拒否する', function () {
     /** @var TestCase $this */
     $client = $this->createClient();
+    $token = $this->csrfToken($client);
     $content = '重複テスト' . bin2hex(random_bytes(8));
-    $client->request('POST', '/submit', ['content' => $content]);
+    $client->request('POST', '/submit', ['content' => $content, '_token' => $token]);
     $this->assertResponseRedirects();
-    $client->request('POST', '/submit', ['content' => $content]);
+    $client->request('POST', '/submit', ['content' => $content, '_token' => $token]);
 
     $this->assertResponseStatusCodeSame(429);
     expect($client->getResponse()->headers->get('Retry-After'))->not->toBeNull();
@@ -348,6 +362,7 @@ test('同一IPからの同一内容の投稿を数分間拒否する', function 
 test('legacy互換の入力上限を超えた投稿を拒否する', function () {
     /** @var TestCase $this */
     $client = $this->createClient();
+    $token = $this->csrfToken($client);
     $invalidPosts = [
         ['author' => str_repeat('あ', 31), 'content' => '本文'],
         ['email' => str_repeat('a', 256), 'content' => '本文'],
@@ -357,7 +372,7 @@ test('legacy互換の入力上限を超えた投稿を拒否する', function ()
     ];
 
     foreach ($invalidPosts as $post) {
-        $client->request('POST', '/submit', $post);
+        $client->request('POST', '/submit', $post + ['_token' => $token]);
         $this->assertResponseStatusCodeSame(400);
     }
 });

@@ -30,4 +30,15 @@ abstract class TestCase extends WebTestCase
     {
         return parent::getContainer();
     }
+
+    public static function csrfToken(KernelBrowser $client): string
+    {
+        $crawler = $client->request('GET', '/');
+        $token = $crawler->filter('#post-form input[name="_token"]')->attr('value');
+        if (!is_string($token) || $token === '') {
+            throw new \LogicException('CSRFトークンを取得できませんでした。');
+        }
+
+        return $token;
+    }
 }

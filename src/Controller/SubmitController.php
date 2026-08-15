@@ -13,6 +13,8 @@ use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Csrf\CsrfToken;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 final class SubmitController
 {
@@ -21,6 +23,7 @@ final class SubmitController
         private readonly UrlGeneratorInterface $urlGenerator,
         private readonly RateLimiterFactoryInterface $postLimiter,
         private readonly RateLimiterFactoryInterface $postDuplicateLimiter,
+        private readonly CsrfTokenManagerInterface $csrfTokenManager,
         #[Autowire(param: 'app.post_max_author_chars')]
         private readonly int $maxAuthorChars,
         #[Autowire(param: 'app.post_max_email_chars')]
@@ -37,6 +40,11 @@ final class SubmitController
     #[Route('/submit', name: 'app_submit', methods: ['POST'])]
     public function __invoke(Request $request): Response
     {
+        $token = new CsrfToken('post', $request->request->getString('_token'));
+        if (!$this->csrfTokenManager->isTokenValid($token)) {
+            throw new BadRequestHttpException('ページの有効期限が切れました。再読み込みしてもう一度お試しください。');
+        }
+
         $displayCount = max(1, min(1000, $request->request->getInt('display_count', 40)));
         $autoLink = $request->request->getBoolean('auto_link');
         $message = $request->request->getString('content');
