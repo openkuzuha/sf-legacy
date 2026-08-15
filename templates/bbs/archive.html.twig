@@ -11,8 +11,11 @@
                 <li>
                     <label>
                         <input type="checkbox" name="archives[]" value="{{ archive.date }}"{% if archive.date in selected_archives %} checked{% endif %}>
-                        {{ archive.date }} {{ archive.formatted_size }} {{ archive.post_count }}件
                     </label>
+                    <a href="{{ path('app_archive', {archives: [archive.date], keyword: ''}) }}">{{ archive.date }}</a>
+                    {{ archive.formatted_size }} {{ archive.post_count }}件
+                    <a href="{{ path('app_archive_topics', {date: archive.date}) }}">トピック一覧</a>
+                    <a href="{{ path('app_archive_download', {date: archive.date}) }}">ダウンロード</a>
                 </li>
             {% endfor %}
         </ul>
@@ -28,6 +31,10 @@
     </form>
     {% if search_performed %}
         <hr>
+        <p>
+            対象：{% if selected_archives %}{{ selected_archives|join('、') }}{% else %}（未選択）{% endif %}
+            {% if keyword %}／キーワード：{{ keyword }}{% endif %}
+        </p>
         {% for post in posts %}
             <div class="m" id="m{{ post.post_id }}">
                 <span class="nw">

@@ -10,6 +10,7 @@ use App\Visitor\VisitorCounter;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Twig\Environment;
@@ -154,6 +155,57 @@ final class BbsController
             'search_performed' => $request->query->has('keyword'),
             'posts' => $this->archive->search($selectedArchives, $keyword),
         ]));
+    }
+
+    #[Route('/archive/topics', name: 'app_archive_topics', methods: ['GET'])]
+    public function archiveTopics(Request $request): Response
+    {
+        $date = $request->query->getString('date');
+        $posts = $this->archiveDate($date);
+
+        $topics = [];
+        foreach ($posts as $post) {
+            $threadId = $post['thread_id'];
+            if (!isset($topics[$threadId])) {
+                $topics[$threadId] = [
+                    'thread_id' => $threadId,
+                    'reply_count' => 0,
+                    'updated_at' => $post['posted_at'],
+                    'digest' => $this->topicDigest($post['message']),
+                ];
+            } else {
+                ++$topics[$threadId]['reply_count'];
+                $topics[$threadId]['updated_at'] = $post['posted_at'];
+            }
+        }
+
+        return new Response($this->twig->render('bbs/archive_topics.html.twig', [
+            'app_title' => $this->appTitle,
+            'date' => $date,
+            'topics' => array_values($topics),
+        ]));
+    }
+
+    #[Route('/archive/download', name: 'app_archive_download', methods: ['GET'])]
+    public function archiveDownload(Request $request): Response
+    {
+        $date = $request->query->getString('date');
+        $posts = $this->archiveDate($date);
+
+        $html = $this->twig->render('bbs/archive_download.html.twig', [
+            'app_title' => $this->appTitle,
+            'date' => $date,
+            'posts' => $posts,
+        ]);
+
+        $response = new Response($html);
+        $response->headers->set('Content-Type', 'text/html; charset=UTF-8');
+        $response->headers->set('Content-Disposition', $response->headers->makeDisposition(
+            ResponseHeaderBag::DISPOSITION_ATTACHMENT,
+            str_replace('/', '', $date) . '.html',
+        ));
+
+        return $response;
     }
 
     #[Route('/personal-settings', name: 'app_personal_settings', methods: ['GET'])]
@@ -395,6 +447,28 @@ final class BbsController
         }
 
         return false;
+    }
+
+    /** @return list<PostRecord> */
+    private function archiveDate(string $date): array
+    {
+        if (preg_match('#^\d{4}/\d{2}/\d{2}$#D', $date) !== 1) {
+            throw new NotFoundHttpException('日付が指定されていません。');
+        }
+        $posts = $this->archive->search([$date], '');
+        if ($posts === []) {
+            throw new NotFoundHttpException('過去ログが見つかりません。');
+        }
+
+        return $posts;
+    }
+
+    private function topicDigest(string $message): string
+    {
+        $stripped = $this->treeMessage($message);
+        $joined = trim(preg_replace('/\R+/u', '', $stripped) ?? $stripped);
+
+        return mb_strlen($joined) > 50 ? mb_substr($joined, 0, 50) . '…' : $joined;
     }
 
     private function treeMessage(string $message): string

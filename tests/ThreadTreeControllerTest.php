@@ -71,7 +71,7 @@ test('個別スレッドをreply_toに従って階層表示する', function () 
         $this->assertSelectorTextContains('footer .request-duration', '実行時間 : ');
         $this->assertSelectorTextContains(
             'footer a[href="https://github.com/openkuzuha/sf-legacy"]',
-            'Open Kuzuha / sf-legacy',
+            'openkuzuha/sf-legacy',
         );
         $replyCrawler = $client->click($crawler->filter('#m101 a[title="Reply"]')->link());
         $this->assertSelectorExists('#post-form input[name="return_to"][value="/tree/100"]');

@@ -42,11 +42,11 @@ test('トップページに設定したアプリケーション名が表示さ�
     $this->assertSelectorExists('#post-form .archive-heading a[href="/archive"]');
     $this->assertSelectorTextSame(
         '#post-form .archive-heading a.additional-link[href="https://github.com/openkuzuha"]',
-        'openkuzuha',
+        'OpenKuzuha',
     );
     $this->assertSelectorCount(1, '#post-form .archive-heading a.additional-link');
     expect($crawler->filter('#post-form .lower-links')->text(null, true))
-        ->toBe('広報室 | 過去ログ | openkuzuha');
+        ->toBe('広報室 | 過去ログ | OpenKuzuha');
     $this->assertSelectorExists('.page-header a[href^="/tree?p="]');
     $this->assertSelectorExists('#post-form .small + div > hr + div + hr');
     $this->assertSelectorTextContains(
