@@ -27,6 +27,13 @@ test('トップページに設定したアプリケーション名が表示さ�
     $this->assertSelectorCount(1, 'input[name="email"][type="email"]');
     $this->assertSelectorCount(1, 'input[name="title"][type="text"]');
     $this->assertSelectorCount(1, 'textarea[name="content"]');
+    $this->assertSelectorExists('input[name="author"][data-character-limit="30"]');
+    $this->assertSelectorExists('input[name="email"][data-character-limit="255"]');
+    $this->assertSelectorExists('input[name="title"][data-character-limit="40"]');
+    $this->assertSelectorExists(
+        'textarea[name="content"][data-message-line-limit="50"][data-line-char-limit="200"]',
+    );
+    $this->assertSelectorCount(4, '#post-form output.post-input-limit');
     $this->assertSelectorExists('input[name="auto_link"][type="checkbox"][checked]');
     $this->assertSelectorTextSame(
         '.post-settings a.settings-button[href="/personal-settings"][role="button"]',
@@ -324,4 +331,21 @@ test('短時間に投稿できる件数をIPアドレス単位で制限する', 
 
     $this->assertResponseStatusCodeSame(429);
     expect($client->getResponse()->headers->get('Retry-After'))->not->toBeNull();
+});
+
+test('legacy互換の入力上限を超えた投稿を拒否する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient();
+    $invalidPosts = [
+        ['author' => str_repeat('あ', 31), 'content' => '本文'],
+        ['email' => str_repeat('a', 256), 'content' => '本文'],
+        ['title' => str_repeat('あ', 41), 'content' => '本文'],
+        ['content' => implode("\n", array_fill(0, 51, '行'))],
+        ['content' => str_repeat('あ', 201)],
+    ];
+
+    foreach ($invalidPosts as $post) {
+        $client->request('POST', '/submit', $post);
+        $this->assertResponseStatusCodeSame(400);
+    }
 });

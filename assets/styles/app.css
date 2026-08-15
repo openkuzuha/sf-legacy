@@ -95,6 +95,18 @@ a.help { text-decoration-line: underline; }
     font-size: 13px;
     font-style: italic;
 }
+.post-input-limit {
+    font-size: 12px;
+    white-space: nowrap;
+}
+.post-content-limit {
+    display: block;
+    white-space: normal;
+}
+.post-input-limit[data-over-limit="true"] {
+    color: #ffaaaa;
+    font-weight: bold;
+}
 .post-content {
     display: block;
     box-sizing: border-box;

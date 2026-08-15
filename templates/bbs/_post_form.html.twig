@@ -8,15 +8,18 @@
     <div class="post-fields flex flex-col gap-0">
         <div class="flex items-center gap-2">
             <label class="w-14" for="author">投稿者</label>
-            <input id="author" name="author" type="text">
+            <input id="author" name="author" type="text" data-character-limit="{{ post_limits.author_chars }}" aria-describedby="author-limit">
+            <output id="author-limit" class="post-input-limit" for="author" aria-live="polite"></output>
         </div>
         <div class="flex items-center gap-2">
             <label class="w-14" for="email">メール</label>
-            <input class="w-72" id="email" name="email" type="email">
+            <input class="w-72" id="email" name="email" type="email" data-character-limit="{{ post_limits.email_chars }}" aria-describedby="email-limit">
+            <output id="email-limit" class="post-input-limit" for="email" aria-live="polite"></output>
         </div>
         <div class="post-title-row flex items-center gap-2">
             <label class="w-14" for="title">題名</label>
-            <input class="w-72" id="title" name="title" type="text" value="{{ reply ? '＞' ~ reply.author : '' }}">
+            <input class="w-72" id="title" name="title" type="text" value="{{ reply ? '＞' ~ reply.author : '' }}" data-character-limit="{{ post_limits.title_chars }}" aria-describedby="title-limit">
+            <output id="title-limit" class="post-input-limit" for="title" aria-live="polite"></output>
             <span class="post-title-actions">
                 <button type="submit" name="post" class="btn">投稿／リロード</button>
                 <button type="reset" class="btn">消す</button>
@@ -26,7 +29,8 @@
     <div class="post-content-field">
         <label for="content">内容</label>
         <span class="post-field-help">（適当に改行を入れてください。タグは使えません。）</span>
-        <textarea class="post-content" id="content" name="content" rows="5" cols="70">{{ reply_message }}</textarea>
+        <textarea class="post-content" id="content" name="content" rows="5" cols="70" data-message-line-limit="{{ post_limits.message_lines }}" data-line-char-limit="{{ post_limits.line_chars }}" aria-describedby="content-limit">{{ reply_message }}</textarea>
+        <output id="content-limit" class="post-input-limit post-content-limit" for="content" aria-live="polite"></output>
     </div>
     <div class="post-settings">
         {% if not reply %}

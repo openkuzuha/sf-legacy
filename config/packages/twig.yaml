@@ -2,6 +2,12 @@ twig:
     file_name_pattern: '*.twig'
     globals:
         bbs_colors: '%app.colors%'
+        post_limits:
+            author_chars: '%app.post_max_author_chars%'
+            email_chars: '%app.post_max_email_chars%'
+            title_chars: '%app.post_max_title_chars%'
+            message_lines: '%app.post_max_message_lines%'
+            line_chars: '%app.post_max_line_chars%'
 
 when@test:
     twig:

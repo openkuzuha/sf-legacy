@@ -115,3 +115,62 @@ document.addEventListener('change', (event) => {
         document.cookie = `bbs_auto_link=${input.checked ? '1' : '0'}${cookieOptions}`;
     }
 });
+
+const postForm = document.getElementById('post-form');
+if (postForm instanceof HTMLFormElement) {
+    const characterInputs = postForm.querySelectorAll('[data-character-limit]');
+    const content = postForm.querySelector('[data-message-line-limit]');
+
+    const updateCharacterLimit = (input) => {
+        if (!(input instanceof HTMLInputElement)) {
+            return;
+        }
+        const limit = Number(input.dataset.characterLimit);
+        const length = Array.from(input.value).length;
+        const overLimit = length > limit;
+        const output = document.getElementById(`${input.id}-limit`);
+        if (output instanceof HTMLOutputElement) {
+            output.value = overLimit ? `文字数オーバー：${length}/${limit}文字` : '';
+            output.dataset.overLimit = String(overLimit);
+        }
+        input.setCustomValidity(overLimit ? `${limit}文字以内で入力してください。` : '');
+    };
+
+    const updateMessageLimit = () => {
+        if (!(content instanceof HTMLTextAreaElement)) {
+            return;
+        }
+        const lineLimit = Number(content.dataset.messageLineLimit);
+        const lineCharLimit = Number(content.dataset.lineCharLimit);
+        const normalized = content.value.replace(/\r\n?/g, '\n');
+        const lines = normalized === '' ? [] : normalized.split('\n');
+        const longestLine = Math.max(0, ...lines.map((line) => Array.from(line).length));
+        const overLimit = lines.length > lineLimit || longestLine > lineCharLimit;
+        const output = document.getElementById('content-limit');
+        if (output instanceof HTMLOutputElement) {
+            output.value = `${lines.length}/${lineLimit}行・最長行${longestLine}/${lineCharLimit}文字`;
+            output.dataset.overLimit = String(overLimit);
+        }
+
+        let message = '';
+        if (lines.length > lineLimit) {
+            message = `本文は${lineLimit}行以内で入力してください。`;
+        } else if (longestLine > lineCharLimit) {
+            message = `本文の1行は${lineCharLimit}文字以内で入力してください。`;
+        }
+        content.setCustomValidity(message);
+    };
+
+    for (const input of characterInputs) {
+        updateCharacterLimit(input);
+        input.addEventListener('input', () => updateCharacterLimit(input));
+    }
+    updateMessageLimit();
+    content?.addEventListener('input', updateMessageLimit);
+    postForm.addEventListener('reset', () => queueMicrotask(() => {
+        for (const input of characterInputs) {
+            updateCharacterLimit(input);
+        }
+        updateMessageLimit();
+    }));
+}

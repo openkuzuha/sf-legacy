@@ -3,10 +3,12 @@
 namespace App\Controller;
 
 use App\Post\PostRepository;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
@@ -18,6 +20,16 @@ final class SubmitController
         private readonly PostRepository $posts,
         private readonly UrlGeneratorInterface $urlGenerator,
         private readonly RateLimiterFactoryInterface $postLimiter,
+        #[Autowire(param: 'app.post_max_author_chars')]
+        private readonly int $maxAuthorChars,
+        #[Autowire(param: 'app.post_max_email_chars')]
+        private readonly int $maxEmailChars,
+        #[Autowire(param: 'app.post_max_title_chars')]
+        private readonly int $maxTitleChars,
+        #[Autowire(param: 'app.post_max_message_lines')]
+        private readonly int $maxMessageLines,
+        #[Autowire(param: 'app.post_max_line_chars')]
+        private readonly int $maxLineChars,
     ) {
     }
 
@@ -30,6 +42,11 @@ final class SubmitController
         if (trim($message) === '') {
             return $this->redirectToBbs($request, $displayCount, $autoLink);
         }
+
+        $author = $request->request->getString('author');
+        $email = $request->request->getString('email');
+        $title = $request->request->getString('title');
+        $this->validatePost($author, $email, $title, $message);
 
         $limit = $this->postLimiter->create($request->getClientIp() ?? 'unknown')->consume();
         if (!$limit->isAccepted()) {
@@ -52,9 +69,9 @@ final class SubmitController
         }
 
         $postId = $this->posts->append([
-            'author' => $request->request->getString('author'),
-            'email' => $request->request->getString('email'),
-            'title' => $request->request->getString('title'),
+            'author' => $author,
+            'email' => $email,
+            'title' => $title,
             'message' => $message,
             'auto_link' => $autoLink,
             'host' => $request->getClientIp(),
@@ -69,6 +86,31 @@ final class SubmitController
         ]);
 
         return $this->redirectToBbs($request, $displayCount, $autoLink);
+    }
+
+    private function validatePost(string $author, string $email, string $title, string $message): void
+    {
+        if (!mb_check_encoding($author . $email . $title . $message, 'UTF-8')) {
+            throw new BadRequestHttpException('投稿内容をUTF-8で入力してください。');
+        }
+        if (mb_strlen($author) > $this->maxAuthorChars) {
+            throw new BadRequestHttpException(sprintf('投稿者名は%d文字以内で入力してください。', $this->maxAuthorChars));
+        }
+        if (mb_strlen($email) > $this->maxEmailChars) {
+            throw new BadRequestHttpException(sprintf('メールアドレスは%d文字以内で入力してください。', $this->maxEmailChars));
+        }
+        if (mb_strlen($title) > $this->maxTitleChars) {
+            throw new BadRequestHttpException(sprintf('題名は%d文字以内で入力してください。', $this->maxTitleChars));
+        }
+        $lines = explode("\n", str_replace(["\r\n", "\r"], "\n", $message));
+        if (count($lines) > $this->maxMessageLines) {
+            throw new BadRequestHttpException(sprintf('本文は%d行以内で入力してください。', $this->maxMessageLines));
+        }
+        foreach ($lines as $line) {
+            if (mb_strlen($line) > $this->maxLineChars) {
+                throw new BadRequestHttpException(sprintf('本文の1行は%d文字以内で入力してください。', $this->maxLineChars));
+            }
+        }
     }
 
     private function redirectToBbs(Request $request, int $displayCount, bool $autoLink): RedirectResponse
