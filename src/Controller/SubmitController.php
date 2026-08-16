@@ -15,6 +15,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Twig\Environment;
 
 final class SubmitController
 {
@@ -24,6 +25,9 @@ final class SubmitController
         private readonly RateLimiterFactoryInterface $postLimiter,
         private readonly RateLimiterFactoryInterface $postDuplicateLimiter,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly Environment $twig,
+        #[Autowire(param: 'app.title')]
+        private readonly string $appTitle,
         #[Autowire(param: 'app.post_max_author_chars')]
         private readonly int $maxAuthorChars,
         #[Autowire(param: 'app.post_max_email_chars')]
@@ -105,6 +109,17 @@ final class SubmitController
             'expires_at' => time() + 86400,
         ]);
 
+        if ($replyTo !== null) {
+            $returnTo = $request->request->getString('return_to');
+            $isTree = preg_match('#^/tree(?:/\d+)?$#D', $returnTo) === 1;
+            $response = new Response($this->twig->render('bbs/post_complete.html.twig', [
+                'app_title' => $this->appTitle,
+                'return_to' => $isTree ? $returnTo : $this->urlGenerator->generate('app_hello'),
+            ]));
+
+            return $this->addPreferenceCookies($response, $request, $displayCount, $autoLink);
+        }
+
         return $this->redirectToBbs($request, $displayCount, $autoLink);
     }
 
@@ -142,6 +157,16 @@ final class SubmitController
             $isTree ? $returnTo : $this->urlGenerator->generate('app_hello', $parameters),
             Response::HTTP_SEE_OTHER,
         );
+
+        return $this->addPreferenceCookies($response, $request, $displayCount, $autoLink);
+    }
+
+    private function addPreferenceCookies(
+        Response $response,
+        Request $request,
+        int $displayCount,
+        bool $autoLink,
+    ): Response {
         $expires = new \DateTimeImmutable('+1 year');
         $response->headers->setCookie(new Cookie(
             'bbs_display_count',

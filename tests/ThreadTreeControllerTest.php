@@ -75,7 +75,8 @@ test('個別スレッドをreply_toに従って階層表示する', function () 
         $client->submit($replyCrawler->selectButton('投稿／リロード')->form([
             'content' => '個別ツリーからの返信',
         ]));
-        $this->assertResponseRedirects('/tree/100');
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextSame('.page-title a[href="/tree/100"]', '書き込み完了');
     } finally {
         if (is_file($filename)) {
             unlink($filename);
@@ -168,7 +169,8 @@ test('全ツリーをスレッドの更新順で階層表示する', function ()
         $client->submit($replyCrawler->selectButton('投稿／リロード')->form([
             'content' => '全体ツリーからの返信',
         ]));
-        $this->assertResponseRedirects('/tree');
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextSame('.page-title a[href="/tree"]', '書き込み完了');
 
         $crawler = $client->request('GET', '/tree');
         $client->submitForm('投稿／リロード', ['content' => 'ツリーからの投稿']);

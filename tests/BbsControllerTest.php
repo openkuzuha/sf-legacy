@@ -261,7 +261,9 @@ test('■から引用付きReplyを投稿する', function () {
             'content' => "> 一行目\n> 二行目\n\n返信本文",
             'auto_link' => false,
         ]);
-        $this->assertResponseRedirects('/');
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextSame('.page-title a[href="/"]', '書き込み完了');
+        $this->assertSelectorCount(0, '.page-header');
         expect($client->getCookieJar()->get('bbs_display_count')?->getValue())->toBe('40')
             ->and($client->getCookieJar()->get('bbs_auto_link')?->getValue())->toBe('0');
 
