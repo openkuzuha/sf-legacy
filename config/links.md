@@ -1,1 +1,1 @@
-- [openkuzuha](https://github.com/openkuzuha)
+- [OpenKuzuha](https://github.com/openkuzuha)

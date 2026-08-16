@@ -51,6 +51,7 @@ a.help { text-decoration-line: underline; }
 .q { color: var(--bbs-quote); }
 .ms { color: var(--bbs-subject); font-size: 17px; font-weight: bold; }
 .mu, .mun, .md { font-size: 14px; }
+.nb { font-size: 15px; white-space: normal; }
 .mun { font-weight: normal; }
 .nw { white-space: nowrap; }
 .undo-mark {
@@ -84,6 +85,13 @@ a.help { text-decoration-line: underline; }
 .lower-links { font-size: 13px; }
 .post-help { font-size: 13px; }
 
+.post-honeypot {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
 .post-fields { max-width: 100%; }
 .post-title-actions {
     display: flex;
@@ -93,6 +101,18 @@ a.help { text-decoration-line: underline; }
 .post-field-help {
     font-size: 13px;
     font-style: italic;
+}
+.post-input-limit {
+    font-size: 12px;
+    white-space: nowrap;
+}
+.post-content-limit {
+    display: block;
+    white-space: normal;
+}
+.post-input-limit[data-over-limit="true"] {
+    color: #ffaaaa;
+    font-weight: bold;
 }
 .post-content {
     display: block;
@@ -130,7 +150,7 @@ a.help { text-decoration-line: underline; }
     margin: 0;
     padding-left: 1rem;
 }
-.tree-branches.tree-root { padding-left: 1rem; }
+.tree-branches.tree-root { padding-left: 0; }
 .tree-branches li { position: relative; margin: 0; }
 .tree-branches:not(.tree-root) > li::before {
     content: "";

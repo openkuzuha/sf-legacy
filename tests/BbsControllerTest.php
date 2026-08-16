@@ -23,10 +23,19 @@ test('トップページに設定したアプリケーション名が表示さ�
         $crawler->filter('.request-duration')->text(),
     );
     $this->assertSelectorCount(1, 'form[action="/submit"][method="post"]');
+    $this->assertSelectorCount(1, '#post-form input[type="hidden"][name="_token"]');
+    $this->assertSelectorCount(1, '.post-honeypot[aria-hidden="true"] input[name="website"][tabindex="-1"]');
     $this->assertSelectorCount(1, 'input[name="author"][type="text"]');
     $this->assertSelectorCount(1, 'input[name="email"][type="email"]');
     $this->assertSelectorCount(1, 'input[name="title"][type="text"]');
     $this->assertSelectorCount(1, 'textarea[name="content"]');
+    $this->assertSelectorExists('input[name="author"][data-character-limit="30"]');
+    $this->assertSelectorExists('input[name="email"][data-character-limit="255"]');
+    $this->assertSelectorExists('input[name="title"][data-character-limit="40"]');
+    $this->assertSelectorExists(
+        'textarea[name="content"][data-message-line-limit="50"][data-line-char-limit="200"]',
+    );
+    $this->assertSelectorCount(4, '#post-form output.post-input-limit');
     $this->assertSelectorExists('input[name="auto_link"][type="checkbox"][checked]');
     $this->assertSelectorTextSame(
         '.post-settings a.settings-button[href="/personal-settings"][role="button"]',
@@ -42,11 +51,11 @@ test('トップページに設定したアプリケーション名が表示さ�
     $this->assertSelectorExists('#post-form .archive-heading a[href="/archive"]');
     $this->assertSelectorTextSame(
         '#post-form .archive-heading a.additional-link[href="https://github.com/openkuzuha"]',
-        'openkuzuha',
+        'OpenKuzuha',
     );
     $this->assertSelectorCount(1, '#post-form .archive-heading a.additional-link');
     expect($crawler->filter('#post-form .lower-links')->text(null, true))
-        ->toBe('広報室 | 過去ログ | openkuzuha');
+        ->toBe('広報室 | 過去ログ | OpenKuzuha');
     $this->assertSelectorExists('.page-header a[href^="/tree?p="]');
     $this->assertSelectorExists('#post-form .small + div > hr + div + hr');
     $this->assertSelectorTextContains(
@@ -84,8 +93,11 @@ test('自分の直前の投稿だけを×ボタンから削除する', function 
     $suffix = bin2hex(random_bytes(8));
     $keptMessage = '残る投稿-' . $suffix;
     $deletedMessage = '消す投稿-' . $suffix;
-    $client->request('POST', '/submit', ['title' => '一件目', 'content' => $keptMessage]);
-    $client->request('POST', '/submit', ['title' => '二件目', 'content' => $deletedMessage]);
+    $token = $this->csrfToken($client);
+    $client->request('POST', '/submit', ['title' => '一件目', 'content' => $keptMessage, '_token' => $token]);
+    $this->assertResponseRedirects();
+    $client->request('POST', '/submit', ['title' => '二件目', 'content' => $deletedMessage, '_token' => $token]);
+    $this->assertResponseRedirects();
     $crawler = $client->followRedirect();
 
     $undoForm = $crawler->filter('.m form[action$="/undo"][method="post"]');
@@ -166,7 +178,7 @@ test('返信には参照元の投稿日時へのリンクを表示する', funct
         $client->request('GET', '/');
 
         $this->assertResponseIsSuccessful();
-        $actions = $client->getCrawler()->filter('#m101 .nw > a');
+        $actions = $client->getCrawler()->filter('#m101 .nw .nb > a');
         expect($actions->eq(0)->text())->toBe('■')
             ->and($actions->eq(1)->text())->toBe('★')
             ->and($actions->eq(2)->text())->toBe('◆')
@@ -220,8 +232,9 @@ test('■から引用付きReplyを投稿する', function () {
         $crawler = $client->request('GET', '/reply/100');
         $this->assertResponseIsSuccessful();
         $this->assertSelectorTextSame('title', 'Open Kuzuha');
+        $this->assertSelectorCount(0, '.page-header');
         $this->assertSelectorTextContains('#m100', '一行目');
-        $actions = $crawler->filter('#m100 .nw > a');
+        $actions = $crawler->filter('#m100 .nw .nb > a');
         expect($actions->eq(0)->text())->toBe('■')
             ->and($actions->eq(0)->attr('href'))->toBe('/reply/100')
             ->and($actions->eq(1)->text())->toBe('★')
@@ -230,7 +243,8 @@ test('■から引用付きReplyを投稿する', function () {
             ->and($actions->eq(2)->attr('href'))->toBe('/thread/100')
             ->and($actions->eq(3)->text())->toBe('木')
             ->and($actions->eq(3)->attr('href'))->toBe('/tree/100');
-        $this->assertSelectorTextContains('p', 'フォロー記事投稿(返信)');
+        $this->assertSelectorTextSame('.follow-heading', 'フォロー記事投稿(返信)　←戻る');
+        $this->assertSelectorTextSame('footer a[href="#page-top"]', '▲');
         $this->assertSelectorExists('#post-form input[name="reply_to"][value="100"]');
         $this->assertSelectorCount(0, '#post-form input[name="display_count"]');
         $this->assertSelectorExists('#post-form input[name="auto_link"]');
@@ -247,7 +261,9 @@ test('■から引用付きReplyを投稿する', function () {
             'content' => "> 一行目\n> 二行目\n\n返信本文",
             'auto_link' => false,
         ]);
-        $this->assertResponseRedirects('/');
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextSame('.page-title a[href="/"]', '書き込み完了');
+        $this->assertSelectorCount(0, '.page-header');
         expect($client->getCookieJar()->get('bbs_display_count')?->getValue())->toBe('40')
             ->and($client->getCookieJar()->get('bbs_auto_link')?->getValue())->toBe('0');
 
@@ -290,7 +306,7 @@ test('投稿者名がある記事だけ★から投稿者検索できる', funct
         $this->getContainer()->set(PostRepository::class, $repository);
         $client->request('GET', '/');
 
-        $namedActions = $client->getCrawler()->filter('#m103 .nw > a');
+        $namedActions = $client->getCrawler()->filter('#m103 .nw .nb > a');
         expect($namedActions->eq(0)->text())->toBe('■')
             ->and($namedActions->eq(1)->text())->toBe('★')
             ->and($namedActions->eq(2)->text())->toBe('◆')
@@ -308,5 +324,76 @@ test('投稿者名がある記事だけ★から投稿者検索できる', funct
         if (is_file($filename)) {
             unlink($filename);
         }
+    }
+});
+
+test('ハニーポット項目が入力された投稿を無視する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient();
+    $token = $this->csrfToken($client);
+    $content = 'ハニーポットテスト' . bin2hex(random_bytes(8));
+    $client->request('POST', '/submit', [
+        'content' => $content,
+        'website' => 'http://spam.example/',
+        '_token' => $token,
+    ]);
+
+    $this->assertResponseRedirects();
+    $client->request('GET', '/');
+    $this->assertSelectorTextNotContains('main', $content);
+});
+
+test('CSRFトークンが不正な投稿を拒否する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient();
+    $client->request('POST', '/submit', ['content' => 'CSRFテスト1']);
+    $this->assertResponseStatusCodeSame(400);
+
+    $client->request('POST', '/submit', ['content' => 'CSRFテスト2', '_token' => '不正なトークン']);
+    $this->assertResponseStatusCodeSame(400);
+});
+
+test('短時間に投稿できる件数をIPアドレス単位で制限する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient();
+    $token = $this->csrfToken($client);
+    $client->request('POST', '/submit', ['content' => '制限テスト1', '_token' => $token]);
+    $this->assertResponseRedirects();
+    $client->request('POST', '/submit', ['content' => '制限テスト2', '_token' => $token]);
+    $this->assertResponseRedirects();
+    $client->request('POST', '/submit', ['content' => '制限テスト3', '_token' => $token]);
+
+    $this->assertResponseStatusCodeSame(429);
+    expect($client->getResponse()->headers->get('Retry-After'))->not->toBeNull();
+});
+
+test('同一IPからの同一内容の投稿を数分間拒否する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient();
+    $token = $this->csrfToken($client);
+    $content = '重複テスト' . bin2hex(random_bytes(8));
+    $client->request('POST', '/submit', ['content' => $content, '_token' => $token]);
+    $this->assertResponseRedirects();
+    $client->request('POST', '/submit', ['content' => $content, '_token' => $token]);
+
+    $this->assertResponseStatusCodeSame(429);
+    expect($client->getResponse()->headers->get('Retry-After'))->not->toBeNull();
+});
+
+test('legacy互換の入力上限を超えた投稿を拒否する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient();
+    $token = $this->csrfToken($client);
+    $invalidPosts = [
+        ['author' => str_repeat('あ', 31), 'content' => '本文'],
+        ['email' => str_repeat('a', 256), 'content' => '本文'],
+        ['title' => str_repeat('あ', 41), 'content' => '本文'],
+        ['content' => implode("\n", array_fill(0, 51, '行'))],
+        ['content' => str_repeat('あ', 201)],
+    ];
+
+    foreach ($invalidPosts as $post) {
+        $client->request('POST', '/submit', $post + ['_token' => $token]);
+        $this->assertResponseStatusCodeSame(400);
     }
 });

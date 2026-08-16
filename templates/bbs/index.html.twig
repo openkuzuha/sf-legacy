@@ -1,7 +1,11 @@
 {% extends 'base.html.twig' %}
 
 {% block content %}
-            {{ include('bbs/_post_form.html.twig', {reply: null, reply_message: ''}) }}
+            {{ include('bbs/_post_form.html.twig', {
+                reply: null,
+                reply_message: '',
+                no_unread_message: unread_requested and posts is empty,
+            }) }}
             {% if posts %}
                 <hr>
             {% endif %}
@@ -16,6 +20,7 @@
                                 id="a{{ post.post_id }}"
                             >&nbsp;</a>
                         </span>
+                        <span class="nb">
                         &nbsp;<a
                             href="{{ path('app_reply', {postId: post.post_id}) }}"
                             aria-label="Reply"
@@ -39,6 +44,7 @@
                             title="ツリー表示"
                         >木</a>
                         {{ include('bbs/_undo_button.html.twig', {post: post}) }}
+                        </span>
                     </span>
                     <blockquote>
                         {% set reference = post.reference is defined ? post.reference : null %}
@@ -57,8 +63,6 @@
                         以上は、現在登録されている新着順{{ range_start }}番目から{{ range_end }}番目までの記事です。
                     {% endif %}
                 </p>
-            {% elseif unread_requested %}
-                <p class="msgmore">未読メッセージはありません。</p>
             {% endif %}
             {% if posts %}
                 <nav class="page-actions" aria-label="ページ操作">

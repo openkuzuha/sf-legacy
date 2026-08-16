@@ -3,15 +3,20 @@
 {% import 'bbs/_tree.html.twig' as tree %}
 
 {% block content %}
-            {{ include('bbs/_post_form.html.twig', {reply: null, reply_message: '', return_to: path('app_tree')}) }}
+            {{ include('bbs/_post_form.html.twig', {
+                reply: null,
+                reply_message: '',
+                return_to: path('app_tree'),
+                no_unread_message: unread_requested and trees is empty,
+            }) }}
             {% if trees %}
                 <hr>
             {% endif %}
             {% for item in trees %}
                 <section class="tree-thread">
                     <p class="tree-updated">
-                        <a href="{{ path('app_thread', {threadId: item.thread_id}) }}" aria-label="スレッド表示" title="スレッド表示">◆</a>
-                        更新日：<time datetime="{{ item.updated_at }}">{{ item.updated_at|bbs_datetime }}</time>
+                        <span class="nb"><a href="{{ path('app_thread', {threadId: item.thread_id}) }}" aria-label="スレッド表示" title="スレッド表示">◆</a></span>
+                        [更新日：<time datetime="{{ item.updated_at }}">{{ item.updated_at|bbs_datetime }}</time>]
                     </p>
                     {{ tree.branches(item.children, 'root', path('app_tree'), unread_after_post_id) }}
                 </section>
@@ -19,6 +24,6 @@
                     <hr>
                 {% endif %}
             {% else %}
-                <p>{% if unread_requested %}未読メッセージはありません。{% else %}記事はありません。{% endif %}</p>
+                {% if not unread_requested %}<p>記事はありません。</p>{% endif %}
             {% endfor %}
 {% endblock %}

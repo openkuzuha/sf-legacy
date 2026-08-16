@@ -9,6 +9,11 @@ parameters:
     app.post_archive_directory: '%kernel.project_dir%/var/data/archive'
     app.archive_s3_prefix: '%env(ARCHIVE_S3_PREFIX)%'
     app.central_post_limit: 500
+    app.post_max_author_chars: 30
+    app.post_max_email_chars: 255
+    app.post_max_title_chars: 40
+    app.post_max_message_lines: 50
+    app.post_max_line_chars: 200
     app.links_filename: '%kernel.project_dir%/config/links.md'
     app.colors:
         background: '#004040'

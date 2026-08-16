@@ -1,5 +1,9 @@
 {% extends 'base.html.twig' %}
 
+{% block page_header %}{% endblock %}
+{% block footer_separator %}{% endblock %}
+{% block footer_links %}<a href="#page-top" aria-label="一番上へ">▲</a>{% endblock %}
+
 {% block content %}
             <hr>
             <div class="m" id="m{{ reply.post_id }}">
@@ -7,16 +11,18 @@
                     <span class="ms">{{ reply.title }}</span>&nbsp;&nbsp;
                     <span class="mu">投稿者：<span class="mun">{{ reply.author }}</span></span>&nbsp;&nbsp;
                     <span class="md">投稿日：<time datetime="{{ reply.posted_at }}">{{ reply.posted_at|bbs_datetime }}</time></span>
+                    <span class="nb">
                     &nbsp;<a href="{{ path('app_reply', {postId: reply.post_id}) }}" aria-label="Reply" title="Reply">■</a>
                     {% if reply.author|replace({　: ''})|trim %}&nbsp;<a href="{{ path('app_author_search', {name: reply.author|trim}) }}" aria-label="投稿者検索" title="投稿者検索">★</a>{% endif %}
                     &nbsp;<a href="{{ path('app_thread', {threadId: reply.thread_id}) }}" aria-label="スレッド表示" title="スレッド表示">◆</a>
                     &nbsp;<a href="{{ path('app_thread_tree', {threadId: reply.thread_id}) }}" aria-label="ツリー表示" title="ツリー表示">木</a>
+                    </span>
                 </span>
                 <blockquote>
                     <pre>{{ reply.message|message_html(reply.auto_link) }}</pre>
                 </blockquote>
             </div>
             <hr>
-            <p>フォロー記事投稿(返信)　<a href="{{ path('app_hello') }}">戻る</a></p>
+            <p class="follow-heading">フォロー記事投稿(返信)　<a href="{{ path('app_hello') }}">←戻る</a></p>
             {{ include('bbs/_post_form.html.twig', {reply: reply, reply_message: reply_message, return_to: return_to}) }}
 {% endblock %}
