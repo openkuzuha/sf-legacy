@@ -11,7 +11,7 @@
                 <section class="tree-thread">
                     <p class="tree-updated">
                         <span class="nb"><a href="{{ path('app_thread', {threadId: item.thread_id}) }}" aria-label="スレッド表示" title="スレッド表示">◆</a></span>
-                        更新日：<time datetime="{{ item.updated_at }}">{{ item.updated_at|bbs_datetime }}</time>
+                        [更新日：<time datetime="{{ item.updated_at }}">{{ item.updated_at|bbs_datetime }}</time>]
                     </p>
                     {{ tree.branches(item.children, 'root', path('app_tree'), unread_after_post_id) }}
                 </section>

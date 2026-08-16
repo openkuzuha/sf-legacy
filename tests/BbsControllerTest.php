@@ -178,7 +178,7 @@ test('返信には参照元の投稿日時へのリンクを表示する', funct
         $client->request('GET', '/');
 
         $this->assertResponseIsSuccessful();
-        $actions = $client->getCrawler()->filter('#m101 .nw > a');
+        $actions = $client->getCrawler()->filter('#m101 .nw .nb > a');
         expect($actions->eq(0)->text())->toBe('■')
             ->and($actions->eq(1)->text())->toBe('★')
             ->and($actions->eq(2)->text())->toBe('◆')
@@ -232,8 +232,9 @@ test('■から引用付きReplyを投稿する', function () {
         $crawler = $client->request('GET', '/reply/100');
         $this->assertResponseIsSuccessful();
         $this->assertSelectorTextSame('title', 'Open Kuzuha');
+        $this->assertSelectorCount(0, '.page-header');
         $this->assertSelectorTextContains('#m100', '一行目');
-        $actions = $crawler->filter('#m100 .nw > a');
+        $actions = $crawler->filter('#m100 .nw .nb > a');
         expect($actions->eq(0)->text())->toBe('■')
             ->and($actions->eq(0)->attr('href'))->toBe('/reply/100')
             ->and($actions->eq(1)->text())->toBe('★')
@@ -242,7 +243,8 @@ test('■から引用付きReplyを投稿する', function () {
             ->and($actions->eq(2)->attr('href'))->toBe('/thread/100')
             ->and($actions->eq(3)->text())->toBe('木')
             ->and($actions->eq(3)->attr('href'))->toBe('/tree/100');
-        $this->assertSelectorTextContains('p', 'フォロー記事投稿(返信)');
+        $this->assertSelectorTextSame('.follow-heading', 'フォロー記事投稿(返信)　←戻る');
+        $this->assertSelectorTextSame('footer a[href="#page-top"]', '▲');
         $this->assertSelectorExists('#post-form input[name="reply_to"][value="100"]');
         $this->assertSelectorCount(0, '#post-form input[name="display_count"]');
         $this->assertSelectorExists('#post-form input[name="auto_link"]');
@@ -302,7 +304,7 @@ test('投稿者名がある記事だけ★から投稿者検索できる', funct
         $this->getContainer()->set(PostRepository::class, $repository);
         $client->request('GET', '/');
 
-        $namedActions = $client->getCrawler()->filter('#m103 .nw > a');
+        $namedActions = $client->getCrawler()->filter('#m103 .nw .nb > a');
         expect($namedActions->eq(0)->text())->toBe('■')
             ->and($namedActions->eq(1)->text())->toBe('★')
             ->and($namedActions->eq(2)->text())->toBe('◆')

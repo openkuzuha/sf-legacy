@@ -150,7 +150,7 @@ a.help { text-decoration-line: underline; }
     margin: 0;
     padding-left: 1rem;
 }
-.tree-branches.tree-root { padding-left: 1rem; }
+.tree-branches.tree-root { padding-left: 0; }
 .tree-branches li { position: relative; margin: 0; }
 .tree-branches:not(.tree-root) > li::before {
     content: "";

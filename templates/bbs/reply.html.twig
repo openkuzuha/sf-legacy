@@ -1,5 +1,9 @@
 {% extends 'base.html.twig' %}
 
+{% block page_header %}{% endblock %}
+{% block footer_separator %}{% endblock %}
+{% block footer_links %}<a href="#page-top" aria-label="一番上へ">▲</a>{% endblock %}
+
 {% block content %}
             <hr>
             <div class="m" id="m{{ reply.post_id }}">
@@ -19,6 +23,6 @@
                 </blockquote>
             </div>
             <hr>
-            <p>フォロー記事投稿(返信)　<a href="{{ path('app_hello') }}">戻る</a></p>
+            <p class="follow-heading">フォロー記事投稿(返信)　<a href="{{ path('app_hello') }}">←戻る</a></p>
             {{ include('bbs/_post_form.html.twig', {reply: reply, reply_message: reply_message, return_to: return_to}) }}
 {% endblock %}

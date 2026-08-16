@@ -10,6 +10,7 @@
     </head>
     <body id="page-top">
         <main>
+            {% block page_header %}
             <header class="page-header">
                 <h1 class="page-title"><a href="{{ path('app_hello') }}">{{ app_title }}</a></h1>
                 <a class="header-link" href="#">広報室</a>
@@ -21,11 +22,13 @@
                     <a class="header-link" href="{{ path('app_tree', latest_post_id is defined ? {p: latest_post_id} : {}) }}">ツリー表示</a>
                 {% endif %}
             </header>
+            {% endblock %}
             {% block content %}{% endblock %}
         </main>
         <footer id="page-bottom" class="text-[13px] text-right">
-            <hr>
+            {% block footer_separator %}<hr>{% endblock %}
             <div class="request-duration">実行時間 : {{ request_duration() }}秒</div>
+            {% block footer_links %}
             <a href="https://github.com/openkuzuha/sf-legacy" target="_blank" rel="noopener noreferrer">
                 openkuzuha/sf-legacy
             </a>
@@ -33,6 +36,7 @@
             <a class="credit-logo" href="{{ path('app_hello') }}" aria-label="トップへ">
                 <img src="/logo.svg" alt="" width="32" height="32">
             </a>
+            {% endblock %}
         </footer>
     </body>
 </html>

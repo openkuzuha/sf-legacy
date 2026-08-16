@@ -47,9 +47,7 @@ test('個別スレッドをreply_toに従って階層表示する', function () 
 
         $this->assertResponseIsSuccessful();
         $this->assertSelectorTextSame('title', 'Open Kuzuha');
-        $this->assertSelectorTextContains('h1 a[href="/"]', 'Open Kuzuha');
-        $this->assertSelectorTextSame('.page-header a.header-link[href="/"]', '標準画面');
-        $this->assertSelectorCount(0, '.page-header a.header-link[href="/tree"]');
+        $this->assertSelectorCount(0, '.page-header');
         $this->assertSelectorCount(1, '.tree-branches > li > #m100');
         $this->assertSelectorCount(1, '.tree-branches > li > .tree-branches > li > #m101');
         $this->assertSelectorTextNotContains('#m101', '> 最初の投稿');
@@ -58,6 +56,7 @@ test('個別スレッドをreply_toに従って階層表示する', function () 
         $this->assertSelectorCount(0, '#m101 a[title="スレッド表示"]');
         $this->assertSelectorExists('#m100 a[title="Reply"][href="/reply/100?return_to=/tree/100"]');
         $this->assertSelectorExists('.tree-updated a[title="スレッド表示"][href="/thread/100"]');
+        $this->assertSelectorTextContains('.tree-updated', '[更新日：2026/08/12(水) 11:24:41]');
         $this->assertSelectorCount(
             1,
             '.tree-branches > li > .tree-branches > li > .tree-branches > li > #m102',
@@ -69,10 +68,8 @@ test('個別スレッドをreply_toに従って階層表示する', function () 
         $this->assertSelectorCount(0, '#m101 pre.tree-unread-message');
 
         $this->assertSelectorTextContains('footer .request-duration', '実行時間 : ');
-        $this->assertSelectorTextContains(
-            'footer a[href="https://github.com/openkuzuha/sf-legacy"]',
-            'openkuzuha/sf-legacy',
-        );
+        $this->assertSelectorTextSame('main > a[href="/"]', '戻る');
+        $this->assertSelectorTextSame('footer a[href="#page-top"]', '▲');
         $replyCrawler = $client->click($crawler->filter('#m101 a[title="Reply"]')->link());
         $this->assertSelectorExists('#post-form input[name="return_to"][value="/tree/100"]');
         $client->submit($replyCrawler->selectButton('投稿／リロード')->form([
@@ -221,11 +218,12 @@ test('◆はスレッド内の記事を新着順で表示する', function () {
         $crawler = $client->request('GET', '/thread/100');
 
         $this->assertResponseIsSuccessful();
+        $this->assertSelectorCount(0, '.page-header');
         $this->assertSelectorCount(2, '.m');
         expect($crawler->filter('.m')->eq(0)->attr('id'))->toBe('m101');
         $this->assertSelectorTextContains('#m101', '返信本文');
         $this->assertSelectorExists('#m101 a[href="/reply/100"]');
-        $this->assertSelectorTextContains('p', '2件見つかりました。');
+        $this->assertSelectorTextContains('p', '2件見つかりました。　←戻る');
     } finally {
         if (is_file($filename)) {
             unlink($filename);

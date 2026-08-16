@@ -1,5 +1,9 @@
 {% extends 'base.html.twig' %}
 
+{% block page_header %}{% endblock %}
+{% block footer_separator %}{% endblock %}
+{% block footer_links %}<a href="#page-top" aria-label="一番上へ">▲</a>{% endblock %}
+
 {% block content %}
             <hr>
             {% for post in posts %}
@@ -26,5 +30,5 @@
                 <hr>
                 <!--  -->
             {% endfor %}
-            <p>{{ posts|length }}件見つかりました。　<a href="{{ path('app_hello') }}">戻る</a></p>
+            <p>{{ posts|length }}件見つかりました。　<a href="{{ path('app_hello') }}">←戻る</a></p>
 {% endblock %}
