@@ -158,7 +158,9 @@ final class SubmitController
             Response::HTTP_SEE_OTHER,
         );
 
-        return $this->addPreferenceCookies($response, $request, $displayCount, $autoLink);
+        $this->addPreferenceCookies($response, $request, $displayCount, $autoLink);
+
+        return $response;
     }
 
     private function addPreferenceCookies(
