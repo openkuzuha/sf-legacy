@@ -160,7 +160,8 @@ test('全ツリーをスレッドの更新順で階層表示する', function ()
         $this->assertInputValueSame('p', '201');
 
         $client->request('GET', '/tree?readnew=1&p=201');
-        $this->assertSelectorTextSame('main > p', '未読メッセージはありません。');
+        $this->assertSelectorTextSame('#post-form .msgmore', '未読メッセージはありません。');
+        $this->assertSelectorExists('#post-form .msgmore + .post-form-actions');
 
         $crawler = $client->request('GET', '/tree');
 

@@ -153,6 +153,7 @@ test('画面表示時の最新IDより後に投稿された未読記事だけを
         $client->request('GET', '/?readnew=1&p=3');
         $this->assertSelectorCount(0, '.m');
         $this->assertSelectorTextSame('.msgmore', '未読メッセージはありません。');
+        $this->assertSelectorExists('#post-form .msgmore + .post-form-actions');
     } finally {
         if (is_file($filename)) {
             unlink($filename);

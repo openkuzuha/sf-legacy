@@ -1,7 +1,11 @@
 {% extends 'base.html.twig' %}
 
 {% block content %}
-            {{ include('bbs/_post_form.html.twig', {reply: null, reply_message: ''}) }}
+            {{ include('bbs/_post_form.html.twig', {
+                reply: null,
+                reply_message: '',
+                no_unread_message: unread_requested and posts is empty,
+            }) }}
             {% if posts %}
                 <hr>
             {% endif %}
@@ -59,8 +63,6 @@
                         以上は、現在登録されている新着順{{ range_start }}番目から{{ range_end }}番目までの記事です。
                     {% endif %}
                 </p>
-            {% elseif unread_requested %}
-                <p class="msgmore">未読メッセージはありません。</p>
             {% endif %}
             {% if posts %}
                 <nav class="page-actions" aria-label="ページ操作">

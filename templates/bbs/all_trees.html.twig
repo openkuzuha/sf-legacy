@@ -3,7 +3,12 @@
 {% import 'bbs/_tree.html.twig' as tree %}
 
 {% block content %}
-            {{ include('bbs/_post_form.html.twig', {reply: null, reply_message: '', return_to: path('app_tree')}) }}
+            {{ include('bbs/_post_form.html.twig', {
+                reply: null,
+                reply_message: '',
+                return_to: path('app_tree'),
+                no_unread_message: unread_requested and trees is empty,
+            }) }}
             {% if trees %}
                 <hr>
             {% endif %}
@@ -19,6 +24,6 @@
                     <hr>
                 {% endif %}
             {% else %}
-                <p>{% if unread_requested %}未読メッセージはありません。{% else %}記事はありません。{% endif %}</p>
+                {% if not unread_requested %}<p>記事はありません。</p>{% endif %}
             {% endfor %}
 {% endblock %}

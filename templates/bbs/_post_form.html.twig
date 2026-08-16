@@ -70,6 +70,9 @@
         </div>
     {% endif %}
     {% if not reply %}
+        {% if no_unread_message|default(false) %}
+            <p class="msgmore">未読メッセージはありません。</p>
+        {% endif %}
         <span class="post-form-actions">
             <button type="submit" name="post" class="btn">投稿／リロード</button>
             <button type="submit" class="btn" form="unread-form">未読</button>
