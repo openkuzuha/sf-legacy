@@ -85,6 +85,13 @@ a.help { text-decoration-line: underline; }
 .lower-links { font-size: 13px; }
 .post-help { font-size: 13px; }
 
+.post-honeypot {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
 .post-fields { max-width: 100%; }
 .post-title-actions {
     display: flex;

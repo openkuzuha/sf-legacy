@@ -47,6 +47,10 @@ final class SubmitController
 
         $displayCount = max(1, min(1000, $request->request->getInt('display_count', 40)));
         $autoLink = $request->request->getBoolean('auto_link');
+        if ($request->request->getString('website') !== '') {
+            return $this->redirectToBbs($request, $displayCount, $autoLink);
+        }
+
         $message = $request->request->getString('content');
         if (trim($message) === '') {
             return $this->redirectToBbs($request, $displayCount, $autoLink);

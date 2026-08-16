@@ -24,6 +24,7 @@ test('トップページに設定したアプリケーション名が表示さ�
     );
     $this->assertSelectorCount(1, 'form[action="/submit"][method="post"]');
     $this->assertSelectorCount(1, '#post-form input[type="hidden"][name="_token"]');
+    $this->assertSelectorCount(1, '.post-honeypot[aria-hidden="true"] input[name="website"][tabindex="-1"]');
     $this->assertSelectorCount(1, 'input[name="author"][type="text"]');
     $this->assertSelectorCount(1, 'input[name="email"][type="email"]');
     $this->assertSelectorCount(1, 'input[name="title"][type="text"]');
@@ -320,6 +321,22 @@ test('投稿者名がある記事だけ★から投稿者検索できる', funct
             unlink($filename);
         }
     }
+});
+
+test('ハニーポット項目が入力された投稿を無視する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient();
+    $token = $this->csrfToken($client);
+    $content = 'ハニーポットテスト' . bin2hex(random_bytes(8));
+    $client->request('POST', '/submit', [
+        'content' => $content,
+        'website' => 'http://spam.example/',
+        '_token' => $token,
+    ]);
+
+    $this->assertResponseRedirects();
+    $client->request('GET', '/');
+    $this->assertSelectorTextNotContains('main', $content);
 });
 
 test('CSRFトークンが不正な投稿を拒否する', function () {
