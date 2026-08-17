@@ -42,7 +42,7 @@
                     <span class="ms">{{ post.title|search_highlight(keyword) }}</span>&nbsp;&nbsp;
                     <span class="mu">投稿者：<span class="mun">
                         {%- if post.author_spoofed ?? false -%}
-                            {{- post.author|replace({'（騙り）': ''})|search_highlight(keyword) -}}<span class="muh">（騙り）</span>
+                            {{- post.author|replace({（騙り）: ''})|search_highlight(keyword) -}}<span class="muh">（騙り）</span>
                         {%- else -%}
                             {{- post.author|search_highlight(keyword) -}}
                         {%- endif -%}

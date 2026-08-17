@@ -1,5 +1,5 @@
 {%- if post.author_spoofed ?? false -%}
-    {{- post.author|replace({'（騙り）': ''}) -}}<span class="muh">（騙り）</span>
+    {{- post.author|replace({（騙り）: ''}) -}}<span class="muh">（騙り）</span>
 {%- else -%}
     {{- post.author -}}
 {%- endif -%}

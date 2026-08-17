@@ -7,7 +7,7 @@
     {%- endfor -%}
 {% endmacro %}
 
-{% macro branches(children, parent, return_to, unread_after_post_id) %}
+{% macro branches(children, parent, return_to, unread_after_post_id, undo_enabled) %}
     {% if children[parent] is defined %}
         <ul class="tree-branches{% if parent == 'root' %} tree-root{% endif %}">
             {% for post in children[parent] %}
@@ -25,7 +25,7 @@
                         {% if post.author|trim %}<span class="tree-author">投稿者：{{ include('bbs/_author_name.html.twig', {post: post}) }}</span><br>{{ _self.prefix(has_children) }}{% endif %}
                         <pre{% if unread_after_post_id > 0 and post.post_id > unread_after_post_id %} class="tree-unread-message"{% endif %}>{{ _self.message(post, has_children) }}</pre>
                     </article>
-                    {{ _self.branches(children, post.post_id ~ '', return_to, unread_after_post_id) }}
+                    {{ _self.branches(children, post.post_id ~ '', return_to, unread_after_post_id, undo_enabled) }}
                 </li>
             {% endfor %}
         </ul>
