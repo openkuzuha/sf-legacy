@@ -1,6 +1,7 @@
 <?php
 
 use App\Post\JsonlPostRepository;
+use App\Post\LimitedPostRepository;
 use App\Post\PostRecordCodec;
 
 test('投稿日時をUTCのRFC 3339形式でJSONLへ追記する', function () {
@@ -51,12 +52,15 @@ test('投稿日時をUTCのRFC 3339形式でJSONLへ追記する', function () {
         expect($record)->toBeArray();
         assert(is_array($record));
         expect($record)
-            ->not->toHaveKey('protect')
-            ->and($record['post_id'])->toBe(1)
+            ->not->toHaveKey('protect');
+        expect($record)->not->toHaveKey('host');
+        expect($record)->not->toHaveKey('user_agent');
+        expect($record['post_id'])->toBe(1)
             ->and($record['thread_id'])->toBe(1)
             ->and($record['location'])->toBe('main')
             ->and($record['posted_at'])->toMatch('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/')
             ->and($record['message'])->toBe("本文,です\n二行目")
+            ->and($record['author_spoofed'] ?? false)->toBeFalse()
             ->and($record['auto_link'])->toBeTrue()
             ->and($record['reply_to'])->toBeNull();
 
@@ -64,11 +68,23 @@ test('投稿日時をUTCのRFC 3339形式でJSONLへ追記する', function () {
         $legacyRecord['posted_at'] = 1_700_000_000;
         expect((new PostRecordCodec())->decode(json_encode($legacyRecord, JSON_THROW_ON_ERROR)))->toBeNull();
 
-        unset($record['auto_link']);
+        $legacyRecord = $record;
+        $legacyRecord['host'] = '192.0.2.1';
+        $legacyRecord['user_agent'] = 'Legacy Browser';
+        $decodedLegacy = (new PostRecordCodec())->decode(json_encode($legacyRecord, JSON_THROW_ON_ERROR));
+        expect($decodedLegacy)->toBeArray();
+        if (!is_array($decodedLegacy)) {
+            throw new RuntimeException('旧形式の投稿を読み込めません。');
+        }
+        expect($decodedLegacy)->not->toHaveKey('host');
+        expect($decodedLegacy)->not->toHaveKey('user_agent');
+
+        unset($record['auto_link'], $record['author_spoofed']);
         $decoded = (new PostRecordCodec())->decode(json_encode($record, JSON_THROW_ON_ERROR));
         expect($decoded)->not->toBeNull();
         assert(is_array($decoded));
-        expect($decoded['auto_link'])->toBeTrue();
+        expect($decoded['auto_link'])->toBeTrue()
+            ->and($decoded['author_spoofed'] ?? false)->toBeFalse();
 
         $records = $log->all();
         expect($records)
@@ -103,7 +119,7 @@ test('投稿日時をUTCのRFC 3339形式でJSONLへ追記する', function () {
     }
 });
 
-test('投稿を中央ログと日別アーカイブの両方から削除する', function () {
+test('投稿をマスターログと日別アーカイブの両方から削除する', function () {
     $directory = sys_get_temp_dir() . '/sf-legacy-post-delete-' . bin2hex(random_bytes(8));
     $codec = new PostRecordCodec();
     $archive = new \App\Post\DailyPostArchive($directory . '/archive', $codec, 'Asia/Tokyo');
@@ -126,7 +142,7 @@ test('投稿を中央ログと日別アーカイブの両方から削除する',
     }
 });
 
-test('中央ログは設定件数に切り詰めても日別アーカイブには全件を残す', function () {
+test('マスターログは設定件数に切り詰めても日別アーカイブには全件を残す', function () {
     $directory = sys_get_temp_dir() . '/sf-legacy-post-limit-' . bin2hex(random_bytes(8));
     $filename = $directory . '/posts.jsonl';
     $codec = new PostRecordCodec();
@@ -169,7 +185,52 @@ test('中央ログは設定件数に切り詰めても日別アーカイブに�
     }
 });
 
-test('中央ログを初期化して投稿IDを1から再開する', function () {
+test('保存済み設定の件数でマスターログだけを動的に切り詰める', function () {
+    $directory = sys_get_temp_dir() . '/sf-legacy-dynamic-post-limit-' . bin2hex(random_bytes(8));
+    $codec = new PostRecordCodec();
+    $archive = new \App\Post\DailyPostArchive($directory . '/archive', $codec, 'UTC');
+    $settings = new \App\Settings\SiteSettings(
+        new \App\Settings\FileSiteSettingsRepository($directory . '/settings.json'),
+        new \Psr\Log\NullLogger(),
+        'タイトル',
+        500,
+    );
+    $settings->setCentralPostLimit(2);
+    $log = new LimitedPostRepository(
+        new JsonlPostRepository($directory . '/posts.jsonl', $codec, archive: $archive, maximumRecords: 100000),
+        $settings,
+    );
+    $input = [
+        'author' => '', 'email' => '', 'title' => '', 'message' => '',
+        'host' => null, 'user_agent' => null, 'thread_id' => null, 'reply_to' => null,
+    ];
+
+    try {
+        $log->append($input);
+        $log->append($input);
+        $log->append($input);
+
+        expect(array_column($log->all(), 'post_id'))->toBe([3, 2]);
+        $archiveFiles = glob($directory . '/archive/*/*/*.jsonl');
+        expect($archiveFiles)->toBeArray()->toHaveCount(1);
+        assert(is_array($archiveFiles));
+        expect(file($archiveFiles[0], FILE_IGNORE_NEW_LINES))->toHaveCount(3);
+    } finally {
+        if (is_dir($directory)) {
+            $iterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS),
+                RecursiveIteratorIterator::CHILD_FIRST,
+            );
+            foreach ($iterator as $item) {
+                assert($item instanceof SplFileInfo);
+                $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname());
+            }
+            rmdir($directory);
+        }
+    }
+});
+
+test('マスターログを初期化して投稿IDを1から再開する', function () {
     $filename = sys_get_temp_dir() . '/sf-legacy-reset-' . bin2hex(random_bytes(8)) . '.jsonl';
     $log = new JsonlPostRepository($filename, new PostRecordCodec());
     $input = [

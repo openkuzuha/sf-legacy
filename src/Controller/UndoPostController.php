@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Post\PostRepository;
+use App\Settings\SiteSettings;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,6 +17,7 @@ final class UndoPostController
     public function __construct(
         private readonly PostRepository $posts,
         private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly SiteSettings $siteSettings,
     ) {
     }
 
@@ -26,7 +28,8 @@ final class UndoPostController
         $undo = $session->get('post_undo');
         $token = $request->request->getString('_token');
         if (
-            !is_array($undo)
+            !$this->siteSettings->undoEnabled()
+            || !is_array($undo)
             || ($undo['post_id'] ?? null) !== $postId
             || !is_int($undo['expires_at'] ?? null)
             || $undo['expires_at'] < time()

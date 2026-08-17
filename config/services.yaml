@@ -2,18 +2,32 @@ parameters:
     app.title: '%env(APP_TITLE)%'
     app.timezone: '%env(APP_TIMEZONE)%'
     app.cloud_mode: '%env(bool:CLOUD_MODE)%'
+    app.admin_password_hash: '%env(ADMIN_PASSWORD_HASH)%'
     app.visitor_limit: 300
-    app.page_view_started_at: '2026/08/12'
+    app.page_view_started_at: '2026-08-12'
+    app.admin_name: '管理人'
+    app.admin_email: ''
+    app.undo_enabled: true
+    app.undo_window_seconds: 86400
+    app.archive_retention_days: 0
+    app.archive_public_days: 30
+    app.request_id_header: '%env(REQUEST_ID_HEADER)%'
+    app.request_id_trusted_proxies: '%env(REQUEST_ID_TRUSTED_PROXIES)%'
+    app.audit_hmac_key: '%env(AUDIT_HMAC_KEY)%'
     app.page_view_initial_value: 0
     app.page_view_filename: '%kernel.project_dir%/var/data/page-views.txt'
+    app.site_settings_filename: '%kernel.project_dir%/var/data/site-settings.json'
     app.post_archive_directory: '%kernel.project_dir%/var/data/archive'
+    app.audit_directory: '%kernel.project_dir%/var/data/audit'
     app.archive_s3_prefix: '%env(ARCHIVE_S3_PREFIX)%'
     app.central_post_limit: 500
+    app.default_display_count: 40
     app.post_max_author_chars: 30
     app.post_max_email_chars: 255
     app.post_max_title_chars: 40
     app.post_max_message_lines: 50
     app.post_max_line_chars: 200
+    app.post_max_message_chars: 8400
     app.links_filename: '%kernel.project_dir%/config/links.md'
     app.colors:
         background: '#004040'
@@ -46,14 +60,64 @@ services:
     App\Post\PostArchive:
         factory: ['@App\Post\PostArchiveFactory', 'create']
 
-    App\Post\PostRepositoryFactory:
-        arguments:
-            $centralPostLimit: '%app.central_post_limit%'
-
     App\PageView\PageViewCounter:
         factory: ['@App\PageView\PageViewCounterFactory', 'create']
+
+    App\Settings\SiteSettingsRepository:
+        factory: ['@App\Settings\SiteSettingsRepositoryFactory', 'create']
+
+    App\Audit\AuditLog:
+        factory: ['@App\Audit\AuditLogFactory', 'create']
+        arguments:
+            $cloudMode: '%app.cloud_mode%'
+            $valkeyUrl: '%env(VALKEY_URL)%'
+            $directory: '%app.audit_directory%'
+            $appTimezone: '%app.timezone%'
+
+    App\Settings\SiteSettings:
+        arguments:
+            $defaultTitle: '%app.title%'
+            $defaultCentralPostLimit: '%app.central_post_limit%'
+            $defaultDisplayCount: '%app.default_display_count%'
+            $defaultMaxMessageLines: '%app.post_max_message_lines%'
+            $defaultMaxLineChars: '%app.post_max_line_chars%'
+            $defaultMaxMessageChars: '%app.post_max_message_chars%'
+            $defaultVisitorActiveSeconds: '%app.visitor_limit%'
+            $defaultServiceStartedAt: '%app.page_view_started_at%'
+            $defaultAdminName: '%app.admin_name%'
+            $defaultAdminEmail: '%app.admin_email%'
+            $defaultUndoEnabled: '%app.undo_enabled%'
+            $defaultUndoWindowSeconds: '%app.undo_window_seconds%'
+            $defaultArchiveRetentionDays: '%app.archive_retention_days%'
+            $defaultArchivePublicDays: '%app.archive_public_days%'
+
+    App\Settings\AdminPassword:
+        arguments:
+            $defaultHash: '%app.admin_password_hash%'
+
+    App\Http\RequestIdSubscriber:
+        arguments:
+            $headerName: '%app.request_id_header%'
+            $trustedProxies: '%app.request_id_trusted_proxies%'
+
+    App\Audit\AuditIdentity:
+        arguments:
+            $hmacKey: '%app.audit_hmac_key%'
+
+    App\Audit\LegacyAuditScrubber:
+        arguments:
+            $cloudMode: '%app.cloud_mode%'
+            $postsFilename: '%kernel.project_dir%/var/data/posts.jsonl'
+            $archiveDirectory: '%app.post_archive_directory%'
+            $valkeyUrl: '%env(VALKEY_URL)%'
+            $s3Endpoint: '%env(ARCHIVE_S3_ENDPOINT)%'
+            $s3Region: '%env(ARCHIVE_S3_REGION)%'
+            $s3Bucket: '%env(ARCHIVE_S3_BUCKET)%'
+            $s3Prefix: '%env(ARCHIVE_S3_PREFIX)%'
+            $s3AccessKey: '%env(ARCHIVE_S3_ACCESS_KEY)%'
+            $s3SecretKey: '%env(ARCHIVE_S3_SECRET_KEY)%'
+            $s3PathStyle: '%env(bool:ARCHIVE_S3_PATH_STYLE)%'
 
     App\Visitor\VisitorCounter:
         arguments:
             $filename: '%kernel.cache_dir%/visitors.json'
-            $limit: '%app.visitor_limit%'

@@ -26,6 +26,7 @@ test('トップページに設定したアプリケーション名が表示さ�
     $this->assertSelectorCount(1, '#post-form input[type="hidden"][name="_token"]');
     $this->assertSelectorCount(1, '.post-honeypot[aria-hidden="true"] input[name="website"][tabindex="-1"]');
     $this->assertSelectorCount(1, 'input[name="author"][type="text"]');
+    $this->assertSelectorTextContains('#author-name-help', '管理人（騙り）');
     $this->assertSelectorCount(1, 'input[name="email"][type="email"]');
     $this->assertSelectorCount(1, 'input[name="title"][type="text"]');
     $this->assertSelectorCount(1, 'textarea[name="content"]');
@@ -67,6 +68,54 @@ test('トップページに設定したアプリケーション名が表示さ�
     $this->assertSelectorExists('#page-bottom');
 });
 
+test('管理設定の初期表示件数をトップページへ反映する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient();
+    $settings = $this->getContainer()->get(\App\Settings\SiteSettings::class);
+    $this->assertInstanceOf(\App\Settings\SiteSettings::class, $settings);
+    $settings->setDefaultDisplayCount(17);
+
+    try {
+        $crawler = $client->request('GET', '/');
+        $this->assertInputValueSame('display_count', '17');
+        expect($crawler->filter('input[name="display_count"]')->attr('value'))->toBe('17');
+    } finally {
+        $settings->resetDefaultDisplayCount();
+    }
+});
+
+test('管理設定の本文入力制限を投稿フォームと投稿検証へ反映する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.19']);
+    $settings = $this->getContainer()->get(\App\Settings\SiteSettings::class);
+    $this->assertInstanceOf(\App\Settings\SiteSettings::class, $settings);
+    $settings->setMaxMessageLines(2);
+    $settings->setMaxLineChars(5);
+    $settings->setMaxMessageChars(8);
+
+    try {
+        $crawler = $client->request('GET', '/');
+        $this->assertSelectorExists(
+            'textarea[name="content"][data-message-char-limit="8"]'
+            . '[data-message-line-limit="2"][data-line-char-limit="5"]',
+        );
+        $token = $crawler->filter('#post-form input[name="_token"]')->attr('value');
+        $this->assertIsString($token);
+        $client->request('POST', '/submit', ['content' => "1\n2\n3", '_token' => $token]);
+        $this->assertResponseStatusCodeSame(400);
+
+        $client->request('POST', '/submit', ['content' => '123456', '_token' => $token]);
+        $this->assertResponseStatusCodeSame(400);
+
+        $client->request('POST', '/submit', ['content' => "あいうえ\nかきくけ", '_token' => $token]);
+        $this->assertResponseStatusCodeSame(400);
+    } finally {
+        $settings->resetMaxMessageLines();
+        $settings->resetMaxLineChars();
+        $settings->resetMaxMessageChars();
+    }
+});
+
 test('個人用環境設定に色設定UIを表示する', function () {
     /** @var TestCase $this */
     $client = $this->createClient();
@@ -100,8 +149,10 @@ test('自分の直前の投稿だけを×ボタンから削除する', function 
     $this->assertResponseRedirects();
     $crawler = $client->followRedirect();
 
-    $undoForm = $crawler->filter('.m form[action$="/undo"][method="post"]');
+    $undoForm = $crawler->filter('.m form.undo-form[action$="/undo"][method="post"]');
     $this->assertCount(1, $undoForm);
+    $this->assertSelectorExists('.undo-form > button.undo-mark[type="submit"]');
+    $this->assertSelectorTextSame('.undo-form > button.undo-mark', '✕');
     expect($undoForm->ancestors()->filter('.m')->text())->toContain($deletedMessage);
     $client->submit($undoForm->form());
     $crawler = $client->followRedirect();
@@ -109,6 +160,32 @@ test('自分の直前の投稿だけを×ボタンから削除する', function 
     $this->assertSelectorTextContains('main', $keptMessage);
     $this->assertSelectorTextNotContains('main', $deletedMessage);
     $this->assertSelectorCount(0, 'form[action$="/undo"]');
+});
+
+test('投稿者による削除が無効なら発行済みトークンでも削除を拒否する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.26']);
+    $settings = $this->getContainer()->get(\App\Settings\SiteSettings::class);
+    $this->assertInstanceOf(\App\Settings\SiteSettings::class, $settings);
+    $settings->setUndoSettings(false, 86400);
+
+    try {
+        $client->request('GET', '/');
+        $session = $client->getRequest()->getSession();
+        $session->set('post_undo', [
+            'post_id' => 1,
+            'token' => 'issued-before-disabled',
+            'expires_at' => time() + 3600,
+        ]);
+        $session->save();
+
+        $client->request('GET', '/');
+        $this->assertSelectorCount(0, 'form[action$="/undo"]');
+        $client->request('POST', '/posts/1/undo', ['_token' => 'issued-before-disabled']);
+        $this->assertResponseStatusCodeSame(403);
+    } finally {
+        $settings->resetUndoSettings();
+    }
 });
 
 test('全ツリー表示ページを表示する', function () {
@@ -134,6 +211,19 @@ test('過去ログページは一覧見出しを表示する', function () {
     $this->assertSelectorTextSame('h2', '過去ログ一覧');
     $this->assertSelectorExists('form[action="/archive"][method="get"]');
     $this->assertSelectorExists('input[name="keyword"]');
+    $this->assertSelectorTextContains('main', '直近30日分を公開しています。');
+});
+
+test('公開範囲外の過去ログをパラメーターで指定しても拒否する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient();
+
+    $client->request('GET', '/archive', ['archives' => ['2000/01/01'], 'keyword' => '']);
+    $this->assertResponseStatusCodeSame(400);
+    $client->request('GET', '/archive/topics', ['date' => '2000/01/01']);
+    $this->assertResponseStatusCodeSame(400);
+    $client->request('GET', '/archive/download', ['date' => '2000/01/01']);
+    $this->assertResponseStatusCodeSame(400);
 });
 
 test('存在しないスレッドのツリー表示は404を返す', function () {
@@ -353,15 +443,73 @@ test('CSRFトークンが不正な投稿を拒否する', function () {
     $this->assertResponseStatusCodeSame(400);
 });
 
+test('投稿禁止ワードを含む入力を拒否する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.24']);
+    $settings = $this->getContainer()->get(\App\Settings\SiteSettings::class);
+    $this->assertInstanceOf(\App\Settings\SiteSettings::class, $settings);
+    $settings->setProhibitedWordsText('禁止語');
+
+    try {
+        $token = $this->csrfToken($client);
+        foreach (['author', 'email', 'title', 'content'] as $field) {
+            $post = ['content' => '通常の本文', $field => '前方禁止語後方', '_token' => $token];
+            $client->request('POST', '/submit', $post);
+            $this->assertResponseStatusCodeSame(400);
+            $this->assertStringContainsString('投稿禁止ワードが含まれています。', (string) $client->getResponse()->getContent());
+        }
+    } finally {
+        $settings->resetProhibitedWords();
+    }
+});
+
+test('投稿禁止IPアドレスまたはCIDRに該当する投稿を拒否する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient([], ['REMOTE_ADDR' => '192.0.2.25']);
+    $settings = $this->getContainer()->get(\App\Settings\SiteSettings::class);
+    $this->assertInstanceOf(\App\Settings\SiteSettings::class, $settings);
+    $settings->setDeniedPostNetworksText("198.51.100.9\n192.0.2.0/24");
+
+    try {
+        $token = $this->csrfToken($client);
+        $client->request('POST', '/submit', ['content' => '拒否される投稿', '_token' => $token]);
+
+        $this->assertResponseStatusCodeSame(403);
+        $this->assertStringContainsString('このIPアドレスからは投稿できません。', (string) $client->getResponse()->getContent());
+    } finally {
+        $settings->resetDeniedPostNetworks();
+    }
+});
+
+test('投稿受付停止中は閲覧を許可して投稿を拒否する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.33']);
+    $settings = $this->getContainer()->get(\App\Settings\SiteSettings::class);
+    $this->assertInstanceOf(\App\Settings\SiteSettings::class, $settings);
+    $settings->setOperationStatus(false, false, 'メンテナンス中です。', '');
+
+    try {
+        $client->request('GET', '/');
+        $this->assertResponseIsSuccessful();
+        $token = $this->csrfToken($client);
+        $client->request('POST', '/submit', ['content' => '停止中の投稿', '_token' => $token]);
+        $this->assertResponseStatusCodeSame(403);
+        $this->assertStringContainsString('現在、投稿受付を停止しています。', (string) $client->getResponse()->getContent());
+    } finally {
+        $settings->resetOperationStatus();
+    }
+});
+
 test('短時間に投稿できる件数をIPアドレス単位で制限する', function () {
     /** @var TestCase $this */
     $client = $this->createClient();
     $token = $this->csrfToken($client);
-    $client->request('POST', '/submit', ['content' => '制限テスト1', '_token' => $token]);
+    $suffix = bin2hex(random_bytes(8));
+    $client->request('POST', '/submit', ['content' => '制限テスト1-' . $suffix, '_token' => $token]);
     $this->assertResponseRedirects();
-    $client->request('POST', '/submit', ['content' => '制限テスト2', '_token' => $token]);
+    $client->request('POST', '/submit', ['content' => '制限テスト2-' . $suffix, '_token' => $token]);
     $this->assertResponseRedirects();
-    $client->request('POST', '/submit', ['content' => '制限テスト3', '_token' => $token]);
+    $client->request('POST', '/submit', ['content' => '制限テスト3-' . $suffix, '_token' => $token]);
 
     $this->assertResponseStatusCodeSame(429);
     expect($client->getResponse()->headers->get('Retry-After'))->not->toBeNull();

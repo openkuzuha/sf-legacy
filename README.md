@@ -58,6 +58,30 @@ docker compose exec valkey valkey-cli ping
 docker compose exec app php bin/console bbs:data:reset
 ```
 
+管理画面は `/admin` です。管理用パスワードのハッシュは対話コマンドで生成し、
+表示された `ADMIN_PASSWORD_HASH` を `.env.local` などへ設定します。パスワードは
+画面にもコマンドライン引数にも表示されません。
+
+```bash
+docker compose exec app php bin/console bbs:admin:password-hash
+```
+
+ログイン後は「設定管理」と「投稿記事管理」の2画面を利用できます。投稿記事管理は現在WIPです。
+設定管理画面には、Symfonyが現在使用している `APP_ENV` と変更手順も表示されます。
+設定管理画面からパスワードを変更できます。変更後のハッシュは、ローカル環境では
+`var/data/site-settings.json`、`CLOUD_MODE=1` では Valkey に保存され、
+`ADMIN_PASSWORD_HASH` より優先されます。変更すると既存の管理セッションはすべて無効になります。
+
+ログイン後の管理画面ではサイトタイトルを変更できます。管理画面で保存した値は
+`APP_TITLE` より優先され、再起動せずに反映されます。「初期値に戻す」を実行すると
+上書き値を削除します。保存先は通常実行時が `var/data/site-settings.json`、
+`CLOUD_MODE=1` の場合はValkeyです。
+
+マスターログの保存件数も管理画面から変更できます。既定値は500件です。
+保存時点でマスターログを新しい投稿から指定件数へ切り詰め、その後の投稿・取込でも上限を維持します。
+マスターログから除外された投稿は、ローカル環境の日別アーカイブまたはクラウド環境のS3アーカイブには残ります。
+設定値はサイトタイトルや管理用パスワードと同じ保存先へ保存されます。
+
 開発用のS3互換ストレージとしてMinIOも起動します。S3 APIは
 `http://localhost:9000`、管理コンソールは `http://localhost:9001` です。
 初回起動時に `bbs-archive` バケットが自動作成され、データはDockerの

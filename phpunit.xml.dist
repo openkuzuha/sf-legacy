@@ -6,6 +6,8 @@
     <php>
         <server name="APP_ENV" value="test" force="true"/>
         <server name="APP_DEBUG" value="1" force="true"/>
+        <server name="ADMIN_PASSWORD_HASH" value="$2y$12$5GPPWsv6yC6xLpVptDRimOYH8zpL8DnheJfajFmGdoobLytQ1MIXe" force="true"/>
+        <server name="AUDIT_HMAC_KEY" value="YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWE=" force="true"/>
         <server name="KERNEL_CLASS" value="App\Kernel"/>
     </php>
     <testsuites>

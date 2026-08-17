@@ -1,8 +1,14 @@
 framework:
     secret: '%env(APP_SECRET)%'
+    trusted_proxies: '%env(SYMFONY_TRUSTED_PROXIES)%'
+    trusted_headers: ['x-forwarded-for', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-prefix']
     session: true
     csrf_protection: true
     rate_limiter:
+        admin_login:
+            policy: sliding_window
+            limit: 5
+            interval: '1 minute'
         post_short:
             policy: sliding_window
             limit: 2
@@ -24,3 +30,5 @@ framework:
 when@test:
     framework:
         test: true
+        session:
+            storage_factory_id: session.storage.factory.mock_file

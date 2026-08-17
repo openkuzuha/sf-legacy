@@ -1,0 +1,329 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block admin_content %}
+    <h2 class="mb-4 text-xl font-bold tracking-wide">設定管理</h2>
+    <section class="admin-settings rounded-xl border border-amber-200/25 bg-amber-300/5 p-4 shadow-sm sm:p-5">
+        <h3>運用状態</h3>
+        <form class="mt-4 grid max-w-lg gap-4" action="{{ path('app_admin_operation_status') }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin_operation_status') }}">
+            <label class="flex items-center justify-between gap-4 rounded-lg border border-white/15 bg-black/10 px-4 py-3 text-sm font-semibold text-white" for="posting_enabled">
+                <span><span class="block">投稿受付</span><span class="mt-1 block text-xs font-normal text-white/60">停止中も掲示板は閲覧できます。</span></span>
+                <input class="size-5 accent-teal-500" id="posting_enabled" name="posting_enabled" type="checkbox" value="1"{% if posting_enabled %} checked{% endif %}>
+            </label>
+            <label class="flex items-center justify-between gap-4 rounded-lg border border-amber-200/25 bg-amber-400/10 px-4 py-3 text-sm font-semibold text-amber-50" for="maintenance_enabled">
+                <span><span class="block">メンテナンスモード</span><span class="mt-1 block text-xs font-normal text-amber-100/70">公開画面を停止し、管理画面だけ利用可能にします。</span></span>
+                <input class="size-5 accent-amber-500" id="maintenance_enabled" name="maintenance_enabled" type="checkbox" value="1"{% if maintenance_enabled %} checked{% endif %}>
+            </label>
+            <div class="grid gap-1.5">
+                <label class="text-sm font-semibold text-white" for="maintenance_message">メンテナンス表示文</label>
+                <textarea class="min-h-24 w-full resize-y rounded-md border border-white/25 bg-black/15 px-3 py-2 text-sm text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20" id="maintenance_message" name="maintenance_message" maxlength="500" required>{{ maintenance_message }}</textarea>
+            </div>
+            <div class="grid gap-1.5">
+                <label class="text-sm font-semibold text-white" for="maintenance_ends_at">終了予定日時（任意）</label>
+                <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20" id="maintenance_ends_at" name="maintenance_ends_at" type="datetime-local" value="{{ maintenance_ends_at }}">
+                <p class="text-sm leading-6 text-white/65">設定すると案内画面に表示し、HTTPの Retry-After にも反映します。</p>
+            </div>
+            <button class="justify-self-start rounded-md bg-amber-600 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-amber-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">保存して反映</button>
+        </form>
+        <form class="mt-2" action="{{ path('app_admin_operation_status_reset') }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin_operation_status_reset') }}">
+            <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">初期値（公開・投稿受付中）に戻す</button>
+        </form>
+    </section>
+    <section class="admin-settings mt-5 rounded-xl border border-white/15 bg-white/5 p-4 shadow-sm sm:p-5">
+        <h3>サイト設定</h3>
+        <form class="admin-title-form mt-4 grid max-w-lg gap-4" action="{{ path('app_admin_title') }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin_title') }}">
+            <div class="grid gap-1.5">
+                <label class="text-sm font-semibold" for="site-title">サイトタイトル</label>
+                <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white outline-none transition placeholder:text-white/40 focus:border-white/60 focus:ring-2 focus:ring-white/20" id="site-title" name="title" type="text" value="{{ app_title }}" required maxlength="100">
+            </div>
+            <button class="w-fit rounded-md border border-white/30 bg-white/10 px-4 py-2 font-semibold !text-white transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">保存</button>
+        </form>
+        <form class="mt-2" action="{{ path('app_admin_title_reset') }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin_title_reset') }}">
+            <button class="rounded-md border border-white/40 bg-black/15 px-4 py-2 text-sm font-semibold !text-white shadow-sm transition hover:border-white/60 hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">初期値（{{ default_title }}）に戻す</button>
+        </form>
+        <form class="mt-5 grid max-w-lg gap-4 border-t border-white/15 pt-4" action="{{ path('app_admin_service_started_at') }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin_service_started_at') }}">
+            <div class="grid gap-1.5">
+                <label class="text-sm font-semibold text-white" for="service_started_at">サービス開始日</label>
+                <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20" id="service_started_at" name="service_started_at" type="date" required value="{{ service_started_at }}">
+                <p class="text-sm leading-6 text-white/65">アクセスカウンターに「この日から」として表示する日付です。</p>
+            </div>
+            <button class="justify-self-start rounded-md bg-teal-600 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-teal-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">保存</button>
+        </form>
+        <form class="mt-2" action="{{ path('app_admin_service_started_at_reset') }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin_service_started_at_reset') }}">
+            <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">初期値（{{ default_service_started_at|replace({'-': '/'}) }}）に戻す</button>
+        </form>
+        <form class="mt-5 grid max-w-lg gap-4 border-t border-white/15 pt-4" action="{{ path('app_admin_identity') }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin_identity') }}">
+            <div class="grid gap-1.5">
+                <label class="text-sm font-semibold text-white" for="admin_name">管理者名</label>
+                <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20" id="admin_name" name="admin_name" type="text" maxlength="30" required value="{{ admin_name }}">
+            </div>
+            <div class="grid gap-1.5">
+                <label class="text-sm font-semibold text-white" for="admin_email">管理者メールアドレス</label>
+                <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none transition placeholder:text-white/40 focus:border-white/60 focus:ring-2 focus:ring-white/20" id="admin_email" name="admin_email" type="email" maxlength="255" value="{{ admin_email }}" placeholder="未設定">
+                <p class="text-sm leading-6 text-white/65">管理者名は管理者投稿の既定値です。メールアドレスを設定すると、トップ画面に「連絡先」を表示します。</p>
+            </div>
+            <button class="justify-self-start rounded-md bg-teal-600 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-teal-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">保存</button>
+        </form>
+        <form class="mt-2" action="{{ path('app_admin_identity_reset') }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin_identity_reset') }}">
+            <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">初期値（{{ default_admin_name }}・メール未設定）に戻す</button>
+        </form>
+    </section>
+    <section class="admin-settings mt-5 rounded-xl border border-white/15 bg-white/5 p-4 shadow-sm sm:p-5">
+        <h3>投稿設定</h3>
+        <div class="mt-4 grid max-w-lg gap-4">
+            <form class="grid gap-4" action="{{ path('app_admin_default_display_count') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_default_display_count') }}">
+                <div class="grid gap-1.5">
+                    <label class="text-sm font-semibold text-white" for="default_display_count">初期表示件数</label>
+                    <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none transition placeholder:text-white/40 focus:border-white/60 focus:ring-2 focus:ring-white/20" id="default_display_count" name="default_display_count" type="number" min="1" max="1000" required value="{{ default_display_count }}">
+                    <p class="text-sm leading-6 text-white/65">トップ画面に最初に表示する投稿件数です。閲覧者が個人用環境設定で選んだ件数は優先されます。</p>
+                </div>
+                <button class="justify-self-start rounded-md bg-teal-600 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-teal-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">保存</button>
+            </form>
+            <form action="{{ path('app_admin_default_display_count_reset') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_default_display_count_reset') }}">
+                <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">初期値（{{ configured_default_display_count }}件）に戻す</button>
+            </form>
+            <form class="grid gap-4 border-t border-white/15 pt-4" action="{{ path('app_admin_visitor_active_seconds') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_visitor_active_seconds') }}">
+                <div class="grid gap-1.5">
+                    <label class="text-sm font-semibold text-white" for="visitor_active_seconds">参加者カウント有効時間（秒）</label>
+                    <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20" id="visitor_active_seconds" name="visitor_active_seconds" type="number" min="1" max="86400" required value="{{ visitor_active_seconds }}">
+                    <p class="text-sm leading-6 text-white/65">最終アクセスからこの秒数以内の閲覧者を「現在の参加者」として数えます。</p>
+                </div>
+                <button class="justify-self-start rounded-md bg-teal-600 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-teal-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">保存</button>
+            </form>
+            <form action="{{ path('app_admin_visitor_active_seconds_reset') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_visitor_active_seconds_reset') }}">
+                <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">初期値（{{ default_visitor_active_seconds }}秒）に戻す</button>
+            </form>
+            <form class="grid gap-4 border-t border-white/15 pt-4" action="{{ path('app_admin_message_limits') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_message_limits') }}">
+                <div class="grid gap-1.5">
+                    <div class="flex items-center gap-1.5">
+                        <label class="text-sm font-semibold text-white" for="max_message_chars">本文全体の最大文字数</label>
+                        <span class="group relative inline-flex">
+                            <button class="inline-flex size-4 items-center justify-center rounded-full border border-white/35 bg-white/10 text-[10px] font-bold leading-none text-white/75 transition hover:border-white/60 hover:bg-white/20 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="button" aria-label="文字数の数え方" aria-describedby="max-message-chars-help">?</button>
+                            <span class="pointer-events-none invisible absolute bottom-full left-1/2 z-20 mb-2 w-64 -translate-x-1/2 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-xs font-normal leading-relaxed text-white opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100" id="max-message-chars-help" role="tooltip">
+                                UTF-8のバイト数ではなく、改行を含む実際の文字数で数えます。
+                                <span class="absolute left-1/2 top-full size-2 -translate-x-1/2 -translate-y-1/2 rotate-45 border-b border-r border-white/20 bg-slate-950"></span>
+                            </span>
+                        </span>
+                    </div>
+                    <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20" id="max_message_chars" name="max_message_chars" type="number" min="1" max="10000" required value="{{ max_message_chars }}">
+                </div>
+                <div class="grid gap-1.5">
+                    <label class="text-sm font-semibold text-white" for="max_line_chars">1行の最大文字数</label>
+                    <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20" id="max_line_chars" name="max_line_chars" type="number" min="1" max="10000" required value="{{ max_line_chars }}">
+                </div>
+                <div class="grid gap-1.5">
+                    <label class="text-sm font-semibold text-white" for="max_message_lines">本文の最大行数</label>
+                    <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20" id="max_message_lines" name="max_message_lines" type="number" min="1" max="10000" required value="{{ max_message_lines }}">
+                    <p class="text-sm leading-6 text-white/65">投稿フォームの残量表示と、投稿時のサーバー側検証へ反映されます。</p>
+                </div>
+                <button class="justify-self-start rounded-md bg-teal-600 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-teal-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">保存</button>
+            </form>
+            <form action="{{ path('app_admin_message_limits_reset') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_message_limits_reset') }}">
+                <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">初期値（全体{{ default_max_message_chars }}文字・1行{{ default_max_line_chars }}文字・{{ default_max_message_lines }}行）に戻す</button>
+            </form>
+            <form class="grid gap-4" action="{{ path('app_admin_central_post_limit') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_central_post_limit') }}">
+                <div class="grid gap-1.5">
+                    <label class="text-sm font-semibold text-white" for="central_post_limit">マスターログ保存件数</label>
+                    <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none transition placeholder:text-white/40 focus:border-white/60 focus:ring-2 focus:ring-white/20" id="central_post_limit" name="central_post_limit" type="number" min="1" max="100000" required value="{{ central_post_limit }}">
+                    <p class="text-sm leading-6 text-white/65">新しい投稿から指定件数をマスターログに残します。超過分は日別・S3アーカイブには残り、トップ画面からは除外されます。</p>
+                </div>
+                <button class="justify-self-start rounded-md bg-teal-600 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-teal-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">保存して反映</button>
+            </form>
+            <form action="{{ path('app_admin_central_post_limit_reset') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_central_post_limit_reset') }}">
+                <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">初期値（{{ default_central_post_limit }}件）に戻す</button>
+            </form>
+            <form class="grid gap-4 border-t border-white/15 pt-4" action="{{ path('app_admin_archive_retention') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_archive_retention') }}">
+                <div class="grid gap-1.5">
+                    <label class="text-sm font-semibold text-white" for="archive_retention_days">過去ログ保持日数</label>
+                    <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20" id="archive_retention_days" name="archive_retention_days" type="number" min="0" max="3650" required value="{{ archive_retention_days }}">
+                    <p class="text-sm leading-6 text-white/65">0は無期限です。1以上にすると今日を含む指定日数分を保持し、保存時と新規投稿時に期限切れの過去ログを削除します。</p>
+                    <p class="rounded-md border border-amber-300/25 bg-amber-400/10 px-3 py-2 text-sm leading-6 text-amber-100">現在より短い日数を保存すると、期限を過ぎた過去ログは復元できません。</p>
+                </div>
+                <button class="justify-self-start rounded-md bg-teal-600 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-teal-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">保存して反映</button>
+            </form>
+            <form action="{{ path('app_admin_archive_retention_reset') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_archive_retention_reset') }}">
+                <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">初期値（{{ default_archive_retention_days == 0 ? '無期限' : default_archive_retention_days ~ '日' }}）に戻す</button>
+            </form>
+            <form class="grid gap-4 border-t border-white/15 pt-4" action="{{ path('app_admin_archive_public_days') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_archive_public_days') }}">
+                <div class="grid gap-1.5">
+                    <label class="text-sm font-semibold text-white" for="archive_public_days">過去ログ公開日数</label>
+                    <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20" id="archive_public_days" name="archive_public_days" type="number" min="1" max="3650" required value="{{ archive_public_days }}">
+                    <p class="text-sm leading-6 text-white/65">過去ログ画面で閲覧・検索・ダウンロードできる直近の日数です。保存期間とは独立しており、範囲外の日付をURLで指定しても拒否します。</p>
+                </div>
+                <button class="justify-self-start rounded-md bg-teal-600 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-teal-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">保存</button>
+            </form>
+            <form action="{{ path('app_admin_archive_public_days_reset') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_archive_public_days_reset') }}">
+                <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">初期値（{{ default_archive_public_days }}日）に戻す</button>
+            </form>
+            <form class="grid gap-4 border-t border-amber-200/25 pt-4" action="{{ path('app_admin_audit') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_audit') }}">
+                <div class="grid gap-1.5">
+                    <div class="flex items-center gap-1.5">
+                        <label class="text-sm font-semibold text-white" for="audit_mode">投稿者監査情報</label>
+                        <span class="group relative inline-flex">
+                            <button class="inline-flex size-4 items-center justify-center rounded-full border border-amber-200/45 bg-amber-300/10 text-[10px] font-bold leading-none text-amber-100" type="button" aria-label="投稿者監査情報の注意事項" aria-describedby="audit-help">?</button>
+                            <span class="pointer-events-none invisible absolute bottom-full left-1/2 z-20 mb-2 w-80 -translate-x-1/2 rounded-lg border border-amber-200/25 bg-slate-950 px-3 py-2 text-xs font-normal leading-relaxed text-white opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100" id="audit-help" role="tooltip">仮名化された識別子にも追跡可能性があります。生データではIPアドレスとUser-Agentを保存するため、漏洩時の影響が大きくなります。NginxやCDNのアクセスログはこの設定の対象外です。</span>
+                        </span>
+                    </div>
+                    <select class="w-full rounded-md border border-amber-200/30 bg-slate-900 px-3 py-2 text-white outline-none focus:border-amber-100/70 focus:ring-2 focus:ring-amber-200/20" id="audit_mode" name="audit_mode">
+                        <option value="none"{% if audit_mode == 'none' %} selected{% endif %}>記録しない</option>
+                        <option value="pseudonymous"{% if audit_mode == 'pseudonymous' %} selected{% endif %}>仮名化して記録（推奨）</option>
+                        <option value="raw"{% if audit_mode == 'raw' %} selected{% endif %}>生データを記録</option>
+                    </select>
+                    <p class="text-sm leading-6 {{ audit_key_configured ? 'text-emerald-200' : 'text-amber-100' }}">AUDIT_HMAC_KEY: {{ audit_key_configured ? '設定済み' : '未設定（監査は記録されません）' }}</p>
+                </div>
+                <div class="grid gap-1.5">
+                    <label class="text-sm font-semibold text-white" for="audit_retention_days">監査情報の保存日数</label>
+                    <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none focus:border-white/60 focus:ring-2 focus:ring-white/20" id="audit_retention_days" name="audit_retention_days" type="number" min="1" max="365" required value="{{ audit_retention_days }}">
+                    <p class="text-sm leading-6 text-white/65">仮名化識別子は月ごとに変わります。保存期限を過ぎた監査情報は削除されます。</p>
+                </div>
+                <button class="justify-self-start rounded-md bg-amber-600 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-amber-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">保存</button>
+            </form>
+            <form action="{{ path('app_admin_audit_reset') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_audit_reset') }}">
+                <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">初期値（仮名化・30日）に戻す</button>
+            </form>
+            <form class="grid gap-4 border-t border-white/15 pt-4" action="{{ path('app_admin_prohibited_words') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_prohibited_words') }}">
+                <div class="grid gap-1.5">
+                    <label class="text-sm font-semibold text-white" for="prohibited_words">投稿禁止ワード</label>
+                    <textarea class="min-h-36 w-full resize-y rounded-md border border-white/25 bg-black/15 px-3 py-2 font-mono text-sm text-white shadow-inner outline-none transition placeholder:text-white/40 focus:border-white/60 focus:ring-2 focus:ring-white/20" id="prohibited_words" name="prohibited_words" maxlength="10100" placeholder="1行に1語ずつ">{{ prohibited_words }}</textarea>
+                    <p class="text-sm leading-6 text-white/65">1行に1語ずつ、100件まで設定できます。投稿者名・メールアドレス・題名・本文のいずれかに部分一致すると投稿を拒否します。</p>
+                </div>
+                <button class="justify-self-start rounded-md bg-teal-600 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-teal-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">保存</button>
+            </form>
+            <form action="{{ path('app_admin_prohibited_words_reset') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_prohibited_words_reset') }}">
+                <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">初期値（未設定）に戻す</button>
+            </form>
+            <form class="grid gap-4 border-t border-white/15 pt-4" action="{{ path('app_admin_denied_post_networks') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_denied_post_networks') }}">
+                <div class="grid gap-1.5">
+                    <label class="text-sm font-semibold text-white" for="denied_post_networks">投稿禁止IPアドレス・CIDR</label>
+                    <textarea class="min-h-36 w-full resize-y rounded-md border border-white/25 bg-black/15 px-3 py-2 font-mono text-sm text-white shadow-inner outline-none transition placeholder:text-white/40 focus:border-white/60 focus:ring-2 focus:ring-white/20" id="denied_post_networks" name="denied_post_networks" maxlength="6600" placeholder="192.0.2.10&#10;198.51.100.0/24&#10;2001:db8::/32">{{ denied_post_networks }}</textarea>
+                    <p class="text-sm leading-6 text-white/65">1行に1件ずつ、IPv4・IPv6の単一アドレスまたはCIDRを100件まで設定できます。該当する利用者は閲覧できますが、投稿は拒否されます。</p>
+                </div>
+                <button class="justify-self-start rounded-md bg-teal-600 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-teal-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">保存</button>
+            </form>
+            <form action="{{ path('app_admin_denied_post_networks_reset') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_denied_post_networks_reset') }}">
+                <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">初期値（未設定）に戻す</button>
+            </form>
+            <form class="grid gap-4 border-t border-white/15 pt-4" action="{{ path('app_admin_denied_access_networks') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_denied_access_networks') }}">
+                <div class="grid gap-1.5">
+                    <div class="flex items-center gap-1.5">
+                        <label class="text-sm font-semibold text-white" for="denied_access_networks">アクセス禁止IPアドレス・CIDR</label>
+                        <span class="group relative inline-flex">
+                            <button class="inline-flex size-4 items-center justify-center rounded-full border border-amber-200/45 bg-amber-300/10 text-[10px] font-bold leading-none text-amber-100 transition hover:border-amber-100 hover:bg-amber-300/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="button" aria-label="アクセス禁止設定の注意事項" aria-describedby="denied-access-networks-help">?</button>
+                            <span class="pointer-events-none invisible absolute bottom-full left-1/2 z-20 mb-2 w-72 -translate-x-1/2 rounded-lg border border-amber-200/25 bg-slate-950 px-3 py-2 text-xs font-normal leading-relaxed text-white opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100" id="denied-access-networks-help" role="tooltip">
+                                一致した利用者は投稿だけでなく、掲示板の閲覧もできなくなります。設定を誤っても復旧できるよう管理画面は対象外です。大量アクセスの遮断にはCDN・WAF・Webサーバーを使用してください。
+                                <span class="absolute left-1/2 top-full size-2 -translate-x-1/2 -translate-y-1/2 rotate-45 border-b border-r border-amber-200/25 bg-slate-950"></span>
+                            </span>
+                        </span>
+                    </div>
+                    <textarea class="min-h-36 w-full resize-y rounded-md border border-amber-200/30 bg-black/15 px-3 py-2 font-mono text-sm text-white shadow-inner outline-none transition placeholder:text-white/40 focus:border-amber-100/70 focus:ring-2 focus:ring-amber-200/20" id="denied_access_networks" name="denied_access_networks" maxlength="6600" placeholder="192.0.2.10&#10;198.51.100.0/24&#10;2001:db8::/32">{{ denied_access_networks }}</textarea>
+                    <p class="text-sm leading-6 text-white/65">1行に1件ずつ、IPv4・IPv6の単一アドレスまたはCIDRを100件まで設定できます。</p>
+                </div>
+                <button class="justify-self-start rounded-md bg-amber-600 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-amber-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">保存</button>
+            </form>
+            <form action="{{ path('app_admin_denied_access_networks_reset') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_denied_access_networks_reset') }}">
+                <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">初期値（未設定）に戻す</button>
+            </form>
+            <form class="grid gap-4 border-t border-white/15 pt-4" action="{{ path('app_admin_undo') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_undo') }}">
+                <label class="flex items-center gap-3 rounded-lg border border-white/15 bg-black/10 px-3 py-3 text-sm font-semibold text-white" for="undo_enabled">
+                    <input class="size-4 accent-teal-500" id="undo_enabled" name="undo_enabled" type="checkbox" value="1"{% if undo_enabled %} checked{% endif %}>
+                    投稿者による削除を有効にする
+                </label>
+                <div class="grid gap-1.5">
+                    <label class="text-sm font-semibold text-white" for="undo_window_seconds">投稿の削除可能時間（秒）</label>
+                    <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20" id="undo_window_seconds" name="undo_window_seconds" type="number" min="1" max="2592000" required value="{{ undo_window_seconds }}">
+                    <p class="text-sm leading-6 text-white/65">投稿後、この時間内だけ同じブラウザから直前の投稿を削除できます。無効の場合は削除ボタンを表示しません。</p>
+                </div>
+                <button class="justify-self-start rounded-md bg-teal-600 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-teal-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">保存</button>
+            </form>
+            <form action="{{ path('app_admin_undo_reset') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_undo_reset') }}">
+                <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">初期値（{{ default_undo_enabled ? '有効' : '無効' }}・{{ default_undo_window_seconds }}秒）に戻す</button>
+            </form>
+        </div>
+    </section>
+    <section class="admin-settings rounded-xl border border-white/15 bg-white/5 p-4 shadow-sm sm:p-5">
+        <h3>管理用パスワード</h3>
+        <form class="admin-password-form mt-4 grid max-w-lg gap-4" action="{{ path('app_admin_password') }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin_password') }}">
+            <div class="grid gap-1.5">
+                <label class="text-sm font-semibold" for="current-password">現在のパスワード</label>
+                <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white outline-none transition placeholder:text-white/40 focus:border-white/60 focus:ring-2 focus:ring-white/20" id="current-password" name="current_password" type="password" required autocomplete="current-password">
+            </div>
+            <div class="grid gap-1.5">
+                <label class="text-sm font-semibold" for="new-password">新しいパスワード</label>
+                <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white outline-none transition placeholder:text-white/40 focus:border-white/60 focus:ring-2 focus:ring-white/20" id="new-password" name="new_password" type="password" required minlength="12" autocomplete="new-password">
+            </div>
+            <div class="grid gap-1.5">
+                <label class="text-sm font-semibold" for="new-password-confirmation">新しいパスワード（確認）</label>
+                <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white outline-none transition placeholder:text-white/40 focus:border-white/60 focus:ring-2 focus:ring-white/20" id="new-password-confirmation" name="new_password_confirmation" type="password" required minlength="12" autocomplete="new-password">
+            </div>
+            <p class="admin-setting-help text-white/65">12文字以上。変更後はすべての管理セッションからログアウトします。</p>
+            <button class="w-fit rounded-md border border-white/30 bg-white/10 px-4 py-2 font-semibold !text-white transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">パスワードを変更</button>
+        </form>
+    </section>
+    <section class="admin-settings rounded-xl border border-white/15 bg-white/5 p-4 shadow-sm sm:p-5">
+        <h3>実行環境</h3>
+        <p class="mt-2 text-sm leading-6 text-white/65">現在の起動設定と、実際に選択されている保存先です。この画面からは変更できません。</p>
+        <dl class="mt-4 grid max-w-2xl gap-x-4 gap-y-3 sm:grid-cols-[11rem_1fr] sm:items-center">
+            <dt class="text-sm font-semibold text-white/70">現在のAPP_ENV</dt>
+            <dd>
+                <code class="app-environment-value inline-flex rounded-md border border-white/20 bg-black/20 px-3 py-1.5 font-mono text-sm font-bold text-white">{{ app_environment }}</code>
+            </dd>
+            <dt class="text-sm font-semibold text-white/70">クラウドモード</dt>
+            <dd>
+                <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-semibold {{ cloud_mode ? 'border-sky-300/35 bg-sky-400/15 text-sky-100' : 'border-white/20 bg-white/10 text-white/80' }}">
+                    <span class="size-2 rounded-full {{ cloud_mode ? 'bg-sky-300' : 'bg-white/45' }}"></span>
+                    {{ cloud_mode ? '有効' : '無効' }}
+                </span>
+                <code class="cloud-mode-value ml-2 text-xs text-white/50">CLOUD_MODE={{ cloud_mode ? '1' : '0' }}</code>
+            </dd>
+            <dt class="text-sm font-semibold text-white/70">サイト設定</dt>
+            <dd class="text-sm font-semibold text-white">{{ cloud_mode ? 'Valkey' : 'JSONファイル' }}</dd>
+            <dt class="text-sm font-semibold text-white/70">マスターログ</dt>
+            <dd class="text-sm font-semibold text-white">{{ cloud_mode ? 'Valkey' : 'JSON Linesファイル' }}</dd>
+            <dt class="text-sm font-semibold text-white/70">過去ログ</dt>
+            <dd class="text-sm font-semibold text-white">{{ cloud_mode ? 'S3互換オブジェクトストレージ' : '日別JSON Linesファイル' }}</dd>
+            <dt class="text-sm font-semibold text-white/70">アクセスカウンター</dt>
+            <dd class="text-sm font-semibold text-white">{{ cloud_mode ? 'Valkey' : 'テキストファイル' }}</dd>
+            <dt class="text-sm font-semibold text-white/70">参加者カウンター</dt>
+            <dd class="text-sm font-semibold text-white">ローカルキャッシュファイル</dd>
+        </dl>
+        <div class="mt-4 max-w-2xl space-y-3 text-sm leading-relaxed text-white/75">
+            <p>APP_ENVはアプリ起動時に確定するため、この画面からは変更できません。</p>
+            <p>通常環境では、Git管理外の <code class="rounded bg-black/20 px-1.5 py-0.5 text-white">.env.local</code> に次のように設定し、キャッシュ削除後にPHPプロセスを再起動します。</p>
+            <pre class="overflow-x-auto rounded-lg border border-white/15 bg-black/25 p-3 font-mono text-sm text-white"><code>APP_ENV=prod
+APP_DEBUG=0
+php bin/console cache:clear</code></pre>
+            <p>Docker Composeでは <code class="rounded bg-black/20 px-1.5 py-0.5 text-white">compose.yaml</code> の <code class="rounded bg-black/20 px-1.5 py-0.5 text-white">services.app.environment</code> を変更し、コンテナを再作成します。</p>
+            <pre class="overflow-x-auto rounded-lg border border-white/15 bg-black/25 p-3 font-mono text-sm text-white"><code>docker compose up -d --force-recreate app</code></pre>
+        </div>
+    </section>
+{% endblock %}

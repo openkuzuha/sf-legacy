@@ -2,17 +2,19 @@
 
 namespace App\Visitor;
 
+use App\Settings\SiteSettings;
+
 final class VisitorCounter
 {
     public function __construct(
         private readonly string $filename,
-        private readonly int $limit,
+        private readonly SiteSettings $settings,
     ) {
     }
 
     public function limit(): int
     {
-        return $this->limit;
+        return $this->settings->visitorActiveSeconds();
     }
 
     public function count(string $clientAddress, ?int $currentTime = null): int
@@ -36,7 +38,7 @@ final class VisitorCounter
             $contents = stream_get_contents($file);
             $decoded = $contents === false || $contents === '' ? [] : json_decode($contents, true);
             $visitors = is_array($decoded) ? $decoded : [];
-            $threshold = $currentTime - $this->limit;
+            $threshold = $currentTime - $this->limit();
             $visitors = array_filter(
                 $visitors,
                 static fn (mixed $visitedAt): bool => is_int($visitedAt) && $visitedAt >= $threshold,

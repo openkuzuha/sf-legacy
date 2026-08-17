@@ -12,7 +12,21 @@ final class PostRecordCodec
     /** @param PostRecord $record */
     public function encode(array $record): string
     {
-        return json_encode($record, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        $clean = [
+            'posted_at' => $record['posted_at'],
+            'post_id' => $record['post_id'],
+            'thread_id' => $record['thread_id'],
+            'location' => $record['location'],
+            'author' => $record['author'],
+            'author_spoofed' => $record['author_spoofed'] ?? false,
+            'email' => $record['email'],
+            'title' => $record['title'],
+            'message' => $record['message'],
+            'auto_link' => $record['auto_link'],
+            'reply_to' => $record['reply_to'],
+        ];
+
+        return json_encode($clean, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
 
     /** @return PostRecord|null */
@@ -26,6 +40,12 @@ final class PostRecordCodec
 
         if (is_array($record) && !array_key_exists('auto_link', $record)) {
             $record['auto_link'] = true;
+        }
+        if (is_array($record) && !array_key_exists('author_spoofed', $record)) {
+            $record['author_spoofed'] = false;
+        }
+        if (is_array($record)) {
+            unset($record['host'], $record['user_agent']);
         }
 
         if (!$this->isPostRecord($record)) {
@@ -45,12 +65,10 @@ final class PostRecordCodec
             && is_int($record['post_id'])
             && is_int($record['thread_id'])
             && is_string($record['location'])
-            && array_key_exists('host', $record)
-            && (is_string($record['host']) || $record['host'] === null)
-            && array_key_exists('user_agent', $record)
-            && (is_string($record['user_agent']) || $record['user_agent'] === null)
             && isset($record['author'], $record['email'], $record['title'], $record['message'])
             && is_string($record['author'])
+            && isset($record['author_spoofed'])
+            && is_bool($record['author_spoofed'])
             && is_string($record['email'])
             && is_string($record['title'])
             && is_string($record['message'])

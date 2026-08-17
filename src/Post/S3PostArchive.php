@@ -89,10 +89,21 @@ final class S3PostArchive implements PostArchive
         return $this->records($this->basePrefix() . str_replace('-', '/', $yearMonth) . '/');
     }
 
-    public function entries(): array
+    public function entries(int $recentDays = 0): array
     {
         $days = [];
-        foreach ($this->objects($this->basePrefix()) as $object) {
+        $objects = [];
+        if ($recentDays > 0) {
+            $date = new DateTimeImmutable('today', $this->timezone);
+            for ($offset = 0; $offset < $recentDays; ++$offset) {
+                $prefix = $this->basePrefix()
+                    . $date->modify(sprintf('-%d days', $offset))->format('Y/m/d') . '/';
+                array_push($objects, ...$this->objects($prefix));
+            }
+        } else {
+            $objects = $this->objects($this->basePrefix());
+        }
+        foreach ($objects as $object) {
             $relative = substr($object['key'], strlen($this->basePrefix()));
             if (preg_match('#^(\d{4}/\d{2}/\d{2})/\d+\.json$#D', $relative, $matches) !== 1) {
                 continue;
@@ -138,6 +149,35 @@ final class S3PostArchive implements PostArchive
         usort($records, static fn (array $left, array $right): int => $left['posted_at'] <=> $right['posted_at']);
 
         return $records;
+    }
+
+    public function prune(int $retentionDays): int
+    {
+        if ($retentionDays === 0) {
+            return 0;
+        }
+        $cutoff = (new DateTimeImmutable('now', $this->timezone))
+            ->modify(sprintf('-%d days', $retentionDays - 1))
+            ->format('Y/m/d');
+        $expired = [];
+        foreach ($this->objects($this->basePrefix()) as $object) {
+            $relative = substr($object['key'], strlen($this->basePrefix()));
+            if (
+                preg_match('#^(\d{4}/\d{2}/\d{2})/\d+\.json$#D', $relative, $matches) === 1
+                && $matches[1] < $cutoff
+            ) {
+                $expired[] = $object;
+            }
+        }
+        foreach (array_chunk($expired, 1000) as $chunk) {
+            $keys = array_map(static fn (array $object): array => ['Key' => $object['key']], $chunk);
+            $this->client->deleteObjects([
+                'Bucket' => $this->bucket,
+                'Delete' => ['Objects' => $keys],
+            ]);
+        }
+
+        return count($expired);
     }
 
     public function clear(): int

@@ -10,7 +10,7 @@
                 <div class="m" id="m{{ post.post_id }}">
                     <span class="nw">
                         <span class="ms">{{ post.title }}</span>&nbsp;&nbsp;
-                        <span class="mu">投稿者：<span class="mun">{{ post.author }}</span></span>&nbsp;&nbsp;
+                        <span class="mu">投稿者：<span class="mun">{{ include('bbs/_author_name.html.twig', {post: post}) }}</span></span>&nbsp;&nbsp;
                         <span class="md">
                             投稿日：<time datetime="{{ post.posted_at }}">{{ post.posted_at|bbs_datetime }}</time>
                         </span>

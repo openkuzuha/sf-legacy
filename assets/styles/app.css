@@ -54,19 +54,32 @@ a.help { text-decoration-line: underline; }
 .nb { font-size: 15px; white-space: normal; }
 .mun { font-weight: normal; }
 .nw { white-space: nowrap; }
+.undo-form { display: inline; }
 .undo-mark {
+    display: inline;
     appearance: none;
-    background: none;
-    border: none;
+    -webkit-appearance: none;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
     padding: 0;
     margin: 0;
-    font: inherit;
-    cursor: pointer;
     color: var(--bbs-link);
-    text-decoration: underline;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 1.2em;
+    font-weight: 700;
+    line-height: 1;
+    text-decoration: none;
+    vertical-align: -0.04em;
 }
 .undo-mark:hover { color: var(--bbs-hover-link); }
 .undo-mark:active { color: var(--bbs-active-link); }
+.undo-mark:focus-visible {
+    border-radius: 1px;
+    outline: 1px solid currentcolor;
+    outline-offset: 2px;
+}
 .request-duration { font-size: 13px; }
 .credit-logo {
     display: block;
@@ -114,6 +127,11 @@ a.help { text-decoration-line: underline; }
     color: #ffaaaa;
     font-weight: bold;
 }
+.post-content[data-over-limit="true"] {
+    border-color: #ffaaaa;
+    outline: 2px solid rgb(255 170 170 / 45%);
+    background-color: rgb(255 80 80 / 10%);
+}
 .post-content {
     display: block;
     box-sizing: border-box;
@@ -144,6 +162,21 @@ a.help { text-decoration-line: underline; }
 }
 .color-settings td { padding: 3px; }
 .bbs-stats { font-size: 14px; }
+
+.admin-panel { max-width: 32rem; }
+.admin-panel h2 { font-size: 1.15rem; font-weight: bold; }
+.admin-login-form {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.admin-error { color: #ffaaaa; }
+.admin-success { color: #aaffaa; }
+.admin-settings { margin: 1rem 0; }
+.admin-settings h3 { font-weight: bold; }
+.admin-setting-help { font-size: 13px; }
+.admin-logout-form { margin-top: 1rem; }
 
 .tree-branches {
     list-style: none;
@@ -197,6 +230,7 @@ a.help { text-decoration-line: underline; }
     background: #009090;
 }
 .tree-author { font-size: 14px; }
+.muh { font-size: inherit; font-weight: normal; font-style: italic; }
 .tree-post pre.tree-unread-message { color: #ffccaa; }
 .tree-updated { margin-bottom: 0.25rem; }
 

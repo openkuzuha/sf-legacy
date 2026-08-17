@@ -33,9 +33,8 @@ final class ValkeyPostRepository implements PostRepository
             'post_id' => $postId,
             'thread_id' => $post['thread_id'] ?? $postId,
             'location' => $this->location,
-            'host' => $post['host'],
-            'user_agent' => $post['user_agent'],
             'author' => $post['author'],
+            'author_spoofed' => $post['author_spoofed'] ?? false,
             'email' => $post['email'],
             'title' => $post['title'],
             'message' => $post['message'],
@@ -97,6 +96,30 @@ final class ValkeyPostRepository implements PostRepository
     public function recent(int $limit): array
     {
         return $limit < 1 ? [] : $this->readRange(0, $limit - 1);
+    }
+
+    public function trimTo(int $maximumRecords): void
+    {
+        if ($maximumRecords < 1) {
+            throw new RuntimeException('マスターログの最大件数は1以上で指定してください。');
+        }
+        $result = $this->client->eval(
+            <<<'LUA'
+            local ids = redis.call('ZRANGE', KEYS[1], 0, -(tonumber(ARGV[1]) + 1))
+            for _, id in ipairs(ids) do
+                redis.call('DEL', ARGV[2] .. id)
+                redis.call('ZREM', KEYS[1], id)
+            end
+            return #ids
+            LUA,
+            1,
+            $this->key('posts'),
+            (string) $maximumRecords,
+            $this->key('post:'),
+        );
+        if (!is_int($result)) {
+            throw new RuntimeException('Valkeyのマスターログを切り詰められません。');
+        }
     }
 
     public function delete(int $postId): bool

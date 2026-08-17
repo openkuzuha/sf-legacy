@@ -25,6 +25,9 @@ interface PostRepository
     /** @return list<PostRecord> */
     public function recent(int $limit): array;
 
+    /** マスターログだけを新しい投稿から指定件数に切り詰める。 */
+    public function trimTo(int $maximumRecords): void;
+
     /** @return bool 投稿が存在し、削除できた場合はtrue */
     public function delete(int $postId): bool;
 

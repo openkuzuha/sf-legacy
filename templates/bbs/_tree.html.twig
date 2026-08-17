@@ -22,7 +22,7 @@
                         >■</a>
                         {{ include('bbs/_undo_button.html.twig', {post: post}) }}
                         </span>
-                        {% if post.author|trim %}<span class="tree-author">投稿者：{{ post.author }}</span><br>{{ _self.prefix(has_children) }}{% endif %}
+                        {% if post.author|trim %}<span class="tree-author">投稿者：{{ include('bbs/_author_name.html.twig', {post: post}) }}</span><br>{{ _self.prefix(has_children) }}{% endif %}
                         <pre{% if unread_after_post_id > 0 and post.post_id > unread_after_post_id %} class="tree-unread-message"{% endif %}>{{ _self.message(post, has_children) }}</pre>
                     </article>
                     {{ _self.branches(children, post.post_id ~ '', return_to, unread_after_post_id) }}

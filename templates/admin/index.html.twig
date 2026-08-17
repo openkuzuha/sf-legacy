@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+
+{% block page_header %}
+    <header class="page-header admin-header">
+        <h1 class="page-title"><a href="{{ path('app_admin') }}">管理画面</a></h1>
+        <a class="header-link" href="{{ path('app_hello') }}">掲示板へ戻る</a>
+    </header>
+{% endblock %}
+
+{% block content %}
+    <section class="admin-panel">
+        <h2>管理画面ログイン</h2>
+        {% if error %}<p class="admin-error" role="alert">{{ error }}</p>{% endif %}
+        <form class="admin-login-form" action="{{ path('app_admin') }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin_login') }}">
+            <label for="admin-password">パスワード</label>
+            <input id="admin-password" name="password" type="password" required autofocus autocomplete="current-password">
+            <button type="submit">ログイン</button>
+        </form>
+    </section>
+{% endblock %}

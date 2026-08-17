@@ -12,7 +12,13 @@
     </div>
     <div class="post-fields flex flex-col gap-0">
         <div class="flex items-center gap-2">
-            <label class="w-14" for="author">投稿者</label>
+            <label class="group relative flex w-14 items-center gap-1" for="author">
+                投稿者
+                <span class="inline-flex size-4 shrink-0 items-center justify-center rounded-full border border-current/50 text-[10px] font-bold leading-none opacity-70 hover:opacity-100 focus-visible:outline-1 focus-visible:outline-offset-1" tabindex="0" role="img" aria-label="管理者名を含む投稿者名の扱い" aria-describedby="author-name-help">?</span>
+                <span class="pointer-events-none invisible absolute bottom-full left-0 z-20 mb-2 w-64 rounded border border-white/30 bg-black px-3 py-2 text-xs font-normal leading-relaxed text-white opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100" id="author-name-help" role="tooltip">
+                    投稿者名に「{{ admin_name }}」が含まれる場合は「{{ admin_name }}（騙り）」と表示されます。
+                </span>
+            </label>
             <input id="author" name="author" type="text" data-character-limit="{{ post_limits.author_chars }}" aria-describedby="author-limit">
             <output id="author-limit" class="post-input-limit" for="author" aria-live="polite"></output>
         </div>
@@ -34,7 +40,7 @@
     <div class="post-content-field">
         <label for="content">内容</label>
         <span class="post-field-help">（適当に改行を入れてください。タグは使えません。）</span>
-        <textarea class="post-content" id="content" name="content" rows="5" cols="70" data-message-line-limit="{{ post_limits.message_lines }}" data-line-char-limit="{{ post_limits.line_chars }}" aria-describedby="content-limit">{{ reply_message }}</textarea>
+        <textarea class="post-content" id="content" name="content" rows="5" cols="70" data-message-char-limit="{{ max_message_chars }}" data-message-line-limit="{{ max_message_lines }}" data-line-char-limit="{{ max_line_chars }}" aria-describedby="content-limit">{{ reply_message }}</textarea>
         <output id="content-limit" class="post-input-limit post-content-limit" for="content" aria-live="polite"></output>
     </div>
     <div class="post-settings">
@@ -59,13 +65,16 @@
             <hr>
             <div class="lower-links">
                 <a href="#">広報室</a>
+                {% if admin_email|default('') != '' %}
+                    | <a class="admin-contact-link" href="mailto:{{ admin_email }}">連絡先</a>
+                {% endif %}
                 | <a href="{{ path('app_archive') }}">過去ログ</a>
                 {% for link in additional_links|default([]) %}
                     | <a class="additional-link" href="{{ link.url }}">{{ link.label }}</a>
                 {% endfor %}
             </div>
             <hr>
-            <div class="post-help">■ : フォロー投稿(返信)　★ : 投稿者検索　◆ : スレッド表示　木 : ツリー表示　× : 自分の投稿を消す（直前の投稿のみ）</div>
+            <div class="post-help">■ : フォロー投稿(返信)　★ : 投稿者検索　◆ : スレッド表示　木 : ツリー表示　✕ : 自分の投稿を消す（直前の投稿のみ）</div>
             <hr>
         </div>
     {% endif %}
