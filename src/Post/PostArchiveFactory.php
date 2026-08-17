@@ -2,12 +2,15 @@
 
 namespace App\Post;
 
+use App\Settings\SiteSettings;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 final class PostArchiveFactory
 {
-    public function __construct(private readonly PostRecordCodec $codec)
-    {
+    public function __construct(
+        private readonly PostRecordCodec $codec,
+        private readonly SiteSettings $siteSettings,
+    ) {
     }
 
     public function create(
@@ -22,16 +25,16 @@ final class PostArchiveFactory
         #[Autowire(env: 'ARCHIVE_S3_SECRET_KEY')] string $secretKey,
         #[Autowire(env: 'bool:ARCHIVE_S3_PATH_STYLE')] bool $pathStyle,
     ): PostArchive {
-        if (!$cloudMode) {
-            return new DailyPostArchive($directory, $this->codec, $appTimezone);
-        }
+        $archive = $cloudMode
+            ? new S3PostArchive(
+                S3PostArchive::createClient($endpoint, $region, $accessKey, $secretKey, $pathStyle),
+                $bucket,
+                $prefix,
+                $this->codec,
+                $appTimezone,
+            )
+            : new DailyPostArchive($directory, $this->codec, $appTimezone);
 
-        return new S3PostArchive(
-            S3PostArchive::createClient($endpoint, $region, $accessKey, $secretKey, $pathStyle),
-            $bucket,
-            $prefix,
-            $this->codec,
-            $appTimezone,
-        );
+        return new RetainedPostArchive($archive, $this->siteSettings);
     }
 }

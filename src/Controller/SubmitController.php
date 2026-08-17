@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Post\AuthorNamePolicy;
 use App\Post\PostRepository;
 use App\Settings\SiteSettings;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -22,6 +23,7 @@ final class SubmitController
 {
     public function __construct(
         private readonly PostRepository $posts,
+        private readonly AuthorNamePolicy $authorNamePolicy,
         private readonly UrlGeneratorInterface $urlGenerator,
         private readonly RateLimiterFactoryInterface $postLimiter,
         private readonly RateLimiterFactoryInterface $postDuplicateLimiter,
@@ -34,10 +36,6 @@ final class SubmitController
         private readonly int $maxEmailChars,
         #[Autowire(param: 'app.post_max_title_chars')]
         private readonly int $maxTitleChars,
-        #[Autowire(param: 'app.post_max_message_lines')]
-        private readonly int $maxMessageLines,
-        #[Autowire(param: 'app.post_max_line_chars')]
-        private readonly int $maxLineChars,
     ) {
     }
 
@@ -49,7 +47,10 @@ final class SubmitController
             throw new BadRequestHttpException('ページの有効期限が切れました。再読み込みしてもう一度お試しください。');
         }
 
-        $displayCount = max(1, min(1000, $request->request->getInt('display_count', 40)));
+        $displayCount = max(1, min(
+            1000,
+            $request->request->getInt('display_count', $this->siteSettings->defaultDisplayCount()),
+        ));
         $autoLink = $request->request->getBoolean('auto_link');
         if ($request->request->getString('website') !== '') {
             return $this->redirectToBbs($request, $displayCount, $autoLink);
@@ -64,6 +65,10 @@ final class SubmitController
         $email = $request->request->getString('email');
         $title = $request->request->getString('title');
         $this->validatePost($author, $email, $title, $message);
+
+        $normalizedAuthor = $this->authorNamePolicy->forGeneralPost($author, $this->siteSettings->adminName());
+        $author = $normalizedAuthor['author'];
+        $authorSpoofed = $normalizedAuthor['spoofed'];
 
         $limit = $this->postLimiter->create($request->getClientIp() ?? 'unknown')->consume();
         if (!$limit->isAccepted()) {
@@ -94,6 +99,7 @@ final class SubmitController
 
         $postId = $this->posts->append([
             'author' => $author,
+            'author_spoofed' => $authorSpoofed,
             'email' => $email,
             'title' => $title,
             'message' => $message,
@@ -103,11 +109,15 @@ final class SubmitController
             'thread_id' => $threadId,
             'reply_to' => $replyTo,
         ]);
-        $request->getSession()->set('post_undo', [
-            'post_id' => $postId,
-            'token' => bin2hex(random_bytes(32)),
-            'expires_at' => time() + 86400,
-        ]);
+        if ($this->siteSettings->undoEnabled()) {
+            $request->getSession()->set('post_undo', [
+                'post_id' => $postId,
+                'token' => bin2hex(random_bytes(32)),
+                'expires_at' => time() + $this->siteSettings->undoWindowSeconds(),
+            ]);
+        } else {
+            $request->getSession()->remove('post_undo');
+        }
 
         if ($replyTo !== null) {
             $returnTo = $request->request->getString('return_to');
@@ -137,13 +147,29 @@ final class SubmitController
         if (mb_strlen($title) > $this->maxTitleChars) {
             throw new BadRequestHttpException(sprintf('題名は%d文字以内で入力してください。', $this->maxTitleChars));
         }
-        $lines = explode("\n", str_replace(["\r\n", "\r"], "\n", $message));
-        if (count($lines) > $this->maxMessageLines) {
-            throw new BadRequestHttpException(sprintf('本文は%d行以内で入力してください。', $this->maxMessageLines));
+        $maxMessageChars = $this->siteSettings->maxMessageChars();
+        if (mb_strlen($message) > $maxMessageChars) {
+            throw new BadRequestHttpException(sprintf('本文は全体で%d文字以内で入力してください。', $maxMessageChars));
         }
+        $lines = explode("\n", str_replace(["\r\n", "\r"], "\n", $message));
+        $maxMessageLines = $this->siteSettings->maxMessageLines();
+        if (count($lines) > $maxMessageLines) {
+            throw new BadRequestHttpException(sprintf('本文は%d行以内で入力してください。', $maxMessageLines));
+        }
+        $maxLineChars = $this->siteSettings->maxLineChars();
         foreach ($lines as $line) {
-            if (mb_strlen($line) > $this->maxLineChars) {
-                throw new BadRequestHttpException(sprintf('本文の1行は%d文字以内で入力してください。', $this->maxLineChars));
+            if (mb_strlen($line) > $maxLineChars) {
+                throw new BadRequestHttpException(sprintf('本文の1行は%d文字以内で入力してください。', $maxLineChars));
+            }
+        }
+        foreach ($this->siteSettings->prohibitedWords() as $word) {
+            if (
+                str_contains($author, $word)
+                || str_contains($email, $word)
+                || str_contains($title, $word)
+                || str_contains($message, $word)
+            ) {
+                throw new BadRequestHttpException('投稿禁止ワードが含まれています。');
             }
         }
     }
@@ -152,7 +178,9 @@ final class SubmitController
     {
         $returnTo = $request->request->getString('return_to');
         $isTree = preg_match('#^/tree(?:/\d+)?$#D', $returnTo) === 1;
-        $parameters = !$isTree && $displayCount !== 40 ? ['display_count' => $displayCount] : [];
+        $parameters = !$isTree && $displayCount !== $this->siteSettings->defaultDisplayCount()
+            ? ['display_count' => $displayCount]
+            : [];
         $response = new RedirectResponse(
             $isTree ? $returnTo : $this->urlGenerator->generate('app_hello', $parameters),
             Response::HTTP_SEE_OTHER,

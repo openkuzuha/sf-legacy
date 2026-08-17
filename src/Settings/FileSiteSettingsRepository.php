@@ -62,6 +62,256 @@ final class FileSiteSettingsRepository implements SiteSettingsRepository
         });
     }
 
+    public function defaultDisplayCount(): ?int
+    {
+        $count = $this->readSettings()['default_display_count'] ?? null;
+
+        return is_int($count) ? $count : null;
+    }
+
+    public function setDefaultDisplayCount(int $count): void
+    {
+        $this->withExclusiveLock(function () use ($count): void {
+            $settings = $this->readSettings();
+            $settings['default_display_count'] = $count;
+            $this->writeSettings($settings);
+        });
+    }
+
+    public function resetDefaultDisplayCount(): void
+    {
+        $this->withExclusiveLock(function (): void {
+            $settings = $this->readSettings();
+            unset($settings['default_display_count']);
+            $this->writeSettings($settings);
+        });
+    }
+
+    public function maxMessageLines(): ?int
+    {
+        $lines = $this->readSettings()['max_message_lines'] ?? null;
+
+        return is_int($lines) ? $lines : null;
+    }
+
+    public function setMaxMessageLines(int $lines): void
+    {
+        $this->setIntegerSetting('max_message_lines', $lines);
+    }
+
+    public function resetMaxMessageLines(): void
+    {
+        $this->resetSetting('max_message_lines');
+    }
+
+    public function maxLineChars(): ?int
+    {
+        $chars = $this->readSettings()['max_line_chars'] ?? null;
+
+        return is_int($chars) ? $chars : null;
+    }
+
+    public function setMaxLineChars(int $chars): void
+    {
+        $this->setIntegerSetting('max_line_chars', $chars);
+    }
+
+    public function resetMaxLineChars(): void
+    {
+        $this->resetSetting('max_line_chars');
+    }
+
+    public function maxMessageChars(): ?int
+    {
+        $chars = $this->readSettings()['max_message_chars'] ?? null;
+
+        return is_int($chars) ? $chars : null;
+    }
+
+    public function setMaxMessageChars(int $chars): void
+    {
+        $this->setIntegerSetting('max_message_chars', $chars);
+    }
+
+    public function resetMaxMessageChars(): void
+    {
+        $this->resetSetting('max_message_chars');
+    }
+
+    public function visitorActiveSeconds(): ?int
+    {
+        $seconds = $this->readSettings()['visitor_active_seconds'] ?? null;
+
+        return is_int($seconds) ? $seconds : null;
+    }
+
+    public function setVisitorActiveSeconds(int $seconds): void
+    {
+        $this->setIntegerSetting('visitor_active_seconds', $seconds);
+    }
+
+    public function resetVisitorActiveSeconds(): void
+    {
+        $this->resetSetting('visitor_active_seconds');
+    }
+
+    public function serviceStartedAt(): ?string
+    {
+        $date = $this->readSettings()['service_started_at'] ?? null;
+
+        return is_string($date) ? $date : null;
+    }
+
+    public function setServiceStartedAt(string $date): void
+    {
+        $this->withExclusiveLock(function () use ($date): void {
+            $settings = $this->readSettings();
+            $settings['service_started_at'] = $date;
+            $this->writeSettings($settings);
+        });
+    }
+
+    public function resetServiceStartedAt(): void
+    {
+        $this->resetSetting('service_started_at');
+    }
+
+    public function adminName(): ?string
+    {
+        $name = $this->readSettings()['admin_name'] ?? null;
+
+        return is_string($name) ? $name : null;
+    }
+
+    public function setAdminName(string $name): void
+    {
+        $this->setStringSetting('admin_name', $name);
+    }
+
+    public function resetAdminName(): void
+    {
+        $this->resetSetting('admin_name');
+    }
+
+    public function adminEmail(): ?string
+    {
+        $email = $this->readSettings()['admin_email'] ?? null;
+
+        return is_string($email) ? $email : null;
+    }
+
+    public function setAdminEmail(string $email): void
+    {
+        $this->setStringSetting('admin_email', $email);
+    }
+
+    public function resetAdminEmail(): void
+    {
+        $this->resetSetting('admin_email');
+    }
+
+    public function prohibitedWords(): ?array
+    {
+        $words = $this->readSettings()['prohibited_words'] ?? null;
+        if (!is_array($words)) {
+            return null;
+        }
+
+        foreach ($words as $word) {
+            if (!is_string($word)) {
+                return null;
+            }
+        }
+
+        return array_values($words);
+    }
+
+    public function setProhibitedWords(array $words): void
+    {
+        $this->withExclusiveLock(function () use ($words): void {
+            $settings = $this->readSettings();
+            $settings['prohibited_words'] = $words;
+            $this->writeSettings($settings);
+        });
+    }
+
+    public function resetProhibitedWords(): void
+    {
+        $this->resetSetting('prohibited_words');
+    }
+
+    public function undoEnabled(): ?bool
+    {
+        $enabled = $this->readSettings()['undo_enabled'] ?? null;
+
+        return is_bool($enabled) ? $enabled : null;
+    }
+
+    public function setUndoEnabled(bool $enabled): void
+    {
+        $this->withExclusiveLock(function () use ($enabled): void {
+            $settings = $this->readSettings();
+            $settings['undo_enabled'] = $enabled;
+            $this->writeSettings($settings);
+        });
+    }
+
+    public function resetUndoEnabled(): void
+    {
+        $this->resetSetting('undo_enabled');
+    }
+
+    public function undoWindowSeconds(): ?int
+    {
+        $seconds = $this->readSettings()['undo_window_seconds'] ?? null;
+
+        return is_int($seconds) ? $seconds : null;
+    }
+
+    public function setUndoWindowSeconds(int $seconds): void
+    {
+        $this->setIntegerSetting('undo_window_seconds', $seconds);
+    }
+
+    public function resetUndoWindowSeconds(): void
+    {
+        $this->resetSetting('undo_window_seconds');
+    }
+
+    public function archiveRetentionDays(): ?int
+    {
+        $days = $this->readSettings()['archive_retention_days'] ?? null;
+
+        return is_int($days) ? $days : null;
+    }
+
+    public function setArchiveRetentionDays(int $days): void
+    {
+        $this->setIntegerSetting('archive_retention_days', $days);
+    }
+
+    public function resetArchiveRetentionDays(): void
+    {
+        $this->resetSetting('archive_retention_days');
+    }
+
+    public function archivePublicDays(): ?int
+    {
+        $days = $this->readSettings()['archive_public_days'] ?? null;
+
+        return is_int($days) ? $days : null;
+    }
+
+    public function setArchivePublicDays(int $days): void
+    {
+        $this->setIntegerSetting('archive_public_days', $days);
+    }
+
+    public function resetArchivePublicDays(): void
+    {
+        $this->resetSetting('archive_public_days');
+    }
+
     public function adminPasswordHash(): ?string
     {
         $hash = $this->readSettings()['admin_password_hash'] ?? null;
@@ -160,5 +410,32 @@ final class FileSiteSettingsRepository implements SiteSettingsRepository
         } finally {
             fclose($handle);
         }
+    }
+
+    private function setStringSetting(string $key, string $value): void
+    {
+        $this->withExclusiveLock(function () use ($key, $value): void {
+            $settings = $this->readSettings();
+            $settings[$key] = $value;
+            $this->writeSettings($settings);
+        });
+    }
+
+    private function setIntegerSetting(string $key, int $value): void
+    {
+        $this->withExclusiveLock(function () use ($key, $value): void {
+            $settings = $this->readSettings();
+            $settings[$key] = $value;
+            $this->writeSettings($settings);
+        });
+    }
+
+    private function resetSetting(string $key): void
+    {
+        $this->withExclusiveLock(function () use ($key): void {
+            $settings = $this->readSettings();
+            unset($settings[$key]);
+            $this->writeSettings($settings);
+        });
     }
 }

@@ -142,18 +142,25 @@ if (postForm instanceof HTMLFormElement) {
         }
         const lineLimit = Number(content.dataset.messageLineLimit);
         const lineCharLimit = Number(content.dataset.lineCharLimit);
+        const messageCharLimit = Number(content.dataset.messageCharLimit);
         const normalized = content.value.replace(/\r\n?/g, '\n');
+        const messageChars = Array.from(normalized).length;
         const lines = normalized === '' ? [] : normalized.split('\n');
         const longestLine = Math.max(0, ...lines.map((line) => Array.from(line).length));
-        const overLimit = lines.length > lineLimit || longestLine > lineCharLimit;
+        const overLimit = messageChars > messageCharLimit || lines.length > lineLimit || longestLine > lineCharLimit;
         const output = document.getElementById('content-limit');
+        const countSummary = `${lines.length}/${lineLimit}行・最長行${longestLine}/${lineCharLimit}文字・全体${messageChars}/${messageCharLimit}文字`;
         if (output instanceof HTMLOutputElement) {
-            output.value = `${lines.length}/${lineLimit}行・最長行${longestLine}/${lineCharLimit}文字`;
+            output.value = overLimit ? `入力上限超過：${countSummary}` : countSummary;
             output.dataset.overLimit = String(overLimit);
         }
+        content.dataset.overLimit = String(overLimit);
+        content.setAttribute('aria-invalid', String(overLimit));
 
         let message = '';
-        if (lines.length > lineLimit) {
+        if (messageChars > messageCharLimit) {
+            message = `本文は全体で${messageCharLimit}文字以内で入力してください。`;
+        } else if (lines.length > lineLimit) {
             message = `本文は${lineLimit}行以内で入力してください。`;
         } else if (longestLine > lineCharLimit) {
             message = `本文の1行は${lineCharLimit}文字以内で入力してください。`;

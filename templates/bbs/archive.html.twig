@@ -5,6 +5,7 @@
         .search-highlight { background: #ff0; color: #000; }
     </style>
     <h2>過去ログ一覧</h2>
+    <p>直近{{ archive_public_days }}日分を公開しています。</p>
     <form action="{{ path('app_archive') }}" method="get">
         <ul style="list-style: none;">
             {% for archive in archives %}
@@ -39,7 +40,13 @@
             <div class="m" id="m{{ post.post_id }}">
                 <span class="nw">
                     <span class="ms">{{ post.title|search_highlight(keyword) }}</span>&nbsp;&nbsp;
-                    <span class="mu">投稿者：<span class="mun">{{ post.author|search_highlight(keyword) }}</span></span>&nbsp;&nbsp;
+                    <span class="mu">投稿者：<span class="mun">
+                        {%- if post.author_spoofed ?? false -%}
+                            {{- post.author|replace({'（騙り）': ''})|search_highlight(keyword) -}}<span class="muh">（騙り）</span>
+                        {%- else -%}
+                            {{- post.author|search_highlight(keyword) -}}
+                        {%- endif -%}
+                    </span></span>&nbsp;&nbsp;
                     <span class="md">投稿日：<time datetime="{{ post.posted_at }}">{{ post.posted_at|bbs_datetime }}</time></span>
                 </span>
                 <blockquote><pre>{{ post.message|message_html(post.auto_link, keyword) }}</pre></blockquote>

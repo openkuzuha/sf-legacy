@@ -9,7 +9,7 @@
             <div class="m" id="m{{ reply.post_id }}">
                 <span class="nw">
                     <span class="ms">{{ reply.title }}</span>&nbsp;&nbsp;
-                    <span class="mu">投稿者：<span class="mun">{{ reply.author }}</span></span>&nbsp;&nbsp;
+                    <span class="mu">投稿者：<span class="mun">{{ include('bbs/_author_name.html.twig', {post: reply}) }}</span></span>&nbsp;&nbsp;
                     <span class="md">投稿日：<time datetime="{{ reply.posted_at }}">{{ reply.posted_at|bbs_datetime }}</time></span>
                     <span class="nb">
                     &nbsp;<a href="{{ path('app_reply', {postId: reply.post_id}) }}" aria-label="Reply" title="Reply">■</a>

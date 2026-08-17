@@ -12,6 +12,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Twig\Environment;
@@ -19,8 +20,6 @@ use Twig\Environment;
 /** @phpstan-import-type PostRecord from \App\Post\PostTypes */
 final class BbsController
 {
-    private const int DEFAULT_PAGE_SIZE = 40;
-
     private const int MAX_PAGE_SIZE = 1000;
 
     public function __construct(
@@ -31,8 +30,6 @@ final class BbsController
         private readonly VisitorCounter $visitorCounter,
         private readonly PageViewCounter $pageViewCounter,
         private readonly LinkCollection $links,
-        #[Autowire(param: 'app.page_view_started_at')]
-        private readonly string $pageViewStartedAt,
         #[Autowire(param: 'app.central_post_limit')]
         private readonly int $centralPostLimit,
     ) {
@@ -41,7 +38,7 @@ final class BbsController
     #[Route('/', name: 'app_hello')]
     public function __invoke(Request $request): Response
     {
-        $storedPageSize = $request->cookies->getInt('bbs_display_count', self::DEFAULT_PAGE_SIZE);
+        $storedPageSize = $request->cookies->getInt('bbs_display_count', $this->siteSettings->defaultDisplayCount());
         $pageSize = max(1, min(
             self::MAX_PAGE_SIZE,
             $request->query->has('display_count')
@@ -130,18 +127,30 @@ final class BbsController
             'visitor_count' => $visitorCount,
             'visitor_limit' => $this->visitorCounter->limit(),
             'page_view_count' => $pageViewCount,
-            'page_view_started_at' => $this->pageViewStartedAt,
+            'page_view_started_at' => $this->siteSettings->formattedServiceStartedAt(),
             'central_post_limit' => $this->centralPostLimit,
+            'max_message_lines' => $this->siteSettings->maxMessageLines(),
+            'max_line_chars' => $this->siteSettings->maxLineChars(),
+            'max_message_chars' => $this->siteSettings->maxMessageChars(),
             'additional_links' => $this->links->links(),
+            'admin_email' => $this->siteSettings->adminEmail(),
+            'admin_name' => $this->siteSettings->adminName(),
+            'undo_enabled' => $this->siteSettings->undoEnabled(),
         ]));
     }
 
     #[Route('/archive', name: 'app_archive', methods: ['GET'])]
     public function archive(Request $request): Response
     {
-        $archives = $this->archive->entries();
+        $archives = $this->archive->entries($this->siteSettings->archivePublicDays());
+        $allowedDates = array_column($archives, 'date');
         $selectedArchives = $request->query->all('archives');
-        $selectedArchives = array_values(array_filter($selectedArchives, 'is_string'));
+        foreach ($selectedArchives as $date) {
+            if (!is_string($date) || !in_array($date, $allowedDates, true)) {
+                throw new BadRequestHttpException('公開範囲外の過去ログは指定できません。');
+            }
+        }
+        $selectedArchives = array_values($selectedArchives);
         if (!$request->query->has('keyword') && $archives !== []) {
             $selectedArchives = [$archives[array_key_last($archives)]['date']];
         }
@@ -153,7 +162,10 @@ final class BbsController
             'selected_archives' => $selectedArchives,
             'keyword' => $keyword,
             'search_performed' => $request->query->has('keyword'),
-            'posts' => $this->archive->search($selectedArchives, $keyword),
+            'posts' => $request->query->has('keyword')
+                ? $this->archive->search($selectedArchives, $keyword)
+                : [],
+            'archive_public_days' => $this->siteSettings->archivePublicDays(),
         ]));
     }
 
@@ -241,9 +253,13 @@ final class BbsController
             'return_to' => $returnTo,
             'display_count' => max(1, min(
                 self::MAX_PAGE_SIZE,
-                $request->cookies->getInt('bbs_display_count', self::DEFAULT_PAGE_SIZE),
+                $request->cookies->getInt('bbs_display_count', $this->siteSettings->defaultDisplayCount()),
             )),
             'auto_link_enabled' => $request->cookies->getString('bbs_auto_link', '1') !== '0',
+            'max_message_lines' => $this->siteSettings->maxMessageLines(),
+            'max_line_chars' => $this->siteSettings->maxLineChars(),
+            'max_message_chars' => $this->siteSettings->maxMessageChars(),
+            'admin_name' => $this->siteSettings->adminName(),
         ]));
     }
 
@@ -277,6 +293,7 @@ final class BbsController
             'app_title' => $this->siteSettings->title(),
             'author' => $author,
             'posts' => $posts,
+            'undo_enabled' => $this->siteSettings->undoEnabled(),
         ]));
     }
 
@@ -306,6 +323,7 @@ final class BbsController
         return new Response($this->twig->render('bbs/thread.html.twig', [
             'app_title' => $this->siteSettings->title(),
             'posts' => $thread,
+            'undo_enabled' => $this->siteSettings->undoEnabled(),
         ]));
     }
 
@@ -364,14 +382,19 @@ final class BbsController
             'unread_after_post_id' => $unreadAfterPostId,
             'display_count' => max(1, min(
                 self::MAX_PAGE_SIZE,
-                $request->cookies->getInt('bbs_display_count', self::DEFAULT_PAGE_SIZE),
+                $request->cookies->getInt('bbs_display_count', $this->siteSettings->defaultDisplayCount()),
             )),
             'auto_link_enabled' => $request->cookies->getString('bbs_auto_link', '1') !== '0',
             'visitor_count' => $visitorCount,
             'visitor_limit' => $this->visitorCounter->limit(),
             'page_view_count' => $pageViewCount,
-            'page_view_started_at' => $this->pageViewStartedAt,
+            'page_view_started_at' => $this->siteSettings->formattedServiceStartedAt(),
             'central_post_limit' => $this->centralPostLimit,
+            'max_message_lines' => $this->siteSettings->maxMessageLines(),
+            'max_line_chars' => $this->siteSettings->maxLineChars(),
+            'max_message_chars' => $this->siteSettings->maxMessageChars(),
+            'admin_name' => $this->siteSettings->adminName(),
+            'undo_enabled' => $this->siteSettings->undoEnabled(),
         ]));
     }
 
@@ -394,6 +417,7 @@ final class BbsController
             'updated_at' => $tree['updated_at'],
             'children' => $tree['children'],
             'unread_after_post_id' => max(0, $request->query->getInt('p')),
+            'undo_enabled' => $this->siteSettings->undoEnabled(),
         ]));
     }
 
@@ -452,8 +476,12 @@ final class BbsController
     /** @return list<PostRecord> */
     private function archiveDate(string $date): array
     {
-        if (preg_match('#^\d{4}/\d{2}/\d{2}$#D', $date) !== 1) {
-            throw new NotFoundHttpException('日付が指定されていません。');
+        $allowedDates = array_column(
+            $this->archive->entries($this->siteSettings->archivePublicDays()),
+            'date',
+        );
+        if (!in_array($date, $allowedDates, true)) {
+            throw new BadRequestHttpException('公開範囲外の過去ログは指定できません。');
         }
         $posts = $this->archive->search([$date], '');
         if ($posts === []) {

@@ -52,6 +52,7 @@ final class LegacyHtmlReader
                 'host' => null,
                 'user_agent' => null,
                 'author' => $author,
+                'author_spoofed' => false,
                 'email' => $email,
                 'title' => $title,
                 'message' => $message,

@@ -139,11 +139,26 @@ final class DailyPostArchive implements PostArchive
     }
 
     /** @return list<array{date: string, size: int, formatted_size: string, post_count: int}> */
-    public function entries(): array
+    public function entries(int $recentDays = 0): array
     {
-        $filenames = glob(sprintf('%s/*/*/*.jsonl', rtrim($this->directory, '/')));
-        if ($filenames === false) {
-            throw new RuntimeException('日別アーカイブを列挙できません。');
+        if ($recentDays > 0) {
+            $filenames = [];
+            $date = new DateTimeImmutable('today', $this->timezone);
+            for ($offset = 0; $offset < $recentDays; ++$offset) {
+                $filename = sprintf(
+                    '%s/%s.jsonl',
+                    rtrim($this->directory, '/'),
+                    $date->modify(sprintf('-%d days', $offset))->format('Y/m/d'),
+                );
+                if (is_file($filename)) {
+                    $filenames[] = $filename;
+                }
+            }
+        } else {
+            $filenames = glob(sprintf('%s/*/*/*.jsonl', rtrim($this->directory, '/')));
+            if ($filenames === false) {
+                throw new RuntimeException('日別アーカイブを列挙できません。');
+            }
         }
         sort($filenames, SORT_STRING);
 
@@ -208,6 +223,41 @@ final class DailyPostArchive implements PostArchive
         usort($records, static fn (array $left, array $right): int => $left['posted_at'] <=> $right['posted_at']);
 
         return $records;
+    }
+
+    public function prune(int $retentionDays): int
+    {
+        if ($retentionDays === 0) {
+            return 0;
+        }
+        $cutoff = (new DateTimeImmutable('now', $this->timezone))
+            ->modify(sprintf('-%d days', $retentionDays - 1))
+            ->format('Y/m/d');
+        $filenames = glob(sprintf('%s/*/*/*.jsonl', rtrim($this->directory, '/')));
+        if ($filenames === false) {
+            throw new RuntimeException('日別アーカイブを列挙できません。');
+        }
+
+        $count = 0;
+        foreach ($filenames as $filename) {
+            $relative = substr($filename, strlen(rtrim($this->directory, '/')) + 1);
+            if (
+                preg_match('#^(\d{4}/\d{2}/\d{2})\.jsonl$#D', $relative, $matches) !== 1
+                || $matches[1] >= $cutoff
+            ) {
+                continue;
+            }
+            foreach (file($filename, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
+                if ($this->codec->decode($line) !== null) {
+                    ++$count;
+                }
+            }
+            if (!unlink($filename)) {
+                throw new RuntimeException(sprintf('期限切れのアーカイブファイル "%s" を削除できません。', $filename));
+            }
+        }
+
+        return $count;
     }
 
     /** @return int 削除した投稿件数 */

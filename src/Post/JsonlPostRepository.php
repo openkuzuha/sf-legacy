@@ -302,6 +302,7 @@ final class JsonlPostRepository implements PostRepository
             'host' => $post['host'],
             'user_agent' => $post['user_agent'],
             'author' => $post['author'],
+            'author_spoofed' => $post['author_spoofed'] ?? false,
             'email' => $post['email'],
             'title' => $post['title'],
             'message' => $post['message'],

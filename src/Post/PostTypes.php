@@ -5,6 +5,7 @@ namespace App\Post;
 /**
  * @phpstan-type PostInput array{
  *     author: string,
+ *     author_spoofed?: bool,
  *     email: string,
  *     title: string,
  *     message: string,
@@ -22,6 +23,7 @@ namespace App\Post;
  *     host: ?string,
  *     user_agent: ?string,
  *     author: string,
+ *     author_spoofed?: bool,
  *     email: string,
  *     title: string,
  *     message: string,

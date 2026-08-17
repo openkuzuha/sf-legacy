@@ -15,13 +15,16 @@ interface PostArchive
     public function month(string $yearMonth): array;
 
     /** @return list<array{date: string, size: int, formatted_size: string, post_count: int}> */
-    public function entries(): array;
+    public function entries(int $recentDays = 0): array;
 
     /**
      * @param list<string> $dates
      * @return list<PostRecord>
      */
     public function search(array $dates, string $keyword): array;
+
+    /** @return int 削除した投稿件数 */
+    public function prune(int $retentionDays): int;
 
     /** @return int 削除した投稿件数 */
     public function clear(): int;

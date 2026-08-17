@@ -63,3 +63,43 @@ test('投稿をローカル時刻の日別に保存し月単位では結合し�
         @rmdir($directory);
     }
 });
+
+test('保持日数より古い日別ログを削除する', function () {
+    $directory = sys_get_temp_dir() . '/sf-legacy-retention-' . bin2hex(random_bytes(8));
+    $archive = new DailyPostArchive($directory, new PostRecordCodec(), 'Asia/Tokyo');
+    $today = new DateTimeImmutable('today', new DateTimeZone('Asia/Tokyo'));
+    $record = [
+        'posted_at' => $today->modify('-2 days')->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z'),
+        'post_id' => 1,
+        'thread_id' => 1,
+        'location' => 'main',
+        'host' => null,
+        'user_agent' => null,
+        'author' => '',
+        'email' => '',
+        'title' => '',
+        'message' => '期限切れ',
+        'auto_link' => true,
+        'reply_to' => null,
+    ];
+    $recent = $record;
+    $recent['posted_at'] = $today->modify('-1 day')->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z');
+    $recent['post_id'] = 2;
+    $recent['thread_id'] = 2;
+
+    try {
+        $archive->put($record);
+        $archive->put($recent);
+        expect($archive->prune(0))->toBe(0)
+            ->and($archive->prune(2))->toBe(1)
+            ->and($archive->entries())->toHaveCount(1)
+            ->and($archive->entries()[0]['date'])->toBe($today->modify('-1 day')->format('Y/m/d'));
+    } finally {
+        $archive->clear();
+        $year = $today->format('Y');
+        $month = $today->format('m');
+        @rmdir($directory . '/' . $year . '/' . $month);
+        @rmdir($directory . '/' . $year);
+        @rmdir($directory);
+    }
+});

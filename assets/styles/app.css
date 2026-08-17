@@ -127,6 +127,11 @@ a.help { text-decoration-line: underline; }
     color: #ffaaaa;
     font-weight: bold;
 }
+.post-content[data-over-limit="true"] {
+    border-color: #ffaaaa;
+    outline: 2px solid rgb(255 170 170 / 45%);
+    background-color: rgb(255 80 80 / 10%);
+}
 .post-content {
     display: block;
     box-sizing: border-box;
@@ -225,6 +230,7 @@ a.help { text-decoration-line: underline; }
     background: #009090;
 }
 .tree-author { font-size: 14px; }
+.muh { font-size: inherit; font-weight: normal; font-style: italic; }
 .tree-post pre.tree-unread-message { color: #ffccaa; }
 .tree-updated { margin-bottom: 0.25rem; }
 

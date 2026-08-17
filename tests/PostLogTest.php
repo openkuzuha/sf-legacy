@@ -58,6 +58,7 @@ test('投稿日時をUTCのRFC 3339形式でJSONLへ追記する', function () {
             ->and($record['location'])->toBe('main')
             ->and($record['posted_at'])->toMatch('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/')
             ->and($record['message'])->toBe("本文,です\n二行目")
+            ->and($record['author_spoofed'] ?? false)->toBeFalse()
             ->and($record['auto_link'])->toBeTrue()
             ->and($record['reply_to'])->toBeNull();
 
@@ -65,11 +66,12 @@ test('投稿日時をUTCのRFC 3339形式でJSONLへ追記する', function () {
         $legacyRecord['posted_at'] = 1_700_000_000;
         expect((new PostRecordCodec())->decode(json_encode($legacyRecord, JSON_THROW_ON_ERROR)))->toBeNull();
 
-        unset($record['auto_link']);
+        unset($record['auto_link'], $record['author_spoofed']);
         $decoded = (new PostRecordCodec())->decode(json_encode($record, JSON_THROW_ON_ERROR));
         expect($decoded)->not->toBeNull();
         assert(is_array($decoded));
-        expect($decoded['auto_link'])->toBeTrue();
+        expect($decoded['auto_link'])->toBeTrue()
+            ->and($decoded['author_spoofed'] ?? false)->toBeFalse();
 
         $records = $log->all();
         expect($records)

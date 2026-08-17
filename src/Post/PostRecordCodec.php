@@ -27,6 +27,9 @@ final class PostRecordCodec
         if (is_array($record) && !array_key_exists('auto_link', $record)) {
             $record['auto_link'] = true;
         }
+        if (is_array($record) && !array_key_exists('author_spoofed', $record)) {
+            $record['author_spoofed'] = false;
+        }
 
         if (!$this->isPostRecord($record)) {
             return null;
@@ -51,6 +54,8 @@ final class PostRecordCodec
             && (is_string($record['user_agent']) || $record['user_agent'] === null)
             && isset($record['author'], $record['email'], $record['title'], $record['message'])
             && is_string($record['author'])
+            && isset($record['author_spoofed'])
+            && is_bool($record['author_spoofed'])
             && is_string($record['email'])
             && is_string($record['title'])
             && is_string($record['message'])
