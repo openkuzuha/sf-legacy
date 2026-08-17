@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Post\PostRepository;
 use App\Settings\AdminPassword;
 use App\Settings\SiteSettings;
 use InvalidArgumentException;
@@ -23,6 +24,7 @@ final class AdminController
 
     public function __construct(
         private readonly SiteSettings $siteSettings,
+        private readonly PostRepository $posts,
         private readonly AdminPassword $adminPassword,
         private readonly Environment $twig,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
@@ -96,8 +98,61 @@ final class AdminController
         return new Response($this->twig->render('admin/settings.html.twig', [
             'app_title' => $this->siteSettings->title(),
             'default_title' => $this->siteSettings->defaultTitle(),
+            'central_post_limit' => $this->siteSettings->centralPostLimit(),
+            'default_central_post_limit' => $this->siteSettings->defaultCentralPostLimit(),
             'app_environment' => $this->appEnvironment,
         ]));
+    }
+
+    #[Route('/admin/settings/central-post-limit', name: 'app_admin_central_post_limit', methods: ['POST'])]
+    public function updateCentralPostLimit(Request $request): Response
+    {
+        if (!$this->isAuthenticated($request)) {
+            return $this->redirectToAdmin();
+        }
+        $token = new CsrfToken('admin_central_post_limit', $request->request->getString('_token'));
+        if (!$this->csrfTokenManager->isTokenValid($token)) {
+            $this->addFlash($request->getSession(), 'admin_error', '入力の有効期限が切れました。');
+
+            return $this->redirectToSettings();
+        }
+        try {
+            $rawLimit = $request->request->getString('central_post_limit');
+            if (filter_var($rawLimit, FILTER_VALIDATE_INT) === false) {
+                throw new InvalidArgumentException('マスターログ保存件数を整数で入力してください。');
+            }
+            $limit = (int) $rawLimit;
+            $this->siteSettings->setCentralPostLimit($limit);
+            $this->posts->trimTo($limit);
+            $this->addFlash($request->getSession(), 'admin_success', 'マスターログ保存件数を保存し、現在のログへ反映しました。');
+        } catch (InvalidArgumentException | RuntimeException $exception) {
+            $this->addFlash($request->getSession(), 'admin_error', $exception->getMessage());
+        }
+
+        return $this->redirectToSettings();
+    }
+
+    #[Route('/admin/settings/central-post-limit/reset', name: 'app_admin_central_post_limit_reset', methods: ['POST'])]
+    public function resetCentralPostLimit(Request $request): Response
+    {
+        if (!$this->isAuthenticated($request)) {
+            return $this->redirectToAdmin();
+        }
+        $token = new CsrfToken('admin_central_post_limit_reset', $request->request->getString('_token'));
+        if (!$this->csrfTokenManager->isTokenValid($token)) {
+            $this->addFlash($request->getSession(), 'admin_error', '入力の有効期限が切れました。');
+
+            return $this->redirectToSettings();
+        }
+        try {
+            $this->siteSettings->resetCentralPostLimit();
+            $this->posts->trimTo($this->siteSettings->defaultCentralPostLimit());
+            $this->addFlash($request->getSession(), 'admin_success', 'マスターログ保存件数を初期値に戻しました。');
+        } catch (RuntimeException $exception) {
+            $this->addFlash($request->getSession(), 'admin_error', $exception->getMessage());
+        }
+
+        return $this->redirectToSettings();
     }
 
     #[Route('/admin/posts', name: 'app_admin_posts', methods: ['GET'])]

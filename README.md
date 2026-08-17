@@ -77,6 +77,11 @@ docker compose exec app php bin/console bbs:admin:password-hash
 上書き値を削除します。保存先は通常実行時が `var/data/site-settings.json`、
 `CLOUD_MODE=1` の場合はValkeyです。
 
+マスターログの保存件数も管理画面から変更できます。既定値は500件です。
+保存時点でマスターログを新しい投稿から指定件数へ切り詰め、その後の投稿・取込でも上限を維持します。
+マスターログから除外された投稿は、ローカル環境の日別アーカイブまたはクラウド環境のS3アーカイブには残ります。
+設定値はサイトタイトルや管理用パスワードと同じ保存先へ保存されます。
+
 開発用のS3互換ストレージとしてMinIOも起動します。S3 APIは
 `http://localhost:9000`、管理コンソールは `http://localhost:9001` です。
 初回起動時に `bbs-archive` バケットが自動作成され、データはDockerの

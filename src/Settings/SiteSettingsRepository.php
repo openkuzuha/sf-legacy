@@ -10,6 +10,12 @@ interface SiteSettingsRepository
 
     public function resetTitle(): void;
 
+    public function centralPostLimit(): ?int;
+
+    public function setCentralPostLimit(int $limit): void;
+
+    public function resetCentralPostLimit(): void;
+
     public function adminPasswordHash(): ?string;
 
     public function setAdminPasswordHash(string $hash): void;

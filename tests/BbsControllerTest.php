@@ -100,8 +100,10 @@ test('自分の直前の投稿だけを×ボタンから削除する', function 
     $this->assertResponseRedirects();
     $crawler = $client->followRedirect();
 
-    $undoForm = $crawler->filter('.m form[action$="/undo"][method="post"]');
+    $undoForm = $crawler->filter('.m form.undo-form[action$="/undo"][method="post"]');
     $this->assertCount(1, $undoForm);
+    $this->assertSelectorExists('.undo-form > button.undo-mark[type="submit"]');
+    $this->assertSelectorTextSame('.undo-form > button.undo-mark', '✕');
     expect($undoForm->ancestors()->filter('.m')->text())->toContain($deletedMessage);
     $client->submit($undoForm->form());
     $crawler = $client->followRedirect();

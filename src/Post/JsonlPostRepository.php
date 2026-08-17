@@ -22,7 +22,7 @@ final class JsonlPostRepository implements PostRepository
         private readonly int $maximumRecords = 500,
     ) {
         if ($this->maximumRecords < 1) {
-            throw new RuntimeException('中央ログの最大件数は1以上で指定してください。');
+            throw new RuntimeException('マスターログの最大件数は1以上で指定してください。');
         }
     }
 
@@ -147,6 +147,29 @@ final class JsonlPostRepository implements PostRepository
         return array_slice($this->all(), 0, max(0, $limit));
     }
 
+    public function trimTo(int $maximumRecords): void
+    {
+        if ($maximumRecords < 1) {
+            throw new RuntimeException('マスターログの最大件数は1以上で指定してください。');
+        }
+        if (!is_file($this->filename)) {
+            return;
+        }
+        $handle = fopen($this->filename, 'c+');
+        if ($handle === false) {
+            throw new RuntimeException(sprintf('ログファイル "%s" を開けません。', $this->filename));
+        }
+        try {
+            if (!flock($handle, LOCK_EX)) {
+                throw new RuntimeException('ログファイルをロックできません。');
+            }
+            $this->trim($handle, $maximumRecords);
+            flock($handle, LOCK_UN);
+        } finally {
+            fclose($handle);
+        }
+    }
+
     public function delete(int $postId): bool
     {
         if (!is_file($this->filename)) {
@@ -175,11 +198,11 @@ final class JsonlPostRepository implements PostRepository
                 return false;
             }
             if (!ftruncate($handle, 0) || !rewind($handle)) {
-                throw new RuntimeException('中央ログから投稿を削除できません。');
+                throw new RuntimeException('マスターログから投稿を削除できません。');
             }
             foreach ($kept as $line) {
                 if (fwrite($handle, $line) === false) {
-                    throw new RuntimeException('中央ログから投稿を削除できません。');
+                    throw new RuntimeException('マスターログから投稿を削除できません。');
                 }
             }
             fflush($handle);
@@ -214,7 +237,7 @@ final class JsonlPostRepository implements PostRepository
                 }
             }
             if (!ftruncate($handle, 0)) {
-                throw new RuntimeException('中央ログを初期化できません。');
+                throw new RuntimeException('マスターログを初期化できません。');
             }
             fflush($handle);
 
@@ -241,24 +264,25 @@ final class JsonlPostRepository implements PostRepository
     }
 
     /** @param resource $handle */
-    private function trim($handle): void
+    private function trim($handle, ?int $maximumRecords = null): void
     {
+        $maximumRecords ??= $this->maximumRecords;
         rewind($handle);
         $lines = [];
         while (($line = fgets($handle)) !== false) {
             $lines[] = $line;
         }
-        if (count($lines) <= $this->maximumRecords) {
+        if (count($lines) <= $maximumRecords) {
             return;
         }
 
-        $lines = array_slice($lines, -$this->maximumRecords);
+        $lines = array_slice($lines, -$maximumRecords);
         if (!ftruncate($handle, 0) || rewind($handle) === false) {
-            throw new RuntimeException('中央ログを切り詰められません。');
+            throw new RuntimeException('マスターログを切り詰められません。');
         }
         foreach ($lines as $line) {
             if (fwrite($handle, $line) === false) {
-                throw new RuntimeException('中央ログを切り詰められません。');
+                throw new RuntimeException('マスターログを切り詰められません。');
             }
         }
         fflush($handle);

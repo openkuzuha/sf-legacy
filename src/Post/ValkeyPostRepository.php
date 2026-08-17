@@ -99,6 +99,30 @@ final class ValkeyPostRepository implements PostRepository
         return $limit < 1 ? [] : $this->readRange(0, $limit - 1);
     }
 
+    public function trimTo(int $maximumRecords): void
+    {
+        if ($maximumRecords < 1) {
+            throw new RuntimeException('マスターログの最大件数は1以上で指定してください。');
+        }
+        $result = $this->client->eval(
+            <<<'LUA'
+            local ids = redis.call('ZRANGE', KEYS[1], 0, -(tonumber(ARGV[1]) + 1))
+            for _, id in ipairs(ids) do
+                redis.call('DEL', ARGV[2] .. id)
+                redis.call('ZREM', KEYS[1], id)
+            end
+            return #ids
+            LUA,
+            1,
+            $this->key('posts'),
+            (string) $maximumRecords,
+            $this->key('post:'),
+        );
+        if (!is_int($result)) {
+            throw new RuntimeException('Valkeyのマスターログを切り詰められません。');
+        }
+    }
+
     public function delete(int $postId): bool
     {
         $result = $this->client->eval(

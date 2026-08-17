@@ -37,6 +37,31 @@ final class FileSiteSettingsRepository implements SiteSettingsRepository
         });
     }
 
+    public function centralPostLimit(): ?int
+    {
+        $limit = $this->readSettings()['central_post_limit'] ?? null;
+
+        return is_int($limit) ? $limit : null;
+    }
+
+    public function setCentralPostLimit(int $limit): void
+    {
+        $this->withExclusiveLock(function () use ($limit): void {
+            $settings = $this->readSettings();
+            $settings['central_post_limit'] = $limit;
+            $this->writeSettings($settings);
+        });
+    }
+
+    public function resetCentralPostLimit(): void
+    {
+        $this->withExclusiveLock(function (): void {
+            $settings = $this->readSettings();
+            unset($settings['central_post_limit']);
+            $this->writeSettings($settings);
+        });
+    }
+
     public function adminPasswordHash(): ?string
     {
         $hash = $this->readSettings()['admin_password_hash'] ?? null;

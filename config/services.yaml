@@ -48,10 +48,6 @@ services:
     App\Post\PostArchive:
         factory: ['@App\Post\PostArchiveFactory', 'create']
 
-    App\Post\PostRepositoryFactory:
-        arguments:
-            $centralPostLimit: '%app.central_post_limit%'
-
     App\PageView\PageViewCounter:
         factory: ['@App\PageView\PageViewCounterFactory', 'create']
 
@@ -61,6 +57,7 @@ services:
     App\Settings\SiteSettings:
         arguments:
             $defaultTitle: '%app.title%'
+            $defaultCentralPostLimit: '%app.central_post_limit%'
 
     App\Settings\AdminPassword:
         arguments:

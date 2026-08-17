@@ -127,6 +127,34 @@ test('未認証または不正な入力ではサイトタイトルを変更し�
     }
 });
 
+test('管理画面でマスターログ保存件数を変更して初期値へ戻す', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.7']);
+    $settings = $this->getContainer()->get(SiteSettings::class);
+    $this->assertInstanceOf(SiteSettings::class, $settings);
+    $settings->resetCentralPostLimit();
+
+    try {
+        $crawler = $client->request('GET', '/admin');
+        $client->submit($crawler->selectButton('ログイン')->form(['password' => 'admin-test-password']));
+        $crawler = $client->followRedirect();
+        $this->assertInputValueSame('central_post_limit', '500');
+
+        $client->submit($crawler->selectButton('保存して反映')->form(['central_post_limit' => '250']));
+        $this->assertResponseRedirects('/admin/settings', 303);
+        $crawler = $client->followRedirect();
+        $this->assertSelectorTextSame('[role="status"]', 'マスターログ保存件数を保存し、現在のログへ反映しました。');
+        $this->assertInputValueSame('central_post_limit', '250');
+        expect($settings->centralPostLimit())->toBe(250);
+
+        $client->submit($crawler->selectButton('初期値（500件）に戻す')->form());
+        $crawler = $client->followRedirect();
+        $this->assertInputValueSame('central_post_limit', '500');
+    } finally {
+        $settings->resetCentralPostLimit();
+    }
+});
+
 test('投稿記事管理画面は認証必須でWIPを表示する', function () {
     /** @var TestCase $this */
     $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.6']);

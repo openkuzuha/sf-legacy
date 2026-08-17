@@ -55,6 +55,11 @@ final class ArchivedPostRepository implements PostRepository
         return $this->posts->recent($limit);
     }
 
+    public function trimTo(int $maximumRecords): void
+    {
+        $this->posts->trimTo($maximumRecords);
+    }
+
     public function delete(int $postId): bool
     {
         $record = null;

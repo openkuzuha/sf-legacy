@@ -10,6 +10,7 @@ final class ValkeySiteSettingsRepository implements SiteSettingsRepository
 {
     private const string TITLE_KEY = 'bbs:settings:site-title';
     private const string ADMIN_PASSWORD_HASH_KEY = 'bbs:settings:admin-password-hash';
+    private const string CENTRAL_POST_LIMIT_KEY = 'bbs:settings:central-post-limit';
 
     private Client $client;
 
@@ -42,6 +43,35 @@ final class ValkeySiteSettingsRepository implements SiteSettingsRepository
             $this->client->del([self::TITLE_KEY]);
         } catch (PredisException $exception) {
             throw new RuntimeException('Valkeyのサイトタイトルをリセットできません。', previous: $exception);
+        }
+    }
+
+    public function centralPostLimit(): ?int
+    {
+        try {
+            $limit = $this->client->get(self::CENTRAL_POST_LIMIT_KEY);
+
+            return is_string($limit) && ctype_digit($limit) ? (int) $limit : null;
+        } catch (PredisException $exception) {
+            throw new RuntimeException('Valkeyからマスターログ保存件数を読み込めません。', previous: $exception);
+        }
+    }
+
+    public function setCentralPostLimit(int $limit): void
+    {
+        try {
+            $this->client->set(self::CENTRAL_POST_LIMIT_KEY, (string) $limit);
+        } catch (PredisException $exception) {
+            throw new RuntimeException('Valkeyへマスターログ保存件数を保存できません。', previous: $exception);
+        }
+    }
+
+    public function resetCentralPostLimit(): void
+    {
+        try {
+            $this->client->del([self::CENTRAL_POST_LIMIT_KEY]);
+        } catch (PredisException $exception) {
+            throw new RuntimeException('Valkeyのマスターログ保存件数をリセットできません。', previous: $exception);
         }
     }
 
