@@ -3,6 +3,10 @@ framework:
     session: true
     csrf_protection: true
     rate_limiter:
+        admin_login:
+            policy: sliding_window
+            limit: 5
+            interval: '1 minute'
         post_short:
             policy: sliding_window
             limit: 2
@@ -24,3 +28,5 @@ framework:
 when@test:
     framework:
         test: true
+        session:
+            storage_factory_id: session.storage.factory.mock_file

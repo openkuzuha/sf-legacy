@@ -145,6 +145,28 @@ a.help { text-decoration-line: underline; }
 .color-settings td { padding: 3px; }
 .bbs-stats { font-size: 14px; }
 
+.admin-panel { max-width: 32rem; }
+.admin-panel h2 { font-size: 1.15rem; font-weight: bold; }
+.admin-login-form {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.admin-error { color: #ffaaaa; }
+.admin-success { color: #aaffaa; }
+.admin-settings { margin: 1rem 0; }
+.admin-settings h3 { font-weight: bold; }
+.admin-title-form {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.admin-title-form input[name="title"] { width: min(24rem, 100%); }
+.admin-setting-help { font-size: 13px; }
+.admin-logout-form { margin-top: 1rem; }
+
 .tree-branches {
     list-style: none;
     margin: 0;

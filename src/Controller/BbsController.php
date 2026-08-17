@@ -6,6 +6,7 @@ use App\Content\LinkCollection;
 use App\PageView\PageViewCounter;
 use App\Post\PostArchive;
 use App\Post\PostRepository;
+use App\Settings\SiteSettings;
 use App\Visitor\VisitorCounter;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,8 +24,7 @@ final class BbsController
     private const int MAX_PAGE_SIZE = 1000;
 
     public function __construct(
-        #[Autowire(param: 'app.title')]
-        private readonly string $appTitle,
+        private readonly SiteSettings $siteSettings,
         private readonly Environment $twig,
         private readonly PostRepository $posts,
         private readonly PostArchive $archive,
@@ -118,7 +118,7 @@ final class BbsController
         }
 
         return new Response($this->twig->render('bbs/index.html.twig', [
-            'app_title' => $this->appTitle,
+            'app_title' => $this->siteSettings->title(),
             'posts' => $posts,
             'range_start' => $startPosition,
             'range_end' => $startPosition + count($posts) - 1,
@@ -148,7 +148,7 @@ final class BbsController
         $keyword = trim($request->query->getString('keyword'));
 
         return new Response($this->twig->render('bbs/archive.html.twig', [
-            'app_title' => $this->appTitle,
+            'app_title' => $this->siteSettings->title(),
             'archives' => $archives,
             'selected_archives' => $selectedArchives,
             'keyword' => $keyword,
@@ -180,7 +180,7 @@ final class BbsController
         }
 
         return new Response($this->twig->render('bbs/archive_topics.html.twig', [
-            'app_title' => $this->appTitle,
+            'app_title' => $this->siteSettings->title(),
             'date' => $date,
             'topics' => array_values($topics),
         ]));
@@ -193,7 +193,7 @@ final class BbsController
         $posts = $this->archiveDate($date);
 
         $html = $this->twig->render('bbs/archive_download.html.twig', [
-            'app_title' => $this->appTitle,
+            'app_title' => $this->siteSettings->title(),
             'date' => $date,
             'posts' => $posts,
         ]);
@@ -212,7 +212,7 @@ final class BbsController
     public function personalSettings(): Response
     {
         return new Response($this->twig->render('bbs/personal_settings.html.twig', [
-            'app_title' => $this->appTitle,
+            'app_title' => $this->siteSettings->title(),
         ]));
     }
 
@@ -235,7 +235,7 @@ final class BbsController
         }
 
         return new Response($this->twig->render('bbs/reply.html.twig', [
-            'app_title' => $this->appTitle,
+            'app_title' => $this->siteSettings->title(),
             'reply' => $reply,
             'reply_message' => $this->quotedReply($reply['message']),
             'return_to' => $returnTo,
@@ -274,7 +274,7 @@ final class BbsController
         unset($post);
 
         return new Response($this->twig->render('bbs/author.html.twig', [
-            'app_title' => $this->appTitle,
+            'app_title' => $this->siteSettings->title(),
             'author' => $author,
             'posts' => $posts,
         ]));
@@ -304,7 +304,7 @@ final class BbsController
         unset($post);
 
         return new Response($this->twig->render('bbs/thread.html.twig', [
-            'app_title' => $this->appTitle,
+            'app_title' => $this->siteSettings->title(),
             'posts' => $thread,
         ]));
     }
@@ -357,7 +357,7 @@ final class BbsController
         }
 
         return new Response($this->twig->render('bbs/all_trees.html.twig', [
-            'app_title' => $this->appTitle,
+            'app_title' => $this->siteSettings->title(),
             'trees' => $trees,
             'latest_post_id' => $latestPostId,
             'unread_requested' => $unreadRequested,
@@ -389,7 +389,7 @@ final class BbsController
         $tree = $this->buildTree($thread);
 
         return new Response($this->twig->render('bbs/tree.html.twig', [
-            'app_title' => $this->appTitle,
+            'app_title' => $this->siteSettings->title(),
             'thread_id' => $tree['thread_id'],
             'updated_at' => $tree['updated_at'],
             'children' => $tree['children'],

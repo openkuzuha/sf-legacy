@@ -58,6 +58,19 @@ docker compose exec valkey valkey-cli ping
 docker compose exec app php bin/console bbs:data:reset
 ```
 
+管理画面は `/admin` です。管理用パスワードのハッシュは対話コマンドで生成し、
+表示された `ADMIN_PASSWORD_HASH` を `.env.local` などへ設定します。パスワードは
+画面にもコマンドライン引数にも表示されません。
+
+```bash
+docker compose exec app php bin/console bbs:admin:password-hash
+```
+
+ログイン後の管理画面ではサイトタイトルを変更できます。管理画面で保存した値は
+`APP_TITLE` より優先され、再起動せずに反映されます。「APP_TITLEに戻す」を実行すると
+上書き値を削除します。保存先は通常実行時が `var/data/site-settings.json`、
+`CLOUD_MODE=1` の場合はValkeyです。
+
 開発用のS3互換ストレージとしてMinIOも起動します。S3 APIは
 `http://localhost:9000`、管理コンソールは `http://localhost:9001` です。
 初回起動時に `bbs-archive` バケットが自動作成され、データはDockerの

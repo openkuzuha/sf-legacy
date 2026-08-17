@@ -2,10 +2,12 @@ parameters:
     app.title: '%env(APP_TITLE)%'
     app.timezone: '%env(APP_TIMEZONE)%'
     app.cloud_mode: '%env(bool:CLOUD_MODE)%'
+    app.admin_password_hash: '%env(ADMIN_PASSWORD_HASH)%'
     app.visitor_limit: 300
     app.page_view_started_at: '2026/08/12'
     app.page_view_initial_value: 0
     app.page_view_filename: '%kernel.project_dir%/var/data/page-views.txt'
+    app.site_settings_filename: '%kernel.project_dir%/var/data/site-settings.json'
     app.post_archive_directory: '%kernel.project_dir%/var/data/archive'
     app.archive_s3_prefix: '%env(ARCHIVE_S3_PREFIX)%'
     app.central_post_limit: 500
@@ -52,6 +54,13 @@ services:
 
     App\PageView\PageViewCounter:
         factory: ['@App\PageView\PageViewCounterFactory', 'create']
+
+    App\Settings\SiteSettingsRepository:
+        factory: ['@App\Settings\SiteSettingsRepositoryFactory', 'create']
+
+    App\Settings\SiteSettings:
+        arguments:
+            $defaultTitle: '%app.title%'
 
     App\Visitor\VisitorCounter:
         arguments:

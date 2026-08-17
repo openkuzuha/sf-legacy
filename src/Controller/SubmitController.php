@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Post\PostRepository;
+use App\Settings\SiteSettings;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Cookie;
@@ -26,8 +27,7 @@ final class SubmitController
         private readonly RateLimiterFactoryInterface $postDuplicateLimiter,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly Environment $twig,
-        #[Autowire(param: 'app.title')]
-        private readonly string $appTitle,
+        private readonly SiteSettings $siteSettings,
         #[Autowire(param: 'app.post_max_author_chars')]
         private readonly int $maxAuthorChars,
         #[Autowire(param: 'app.post_max_email_chars')]
@@ -113,7 +113,7 @@ final class SubmitController
             $returnTo = $request->request->getString('return_to');
             $isTree = preg_match('#^/tree(?:/\d+)?$#D', $returnTo) === 1;
             $response = new Response($this->twig->render('bbs/post_complete.html.twig', [
-                'app_title' => $this->appTitle,
+                'app_title' => $this->siteSettings->title(),
                 'return_to' => $isTree ? $returnTo : $this->urlGenerator->generate('app_hello'),
             ]));
 

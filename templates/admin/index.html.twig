@@ -1,0 +1,52 @@
+{% extends 'base.html.twig' %}
+
+{% block page_header %}
+    <header class="page-header admin-header">
+        <h1 class="page-title"><a href="{{ path('app_admin') }}">管理画面</a></h1>
+        <a class="header-link" href="{{ path('app_hello') }}">掲示板へ戻る</a>
+    </header>
+{% endblock %}
+
+{% block content %}
+    {% if authenticated %}
+        <section class="admin-panel">
+            <h2>管理画面</h2>
+            {% for message in app.flashes('admin_success') %}
+                <p class="admin-success" role="status">{{ message }}</p>
+            {% endfor %}
+            {% for message in app.flashes('admin_error') %}
+                <p class="admin-error" role="alert">{{ message }}</p>
+            {% endfor %}
+            <section class="admin-settings">
+                <h3>サイト設定</h3>
+                <form class="admin-title-form" action="{{ path('app_admin_title') }}" method="post">
+                    <input type="hidden" name="_token" value="{{ csrf_token('admin_title') }}">
+                    <label for="site-title">サイトタイトル</label>
+                    <input id="site-title" name="title" type="text" value="{{ app_title }}" required maxlength="100">
+                    <button type="submit">保存</button>
+                </form>
+                <p class="admin-setting-help">初期値: {{ default_title }}</p>
+                <form action="{{ path('app_admin_title_reset') }}" method="post">
+                    <input type="hidden" name="_token" value="{{ csrf_token('admin_title_reset') }}">
+                    <button type="submit">APP_TITLEに戻す</button>
+                </form>
+            </section>
+            <p>その他の管理機能は現在作成中です。</p>
+            <form class="admin-logout-form" action="{{ path('app_admin_logout') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_logout') }}">
+                <button type="submit">ログアウト</button>
+            </form>
+        </section>
+    {% else %}
+        <section class="admin-panel">
+            <h2>管理画面ログイン</h2>
+            {% if error %}<p class="admin-error" role="alert">{{ error }}</p>{% endif %}
+            <form class="admin-login-form" action="{{ path('app_admin') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_login') }}">
+                <label for="admin-password">パスワード</label>
+                <input id="admin-password" name="password" type="password" required autofocus autocomplete="current-password">
+                <button type="submit">ログイン</button>
+            </form>
+        </section>
+    {% endif %}
+{% endblock %}
