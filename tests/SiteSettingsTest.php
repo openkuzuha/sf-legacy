@@ -49,6 +49,19 @@ test('保存値がなければAPP_TITLE相当の初期値を返す', function ()
         public function resetTitle(): void
         {
         }
+
+        public function adminPasswordHash(): ?string
+        {
+            return null;
+        }
+
+        public function setAdminPasswordHash(string $hash): void
+        {
+        }
+
+        public function resetAdminPasswordHash(): void
+        {
+        }
     };
     $settings = new SiteSettings($repository, new NullLogger(), '初期タイトル');
 
@@ -67,6 +80,19 @@ test('保存先を読み込めない場合も初期タイトルを返す', funct
         }
 
         public function resetTitle(): void
+        {
+        }
+
+        public function adminPasswordHash(): ?string
+        {
+            return null;
+        }
+
+        public function setAdminPasswordHash(string $hash): void
+        {
+        }
+
+        public function resetAdminPasswordHash(): void
         {
         }
     };

@@ -157,13 +157,15 @@ a.help { text-decoration-line: underline; }
 .admin-success { color: #aaffaa; }
 .admin-settings { margin: 1rem 0; }
 .admin-settings h3 { font-weight: bold; }
-.admin-title-form {
+.admin-title-form,
+.admin-password-form {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 0.5rem;
 }
 .admin-title-form input[name="title"] { width: min(24rem, 100%); }
+.admin-password-form input { width: min(24rem, 100%); }
 .admin-setting-help { font-size: 13px; }
 .admin-logout-form { margin-top: 1rem; }
 

@@ -9,6 +9,7 @@ use RuntimeException;
 final class ValkeySiteSettingsRepository implements SiteSettingsRepository
 {
     private const string TITLE_KEY = 'bbs:settings:site-title';
+    private const string ADMIN_PASSWORD_HASH_KEY = 'bbs:settings:admin-password-hash';
 
     private Client $client;
 
@@ -41,6 +42,33 @@ final class ValkeySiteSettingsRepository implements SiteSettingsRepository
             $this->client->del([self::TITLE_KEY]);
         } catch (PredisException $exception) {
             throw new RuntimeException('Valkeyのサイトタイトルをリセットできません。', previous: $exception);
+        }
+    }
+
+    public function adminPasswordHash(): ?string
+    {
+        try {
+            return $this->client->get(self::ADMIN_PASSWORD_HASH_KEY);
+        } catch (PredisException $exception) {
+            throw new RuntimeException('Valkeyから管理用パスワードを読み込めません。', previous: $exception);
+        }
+    }
+
+    public function setAdminPasswordHash(string $hash): void
+    {
+        try {
+            $this->client->set(self::ADMIN_PASSWORD_HASH_KEY, $hash);
+        } catch (PredisException $exception) {
+            throw new RuntimeException('Valkeyへ管理用パスワードを保存できません。', previous: $exception);
+        }
+    }
+
+    public function resetAdminPasswordHash(): void
+    {
+        try {
+            $this->client->del([self::ADMIN_PASSWORD_HASH_KEY]);
+        } catch (PredisException $exception) {
+            throw new RuntimeException('Valkeyの管理用パスワードをリセットできません。', previous: $exception);
         }
     }
 }

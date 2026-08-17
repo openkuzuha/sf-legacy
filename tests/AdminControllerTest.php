@@ -2,6 +2,7 @@
 
 use App\Tests\TestCase;
 use App\Settings\SiteSettings;
+use App\Settings\SiteSettingsRepository;
 
 test('管理画面は未認証時にログインフォームを表示する', function () {
     /** @var TestCase $this */
@@ -120,5 +121,39 @@ test('未認証または不正な入力ではサイトタイトルを変更し�
         expect($settings->title())->toBe('Open Kuzuha');
     } finally {
         $settings->resetTitle();
+    }
+});
+
+test('管理画面でパスワードを変更すると再ログインが必要になる', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.5']);
+    $repository = $this->getContainer()->get(SiteSettingsRepository::class);
+    $this->assertInstanceOf(SiteSettingsRepository::class, $repository);
+    $repository->resetAdminPasswordHash();
+
+    try {
+        $crawler = $client->request('GET', '/admin');
+        $client->submit($crawler->selectButton('ログイン')->form([
+            'password' => 'admin-test-password',
+        ]));
+        $crawler = $client->followRedirect();
+
+        $this->assertSelectorExists('form[action="/admin/settings/password"]');
+        $client->submit($crawler->selectButton('パスワードを変更')->form([
+            'current_password' => 'admin-test-password',
+            'new_password' => 'changed-test-password',
+            'new_password_confirmation' => 'changed-test-password',
+        ]));
+        $this->assertResponseRedirects('/admin', 303);
+        $client->followRedirect();
+        $this->assertSelectorTextSame('h2', '管理画面ログイン');
+
+        $crawler = $client->request('GET', '/admin');
+        $client->submit($crawler->selectButton('ログイン')->form([
+            'password' => 'changed-test-password',
+        ]));
+        $this->assertResponseRedirects('/admin', 303);
+    } finally {
+        $repository->resetAdminPasswordHash();
     }
 });

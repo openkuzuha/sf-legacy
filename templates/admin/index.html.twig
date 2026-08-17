@@ -31,6 +31,20 @@
                     <button type="submit">APP_TITLEに戻す</button>
                 </form>
             </section>
+            <section class="admin-settings">
+                <h3>管理用パスワード</h3>
+                <form class="admin-password-form" action="{{ path('app_admin_password') }}" method="post">
+                    <input type="hidden" name="_token" value="{{ csrf_token('admin_password') }}">
+                    <label for="current-password">現在のパスワード</label>
+                    <input id="current-password" name="current_password" type="password" required autocomplete="current-password">
+                    <label for="new-password">新しいパスワード</label>
+                    <input id="new-password" name="new_password" type="password" required minlength="12" autocomplete="new-password">
+                    <label for="new-password-confirmation">新しいパスワード（確認）</label>
+                    <input id="new-password-confirmation" name="new_password_confirmation" type="password" required minlength="12" autocomplete="new-password">
+                    <button type="submit">パスワードを変更</button>
+                </form>
+                <p class="admin-setting-help">12文字以上。変更後はすべての管理セッションからログアウトします。</p>
+            </section>
             <p>その他の管理機能は現在作成中です。</p>
             <form class="admin-logout-form" action="{{ path('app_admin_logout') }}" method="post">
                 <input type="hidden" name="_token" value="{{ csrf_token('admin_logout') }}">

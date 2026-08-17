@@ -62,6 +62,10 @@ services:
         arguments:
             $defaultTitle: '%app.title%'
 
+    App\Settings\AdminPassword:
+        arguments:
+            $defaultHash: '%app.admin_password_hash%'
+
     App\Visitor\VisitorCounter:
         arguments:
             $filename: '%kernel.cache_dir%/visitors.json'

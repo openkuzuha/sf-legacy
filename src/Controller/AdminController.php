@@ -2,10 +2,10 @@
 
 namespace App\Controller;
 
+use App\Settings\AdminPassword;
 use App\Settings\SiteSettings;
 use InvalidArgumentException;
 use RuntimeException;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
@@ -18,16 +18,45 @@ use Twig\Environment;
 
 final class AdminController
 {
-    private const string SESSION_KEY = 'admin_authenticated';
+    private const string SESSION_KEY = 'admin_password_fingerprint';
 
     public function __construct(
         private readonly SiteSettings $siteSettings,
-        #[Autowire(param: 'app.admin_password_hash')]
-        private readonly string $adminPasswordHash,
+        private readonly AdminPassword $adminPassword,
         private readonly Environment $twig,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly RateLimiterFactoryInterface $adminLoginLimiter,
     ) {
+    }
+
+    #[Route('/admin/settings/password', name: 'app_admin_password', methods: ['POST'])]
+    public function updatePassword(Request $request): Response
+    {
+        if (!$this->isAuthenticated($request)) {
+            return $this->redirectToAdmin();
+        }
+
+        $token = new CsrfToken('admin_password', $request->request->getString('_token'));
+        if (!$this->csrfTokenManager->isTokenValid($token)) {
+            $this->addFlash($request->getSession(), 'admin_error', '入力の有効期限が切れました。');
+
+            return $this->redirectToAdmin();
+        }
+
+        try {
+            $this->adminPassword->change(
+                $request->request->getString('current_password'),
+                $request->request->getString('new_password'),
+                $request->request->getString('new_password_confirmation'),
+            );
+            $request->getSession()->invalidate();
+
+            return $this->redirectToAdmin();
+        } catch (InvalidArgumentException | RuntimeException $exception) {
+            $this->addFlash($request->getSession(), 'admin_error', $exception->getMessage());
+        }
+
+        return $this->redirectToAdmin();
     }
 
     #[Route('/admin', name: 'app_admin', methods: ['GET', 'POST'])]
@@ -47,7 +76,7 @@ final class AdminController
         return new Response($this->twig->render('admin/index.html.twig', [
             'app_title' => $this->siteSettings->title(),
             'default_title' => $this->siteSettings->defaultTitle(),
-            'authenticated' => $session->get(self::SESSION_KEY, false) === true,
+            'authenticated' => $this->isAuthenticated($request),
             'error' => $error,
         ]));
     }
@@ -123,23 +152,25 @@ final class AdminController
             return '試行回数が多すぎます。しばらく待ってからお試しください。';
         }
 
-        if ($this->adminPasswordHash === '') {
+        if (!$this->adminPassword->isConfigured()) {
             return '管理用パスワードのハッシュが設定されていません。';
         }
 
-        if (!password_verify($request->request->getString('password'), $this->adminPasswordHash)) {
+        if (!$this->adminPassword->verify($request->request->getString('password'))) {
             return 'パスワードが正しくありません。';
         }
 
         $session->migrate(true);
-        $session->set(self::SESSION_KEY, true);
+        $session->set(self::SESSION_KEY, $this->adminPassword->fingerprint());
 
         return null;
     }
 
     private function isAuthenticated(Request $request): bool
     {
-        return $request->getSession()->get(self::SESSION_KEY, false) === true;
+        $fingerprint = $request->getSession()->get(self::SESSION_KEY);
+
+        return is_string($fingerprint) && hash_equals($this->adminPassword->fingerprint(), $fingerprint);
     }
 
     private function redirectToAdmin(): Response

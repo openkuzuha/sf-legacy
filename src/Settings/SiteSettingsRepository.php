@@ -9,4 +9,10 @@ interface SiteSettingsRepository
     public function setTitle(string $title): void;
 
     public function resetTitle(): void;
+
+    public function adminPasswordHash(): ?string;
+
+    public function setAdminPasswordHash(string $hash): void;
+
+    public function resetAdminPasswordHash(): void;
 }
