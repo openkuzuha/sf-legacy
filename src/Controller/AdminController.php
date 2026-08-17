@@ -40,7 +40,7 @@ final class AdminController
         if (!$this->csrfTokenManager->isTokenValid($token)) {
             $this->addFlash($request->getSession(), 'admin_error', '入力の有効期限が切れました。');
 
-            return $this->redirectToAdmin();
+            return $this->redirectToSettings();
         }
 
         try {
@@ -56,7 +56,7 @@ final class AdminController
             $this->addFlash($request->getSession(), 'admin_error', $exception->getMessage());
         }
 
-        return $this->redirectToAdmin();
+        return $this->redirectToSettings();
     }
 
     #[Route('/admin', name: 'app_admin', methods: ['GET', 'POST'])]
@@ -69,15 +69,42 @@ final class AdminController
         if ($request->isMethod('POST')) {
             $error = $this->authenticate($request, $session);
             if ($error === null) {
-                return new Response('', Response::HTTP_SEE_OTHER, ['Location' => '/admin']);
+                return $this->redirectToSettings();
             }
+        }
+
+        if ($this->isAuthenticated($request)) {
+            return $this->redirectToSettings();
         }
 
         return new Response($this->twig->render('admin/index.html.twig', [
             'app_title' => $this->siteSettings->title(),
-            'default_title' => $this->siteSettings->defaultTitle(),
-            'authenticated' => $this->isAuthenticated($request),
             'error' => $error,
+        ]));
+    }
+
+    #[Route('/admin/settings', name: 'app_admin_settings', methods: ['GET'])]
+    public function settings(Request $request): Response
+    {
+        if (!$this->isAuthenticated($request)) {
+            return $this->redirectToAdmin();
+        }
+
+        return new Response($this->twig->render('admin/settings.html.twig', [
+            'app_title' => $this->siteSettings->title(),
+            'default_title' => $this->siteSettings->defaultTitle(),
+        ]));
+    }
+
+    #[Route('/admin/posts', name: 'app_admin_posts', methods: ['GET'])]
+    public function posts(Request $request): Response
+    {
+        if (!$this->isAuthenticated($request)) {
+            return $this->redirectToAdmin();
+        }
+
+        return new Response($this->twig->render('admin/posts.html.twig', [
+            'app_title' => $this->siteSettings->title(),
         ]));
     }
 
@@ -92,7 +119,7 @@ final class AdminController
         if (!$this->csrfTokenManager->isTokenValid($token)) {
             $this->addFlash($request->getSession(), 'admin_error', '入力の有効期限が切れました。');
 
-            return $this->redirectToAdmin();
+            return $this->redirectToSettings();
         }
 
         try {
@@ -102,7 +129,7 @@ final class AdminController
             $this->addFlash($request->getSession(), 'admin_error', $exception->getMessage());
         }
 
-        return $this->redirectToAdmin();
+        return $this->redirectToSettings();
     }
 
     #[Route('/admin/settings/title/reset', name: 'app_admin_title_reset', methods: ['POST'])]
@@ -116,7 +143,7 @@ final class AdminController
         if (!$this->csrfTokenManager->isTokenValid($token)) {
             $this->addFlash($request->getSession(), 'admin_error', '入力の有効期限が切れました。');
 
-            return $this->redirectToAdmin();
+            return $this->redirectToSettings();
         }
 
         try {
@@ -126,7 +153,7 @@ final class AdminController
             $this->addFlash($request->getSession(), 'admin_error', $exception->getMessage());
         }
 
-        return $this->redirectToAdmin();
+        return $this->redirectToSettings();
     }
 
     #[Route('/admin/logout', name: 'app_admin_logout', methods: ['POST'])]
@@ -176,6 +203,11 @@ final class AdminController
     private function redirectToAdmin(): Response
     {
         return new Response('', Response::HTTP_SEE_OTHER, ['Location' => '/admin']);
+    }
+
+    private function redirectToSettings(): Response
+    {
+        return new Response('', Response::HTTP_SEE_OTHER, ['Location' => '/admin/settings']);
     }
 
     private function addFlash(SessionInterface $session, string $type, string $message): void

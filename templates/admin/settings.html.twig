@@ -1,0 +1,41 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block admin_content %}
+    <h2 class="mb-4 text-xl font-bold tracking-wide">設定管理</h2>
+    <section class="admin-settings rounded-xl border border-white/15 bg-white/5 p-4 shadow-sm sm:p-5">
+        <h3>サイト設定</h3>
+        <form class="admin-title-form mt-4 grid max-w-lg gap-4" action="{{ path('app_admin_title') }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin_title') }}">
+            <div class="grid gap-1.5">
+                <label class="text-sm font-semibold" for="site-title">サイトタイトル</label>
+                <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white outline-none transition placeholder:text-white/40 focus:border-white/60 focus:ring-2 focus:ring-white/20" id="site-title" name="title" type="text" value="{{ app_title }}" required maxlength="100">
+            </div>
+            <p class="admin-setting-help text-white/65">初期値: {{ default_title }}</p>
+            <button class="w-fit rounded-md border border-white/30 bg-white/10 px-4 py-2 font-semibold !text-white transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">保存</button>
+        </form>
+        <form class="mt-2" action="{{ path('app_admin_title_reset') }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin_title_reset') }}">
+            <button class="rounded-md px-3 py-2 text-sm font-semibold !text-white/75 underline decoration-white/30 underline-offset-4 transition hover:bg-white/10 hover:!text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">APP_TITLEに戻す</button>
+        </form>
+    </section>
+    <section class="admin-settings rounded-xl border border-white/15 bg-white/5 p-4 shadow-sm sm:p-5">
+        <h3>管理用パスワード</h3>
+        <form class="admin-password-form mt-4 grid max-w-lg gap-4" action="{{ path('app_admin_password') }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin_password') }}">
+            <div class="grid gap-1.5">
+                <label class="text-sm font-semibold" for="current-password">現在のパスワード</label>
+                <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white outline-none transition placeholder:text-white/40 focus:border-white/60 focus:ring-2 focus:ring-white/20" id="current-password" name="current_password" type="password" required autocomplete="current-password">
+            </div>
+            <div class="grid gap-1.5">
+                <label class="text-sm font-semibold" for="new-password">新しいパスワード</label>
+                <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white outline-none transition placeholder:text-white/40 focus:border-white/60 focus:ring-2 focus:ring-white/20" id="new-password" name="new_password" type="password" required minlength="12" autocomplete="new-password">
+            </div>
+            <div class="grid gap-1.5">
+                <label class="text-sm font-semibold" for="new-password-confirmation">新しいパスワード（確認）</label>
+                <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white outline-none transition placeholder:text-white/40 focus:border-white/60 focus:ring-2 focus:ring-white/20" id="new-password-confirmation" name="new_password_confirmation" type="password" required minlength="12" autocomplete="new-password">
+            </div>
+            <p class="admin-setting-help text-white/65">12文字以上。変更後はすべての管理セッションからログアウトします。</p>
+            <button class="w-fit rounded-md border border-white/30 bg-white/10 px-4 py-2 font-semibold !text-white transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">パスワードを変更</button>
+        </form>
+    </section>
+{% endblock %}

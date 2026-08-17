@@ -26,10 +26,11 @@ test('環境変数のパスワードで管理画面にログインしてログ�
         '_token' => $token,
     ]);
 
-    $this->assertResponseRedirects('/admin', 303);
+    $this->assertResponseRedirects('/admin/settings', 303);
     $crawler = $client->followRedirect();
-    $this->assertSelectorTextSame('h2', '管理画面');
-    $this->assertSelectorTextContains('main', '現在作成中です。');
+    $this->assertSelectorTextSame('h2', '設定管理');
+    $this->assertSelectorExists('nav a[href="/admin/settings"][aria-current="page"]');
+    $this->assertSelectorExists('nav a[href="/admin/posts"]');
 
     $client->submit($crawler->selectButton('ログアウト')->form());
     $this->assertResponseRedirects('/admin', 303);
@@ -71,7 +72,7 @@ test('管理画面でサイトタイトルを保存してAPP_TITLEへ戻す', fu
         $client->submit($crawler->selectButton('保存')->form([
             'title' => '管理画面で変更したタイトル',
         ]));
-        $this->assertResponseRedirects('/admin', 303);
+        $this->assertResponseRedirects('/admin/settings', 303);
         $crawler = $client->followRedirect();
         $this->assertSelectorTextSame('[role="status"]', 'サイトタイトルを保存しました。');
         $this->assertInputValueSame('title', '管理画面で変更したタイトル');
@@ -80,9 +81,9 @@ test('管理画面でサイトタイトルを保存してAPP_TITLEへ戻す', fu
         $this->assertSelectorTextContains('title', '管理画面で変更したタイトル');
         $this->assertSelectorTextContains('h1', '管理画面で変更したタイトル');
 
-        $crawler = $client->request('GET', '/admin');
+        $crawler = $client->request('GET', '/admin/settings');
         $client->submit($crawler->selectButton('APP_TITLEに戻す')->form());
-        $this->assertResponseRedirects('/admin', 303);
+        $this->assertResponseRedirects('/admin/settings', 303);
         $crawler = $client->followRedirect();
         $this->assertSelectorTextSame('[role="status"]', 'サイトタイトルを初期値に戻しました。');
         $this->assertInputValueSame('title', 'Open Kuzuha');
@@ -124,6 +125,24 @@ test('未認証または不正な入力ではサイトタイトルを変更し�
     }
 });
 
+test('投稿記事管理画面は認証必須でWIPを表示する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.6']);
+    $client->request('GET', '/admin/posts');
+    $this->assertResponseRedirects('/admin', 303);
+
+    $crawler = $client->request('GET', '/admin');
+    $client->submit($crawler->selectButton('ログイン')->form([
+        'password' => 'admin-test-password',
+    ]));
+    $client->request('GET', '/admin/posts');
+
+    $this->assertResponseIsSuccessful();
+    $this->assertSelectorTextSame('h2', '投稿記事管理');
+    $this->assertSelectorTextContains('main', '投稿記事管理は現在作成中です。');
+    $this->assertSelectorExists('nav a[href="/admin/posts"][aria-current="page"]');
+});
+
 test('管理画面でパスワードを変更すると再ログインが必要になる', function () {
     /** @var TestCase $this */
     $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.5']);
@@ -152,7 +171,7 @@ test('管理画面でパスワードを変更すると再ログインが必要�
         $client->submit($crawler->selectButton('ログイン')->form([
             'password' => 'changed-test-password',
         ]));
-        $this->assertResponseRedirects('/admin', 303);
+        $this->assertResponseRedirects('/admin/settings', 303);
     } finally {
         $repository->resetAdminPasswordHash();
     }
