@@ -240,6 +240,132 @@ final class FileSiteSettingsRepository implements SiteSettingsRepository
         $this->resetSetting('prohibited_words');
     }
 
+    public function deniedPostNetworks(): ?array
+    {
+        $networks = $this->readSettings()['denied_post_networks'] ?? null;
+        if (!is_array($networks)) {
+            return null;
+        }
+        foreach ($networks as $network) {
+            if (!is_string($network)) {
+                return null;
+            }
+        }
+
+        return array_values($networks);
+    }
+
+    public function setDeniedPostNetworks(array $networks): void
+    {
+        $this->withExclusiveLock(function () use ($networks): void {
+            $settings = $this->readSettings();
+            $settings['denied_post_networks'] = $networks;
+            $this->writeSettings($settings);
+        });
+    }
+
+    public function resetDeniedPostNetworks(): void
+    {
+        $this->resetSetting('denied_post_networks');
+    }
+
+    public function deniedAccessNetworks(): ?array
+    {
+        $networks = $this->readSettings()['denied_access_networks'] ?? null;
+        if (!is_array($networks)) {
+            return null;
+        }
+        foreach ($networks as $network) {
+            if (!is_string($network)) {
+                return null;
+            }
+        }
+
+        return array_values($networks);
+    }
+
+    public function setDeniedAccessNetworks(array $networks): void
+    {
+        $this->withExclusiveLock(function () use ($networks): void {
+            $settings = $this->readSettings();
+            $settings['denied_access_networks'] = $networks;
+            $this->writeSettings($settings);
+        });
+    }
+
+    public function resetDeniedAccessNetworks(): void
+    {
+        $this->resetSetting('denied_access_networks');
+    }
+
+    public function postingEnabled(): ?bool
+    {
+        $value = $this->readSettings()['posting_enabled'] ?? null;
+
+        return is_bool($value) ? $value : null;
+    }
+
+    public function setPostingEnabled(bool $enabled): void
+    {
+        $this->setSetting('posting_enabled', $enabled);
+    }
+
+    public function resetPostingEnabled(): void
+    {
+        $this->resetSetting('posting_enabled');
+    }
+
+    public function maintenanceEnabled(): ?bool
+    {
+        $value = $this->readSettings()['maintenance_enabled'] ?? null;
+
+        return is_bool($value) ? $value : null;
+    }
+
+    public function setMaintenanceEnabled(bool $enabled): void
+    {
+        $this->setSetting('maintenance_enabled', $enabled);
+    }
+
+    public function resetMaintenanceEnabled(): void
+    {
+        $this->resetSetting('maintenance_enabled');
+    }
+
+    public function maintenanceMessage(): ?string
+    {
+        $value = $this->readSettings()['maintenance_message'] ?? null;
+
+        return is_string($value) ? $value : null;
+    }
+
+    public function setMaintenanceMessage(string $message): void
+    {
+        $this->setSetting('maintenance_message', $message);
+    }
+
+    public function resetMaintenanceMessage(): void
+    {
+        $this->resetSetting('maintenance_message');
+    }
+
+    public function maintenanceEndsAt(): ?string
+    {
+        $value = $this->readSettings()['maintenance_ends_at'] ?? null;
+
+        return is_string($value) ? $value : null;
+    }
+
+    public function setMaintenanceEndsAt(string $endsAt): void
+    {
+        $this->setSetting('maintenance_ends_at', $endsAt);
+    }
+
+    public function resetMaintenanceEndsAt(): void
+    {
+        $this->resetSetting('maintenance_ends_at');
+    }
+
     public function undoEnabled(): ?bool
     {
         $enabled = $this->readSettings()['undo_enabled'] ?? null;
@@ -422,6 +548,15 @@ final class FileSiteSettingsRepository implements SiteSettingsRepository
     }
 
     private function setIntegerSetting(string $key, int $value): void
+    {
+        $this->withExclusiveLock(function () use ($key, $value): void {
+            $settings = $this->readSettings();
+            $settings[$key] = $value;
+            $this->writeSettings($settings);
+        });
+    }
+
+    private function setSetting(string $key, bool|string $value): void
     {
         $this->withExclusiveLock(function () use ($key, $value): void {
             $settings = $this->readSettings();

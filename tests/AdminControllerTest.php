@@ -366,6 +366,133 @@ test('管理画面で投稿禁止ワードを変更して初期値へ戻す', fu
     }
 });
 
+test('管理画面で投稿禁止IPアドレスとCIDRを変更して初期値へ戻す', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.29']);
+    $settings = $this->getContainer()->get(SiteSettings::class);
+    $this->assertInstanceOf(SiteSettings::class, $settings);
+    $settings->resetDeniedPostNetworks();
+
+    try {
+        $crawler = $client->request('GET', '/admin');
+        $client->submit($crawler->selectButton('ログイン')->form(['password' => 'admin-test-password']));
+        $crawler = $client->followRedirect();
+        expect($crawler->filter('textarea[name="denied_post_networks"]')->html(''))->toBe('');
+
+        $form = $crawler->filter('form[action="/admin/settings/denied-post-networks"]')->form([
+            'denied_post_networks' => "192.0.2.10\n198.51.100.0/24\n2001:db8::/32",
+        ]);
+        $client->submit($form);
+        $crawler = $client->followRedirect();
+        $this->assertSelectorTextSame('[role="status"]', '投稿禁止IPアドレス・CIDRを保存しました。');
+        expect($settings->deniedPostNetworks())->toBe(['192.0.2.10', '198.51.100.0/24', '2001:db8::/32']);
+
+        $form = $crawler->filter('form[action="/admin/settings/denied-post-networks/reset"]')->form();
+        $client->submit($form);
+        $crawler = $client->followRedirect();
+        expect($crawler->filter('textarea[name="denied_post_networks"]')->html(''))->toBe('');
+    } finally {
+        $settings->resetDeniedPostNetworks();
+    }
+});
+
+test('投稿禁止IPアドレス設定の不正なCIDRを拒否する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.30']);
+    $settings = $this->getContainer()->get(SiteSettings::class);
+    $this->assertInstanceOf(SiteSettings::class, $settings);
+    $settings->resetDeniedPostNetworks();
+
+    try {
+        $crawler = $client->request('GET', '/admin');
+        $client->submit($crawler->selectButton('ログイン')->form(['password' => 'admin-test-password']));
+        $crawler = $client->followRedirect();
+        $form = $crawler->filter('form[action="/admin/settings/denied-post-networks"]')->form([
+            'denied_post_networks' => "192.0.2.0/33\nexample.com",
+        ]);
+        $client->submit($form);
+        $client->followRedirect();
+
+        $this->assertSelectorTextContains('[role="alert"]', '1行目のCIDRプレフィックス長が不正です。');
+        expect($settings->deniedPostNetworks())->toBe([]);
+    } finally {
+        $settings->resetDeniedPostNetworks();
+    }
+});
+
+test('管理画面でアクセス禁止IPアドレスを設定しても管理画面から復旧できる', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient([], ['REMOTE_ADDR' => '203.0.113.31']);
+    $settings = $this->getContainer()->get(SiteSettings::class);
+    $this->assertInstanceOf(SiteSettings::class, $settings);
+    $settings->resetDeniedAccessNetworks();
+
+    try {
+        $crawler = $client->request('GET', '/admin');
+        $client->submit($crawler->selectButton('ログイン')->form(['password' => 'admin-test-password']));
+        $crawler = $client->followRedirect();
+        $this->assertSelectorExists('[aria-describedby="denied-access-networks-help"]');
+
+        $form = $crawler->filter('form[action="/admin/settings/denied-access-networks"]')->form([
+            'denied_access_networks' => '203.0.113.0/24',
+        ]);
+        $client->submit($form);
+        $crawler = $client->followRedirect();
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextSame('[role="status"]', 'アクセス禁止IPアドレス・CIDRを保存しました。');
+
+        $client->request('GET', '/');
+        $this->assertResponseStatusCodeSame(403);
+
+        $crawler = $client->request('GET', '/admin/settings');
+        $this->assertResponseIsSuccessful();
+        $form = $crawler->filter('form[action="/admin/settings/denied-access-networks/reset"]')->form();
+        $client->submit($form);
+        $client->followRedirect();
+        expect($settings->deniedAccessNetworks())->toBe([]);
+    } finally {
+        $settings->resetDeniedAccessNetworks();
+    }
+});
+
+test('管理画面でメンテナンスモードを設定しても管理画面から復旧できる', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.32']);
+    $settings = $this->getContainer()->get(SiteSettings::class);
+    $this->assertInstanceOf(SiteSettings::class, $settings);
+    $settings->resetOperationStatus();
+
+    try {
+        $crawler = $client->request('GET', '/admin');
+        $client->submit($crawler->selectButton('ログイン')->form(['password' => 'admin-test-password']));
+        $crawler = $client->followRedirect();
+        $form = $crawler->filter('form[action="/admin/settings/operation-status"]')->form([
+            'posting_enabled' => '1',
+            'maintenance_enabled' => '1',
+            'maintenance_message' => 'ただいま更新作業中です。',
+            'maintenance_ends_at' => '2030-01-02T03:04',
+        ]);
+        $client->submit($form);
+        $client->followRedirect();
+        $this->assertSelectorTextSame('[role="status"]', '運用状態を保存しました。');
+        expect($settings->maintenanceEnabled())->toBeTrue();
+        expect($settings->maintenanceEndsAt())->not->toBeNull();
+
+        $client->request('GET', '/');
+        $this->assertResponseStatusCodeSame(503);
+        expect($client->getResponse()->headers->get('Retry-After'))->toBe('Wed, 02 Jan 2030 03:04:00 GMT');
+        $this->assertSelectorTextContains('main', 'ただいま更新作業中です。');
+
+        $crawler = $client->request('GET', '/admin/settings');
+        $this->assertResponseIsSuccessful();
+        $client->submit($crawler->filter('form[action="/admin/settings/operation-status/reset"]')->form());
+        $client->followRedirect();
+        expect($settings->maintenanceEnabled())->toBeFalse();
+    } finally {
+        $settings->resetOperationStatus();
+    }
+});
+
 test('管理画面で投稿者による削除設定を変更して初期値へ戻す', function () {
     /** @var TestCase $this */
     $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.25']);

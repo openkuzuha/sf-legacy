@@ -20,6 +20,12 @@ final class ValkeySiteSettingsRepository implements SiteSettingsRepository
     private const string ADMIN_NAME_KEY = 'bbs:settings:admin-name';
     private const string ADMIN_EMAIL_KEY = 'bbs:settings:admin-email';
     private const string PROHIBITED_WORDS_KEY = 'bbs:settings:prohibited-words';
+    private const string DENIED_POST_NETWORKS_KEY = 'bbs:settings:denied-post-networks';
+    private const string DENIED_ACCESS_NETWORKS_KEY = 'bbs:settings:denied-access-networks';
+    private const string POSTING_ENABLED_KEY = 'bbs:settings:posting-enabled';
+    private const string MAINTENANCE_ENABLED_KEY = 'bbs:settings:maintenance-enabled';
+    private const string MAINTENANCE_MESSAGE_KEY = 'bbs:settings:maintenance-message';
+    private const string MAINTENANCE_ENDS_AT_KEY = 'bbs:settings:maintenance-ends-at';
     private const string UNDO_ENABLED_KEY = 'bbs:settings:undo-enabled';
     private const string UNDO_WINDOW_SECONDS_KEY = 'bbs:settings:undo-window-seconds';
     private const string ARCHIVE_RETENTION_DAYS_KEY = 'bbs:settings:archive-retention-days';
@@ -272,6 +278,119 @@ final class ValkeySiteSettingsRepository implements SiteSettingsRepository
         $this->deleteKey(self::PROHIBITED_WORDS_KEY, '投稿禁止ワード');
     }
 
+    public function deniedPostNetworks(): ?array
+    {
+        $value = $this->readString(self::DENIED_POST_NETWORKS_KEY, '投稿禁止IPアドレス・CIDR');
+        if ($value === null) {
+            return null;
+        }
+        try {
+            $networks = json_decode($value, true, flags: JSON_THROW_ON_ERROR);
+        } catch (\JsonException $exception) {
+            throw new RuntimeException('Valkeyの投稿禁止IPアドレス・CIDRが不正です。', previous: $exception);
+        }
+        if (!is_array($networks)) {
+            throw new RuntimeException('Valkeyの投稿禁止IPアドレス・CIDRが不正です。');
+        }
+        foreach ($networks as $network) {
+            if (!is_string($network)) {
+                throw new RuntimeException('Valkeyの投稿禁止IPアドレス・CIDRが不正です。');
+            }
+        }
+
+        return array_values($networks);
+    }
+
+    public function setDeniedPostNetworks(array $networks): void
+    {
+        try {
+            $value = json_encode($networks, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        } catch (\JsonException $exception) {
+            throw new RuntimeException('投稿禁止IPアドレス・CIDRをJSONへ変換できません。', previous: $exception);
+        }
+        $this->writeString(self::DENIED_POST_NETWORKS_KEY, $value, '投稿禁止IPアドレス・CIDR');
+    }
+
+    public function resetDeniedPostNetworks(): void
+    {
+        $this->deleteKey(self::DENIED_POST_NETWORKS_KEY, '投稿禁止IPアドレス・CIDR');
+    }
+
+    public function deniedAccessNetworks(): ?array
+    {
+        return $this->readNetworkList(self::DENIED_ACCESS_NETWORKS_KEY, 'アクセス禁止IPアドレス・CIDR');
+    }
+
+    public function setDeniedAccessNetworks(array $networks): void
+    {
+        $this->writeNetworkList(self::DENIED_ACCESS_NETWORKS_KEY, $networks, 'アクセス禁止IPアドレス・CIDR');
+    }
+
+    public function resetDeniedAccessNetworks(): void
+    {
+        $this->deleteKey(self::DENIED_ACCESS_NETWORKS_KEY, 'アクセス禁止IPアドレス・CIDR');
+    }
+
+    public function postingEnabled(): ?bool
+    {
+        return $this->readBoolean(self::POSTING_ENABLED_KEY, '投稿受付状態');
+    }
+
+    public function setPostingEnabled(bool $enabled): void
+    {
+        $this->writeString(self::POSTING_ENABLED_KEY, $enabled ? '1' : '0', '投稿受付状態');
+    }
+
+    public function resetPostingEnabled(): void
+    {
+        $this->deleteKey(self::POSTING_ENABLED_KEY, '投稿受付状態');
+    }
+
+    public function maintenanceEnabled(): ?bool
+    {
+        return $this->readBoolean(self::MAINTENANCE_ENABLED_KEY, 'メンテナンス状態');
+    }
+
+    public function setMaintenanceEnabled(bool $enabled): void
+    {
+        $this->writeString(self::MAINTENANCE_ENABLED_KEY, $enabled ? '1' : '0', 'メンテナンス状態');
+    }
+
+    public function resetMaintenanceEnabled(): void
+    {
+        $this->deleteKey(self::MAINTENANCE_ENABLED_KEY, 'メンテナンス状態');
+    }
+
+    public function maintenanceMessage(): ?string
+    {
+        return $this->readString(self::MAINTENANCE_MESSAGE_KEY, 'メンテナンス表示文');
+    }
+
+    public function setMaintenanceMessage(string $message): void
+    {
+        $this->writeString(self::MAINTENANCE_MESSAGE_KEY, $message, 'メンテナンス表示文');
+    }
+
+    public function resetMaintenanceMessage(): void
+    {
+        $this->deleteKey(self::MAINTENANCE_MESSAGE_KEY, 'メンテナンス表示文');
+    }
+
+    public function maintenanceEndsAt(): ?string
+    {
+        return $this->readString(self::MAINTENANCE_ENDS_AT_KEY, 'メンテナンス終了予定日時');
+    }
+
+    public function setMaintenanceEndsAt(string $endsAt): void
+    {
+        $this->writeString(self::MAINTENANCE_ENDS_AT_KEY, $endsAt, 'メンテナンス終了予定日時');
+    }
+
+    public function resetMaintenanceEndsAt(): void
+    {
+        $this->deleteKey(self::MAINTENANCE_ENDS_AT_KEY, 'メンテナンス終了予定日時');
+    }
+
     public function undoEnabled(): ?bool
     {
         $value = $this->readString(self::UNDO_ENABLED_KEY, '投稿者による削除の有効状態');
@@ -385,6 +504,15 @@ final class ValkeySiteSettingsRepository implements SiteSettingsRepository
         }
     }
 
+    private function readBoolean(string $key, string $label): ?bool
+    {
+        return match ($this->readString($key, $label)) {
+            '1' => true,
+            '0' => false,
+            default => null,
+        };
+    }
+
     private function writeString(string $key, string $value, string $label): void
     {
         try {
@@ -401,6 +529,41 @@ final class ValkeySiteSettingsRepository implements SiteSettingsRepository
         } catch (PredisException $exception) {
             throw new RuntimeException(sprintf('Valkeyへ%sを保存できません。', $label), previous: $exception);
         }
+    }
+
+    /** @return list<string>|null */
+    private function readNetworkList(string $key, string $label): ?array
+    {
+        $value = $this->readString($key, $label);
+        if ($value === null) {
+            return null;
+        }
+        try {
+            $networks = json_decode($value, true, flags: JSON_THROW_ON_ERROR);
+        } catch (\JsonException $exception) {
+            throw new RuntimeException(sprintf('Valkeyの%sが不正です。', $label), previous: $exception);
+        }
+        if (!is_array($networks)) {
+            throw new RuntimeException(sprintf('Valkeyの%sが不正です。', $label));
+        }
+        foreach ($networks as $network) {
+            if (!is_string($network)) {
+                throw new RuntimeException(sprintf('Valkeyの%sが不正です。', $label));
+            }
+        }
+
+        return array_values($networks);
+    }
+
+    /** @param list<string> $networks */
+    private function writeNetworkList(string $key, array $networks, string $label): void
+    {
+        try {
+            $value = json_encode($networks, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        } catch (\JsonException $exception) {
+            throw new RuntimeException(sprintf('%sをJSONへ変換できません。', $label), previous: $exception);
+        }
+        $this->writeString($key, $value, $label);
     }
 
     private function deleteKey(string $key, string $label): void

@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Post\AuthorNamePolicy;
+use App\Post\DeniedPostNetworkPolicy;
 use App\Post\PostRepository;
 use App\Settings\SiteSettings;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -10,6 +11,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
@@ -24,6 +26,7 @@ final class SubmitController
     public function __construct(
         private readonly PostRepository $posts,
         private readonly AuthorNamePolicy $authorNamePolicy,
+        private readonly DeniedPostNetworkPolicy $deniedPostNetworkPolicy,
         private readonly UrlGeneratorInterface $urlGenerator,
         private readonly RateLimiterFactoryInterface $postLimiter,
         private readonly RateLimiterFactoryInterface $postDuplicateLimiter,
@@ -45,6 +48,12 @@ final class SubmitController
         $token = new CsrfToken('post', $request->request->getString('_token'));
         if (!$this->csrfTokenManager->isTokenValid($token)) {
             throw new BadRequestHttpException('ページの有効期限が切れました。再読み込みしてもう一度お試しください。');
+        }
+        if (!$this->siteSettings->postingEnabled()) {
+            throw new AccessDeniedHttpException('現在、投稿受付を停止しています。');
+        }
+        if ($this->deniedPostNetworkPolicy->denies($request->getClientIp())) {
+            throw new AccessDeniedHttpException('このIPアドレスからは投稿できません。');
         }
 
         $displayCount = max(1, min(

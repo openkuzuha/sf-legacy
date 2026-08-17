@@ -2,7 +2,35 @@
 
 {% block admin_content %}
     <h2 class="mb-4 text-xl font-bold tracking-wide">設定管理</h2>
-    <section class="admin-settings rounded-xl border border-white/15 bg-white/5 p-4 shadow-sm sm:p-5">
+    <section class="admin-settings rounded-xl border border-amber-200/25 bg-amber-300/5 p-4 shadow-sm sm:p-5">
+        <h3>運用状態</h3>
+        <form class="mt-4 grid max-w-lg gap-4" action="{{ path('app_admin_operation_status') }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin_operation_status') }}">
+            <label class="flex items-center justify-between gap-4 rounded-lg border border-white/15 bg-black/10 px-4 py-3 text-sm font-semibold text-white" for="posting_enabled">
+                <span><span class="block">投稿受付</span><span class="mt-1 block text-xs font-normal text-white/60">停止中も掲示板は閲覧できます。</span></span>
+                <input class="size-5 accent-teal-500" id="posting_enabled" name="posting_enabled" type="checkbox" value="1"{% if posting_enabled %} checked{% endif %}>
+            </label>
+            <label class="flex items-center justify-between gap-4 rounded-lg border border-amber-200/25 bg-amber-400/10 px-4 py-3 text-sm font-semibold text-amber-50" for="maintenance_enabled">
+                <span><span class="block">メンテナンスモード</span><span class="mt-1 block text-xs font-normal text-amber-100/70">公開画面を停止し、管理画面だけ利用可能にします。</span></span>
+                <input class="size-5 accent-amber-500" id="maintenance_enabled" name="maintenance_enabled" type="checkbox" value="1"{% if maintenance_enabled %} checked{% endif %}>
+            </label>
+            <div class="grid gap-1.5">
+                <label class="text-sm font-semibold text-white" for="maintenance_message">メンテナンス表示文</label>
+                <textarea class="min-h-24 w-full resize-y rounded-md border border-white/25 bg-black/15 px-3 py-2 text-sm text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20" id="maintenance_message" name="maintenance_message" maxlength="500" required>{{ maintenance_message }}</textarea>
+            </div>
+            <div class="grid gap-1.5">
+                <label class="text-sm font-semibold text-white" for="maintenance_ends_at">終了予定日時（任意）</label>
+                <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20" id="maintenance_ends_at" name="maintenance_ends_at" type="datetime-local" value="{{ maintenance_ends_at }}">
+                <p class="text-sm leading-6 text-white/65">設定すると案内画面に表示し、HTTPの Retry-After にも反映します。</p>
+            </div>
+            <button class="justify-self-start rounded-md bg-amber-600 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-amber-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">保存して反映</button>
+        </form>
+        <form class="mt-2" action="{{ path('app_admin_operation_status_reset') }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin_operation_status_reset') }}">
+            <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">初期値（公開・投稿受付中）に戻す</button>
+        </form>
+    </section>
+    <section class="admin-settings mt-5 rounded-xl border border-white/15 bg-white/5 p-4 shadow-sm sm:p-5">
         <h3>サイト設定</h3>
         <form class="admin-title-form mt-4 grid max-w-lg gap-4" action="{{ path('app_admin_title') }}" method="post">
             <input type="hidden" name="_token" value="{{ csrf_token('admin_title') }}">
@@ -157,6 +185,41 @@
             </form>
             <form action="{{ path('app_admin_prohibited_words_reset') }}" method="post">
                 <input type="hidden" name="_token" value="{{ csrf_token('admin_prohibited_words_reset') }}">
+                <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">初期値（未設定）に戻す</button>
+            </form>
+            <form class="grid gap-4 border-t border-white/15 pt-4" action="{{ path('app_admin_denied_post_networks') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_denied_post_networks') }}">
+                <div class="grid gap-1.5">
+                    <label class="text-sm font-semibold text-white" for="denied_post_networks">投稿禁止IPアドレス・CIDR</label>
+                    <textarea class="min-h-36 w-full resize-y rounded-md border border-white/25 bg-black/15 px-3 py-2 font-mono text-sm text-white shadow-inner outline-none transition placeholder:text-white/40 focus:border-white/60 focus:ring-2 focus:ring-white/20" id="denied_post_networks" name="denied_post_networks" maxlength="6600" placeholder="192.0.2.10&#10;198.51.100.0/24&#10;2001:db8::/32">{{ denied_post_networks }}</textarea>
+                    <p class="text-sm leading-6 text-white/65">1行に1件ずつ、IPv4・IPv6の単一アドレスまたはCIDRを100件まで設定できます。該当する利用者は閲覧できますが、投稿は拒否されます。</p>
+                </div>
+                <button class="justify-self-start rounded-md bg-teal-600 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-teal-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">保存</button>
+            </form>
+            <form action="{{ path('app_admin_denied_post_networks_reset') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_denied_post_networks_reset') }}">
+                <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">初期値（未設定）に戻す</button>
+            </form>
+            <form class="grid gap-4 border-t border-white/15 pt-4" action="{{ path('app_admin_denied_access_networks') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_denied_access_networks') }}">
+                <div class="grid gap-1.5">
+                    <div class="flex items-center gap-1.5">
+                        <label class="text-sm font-semibold text-white" for="denied_access_networks">アクセス禁止IPアドレス・CIDR</label>
+                        <span class="group relative inline-flex">
+                            <button class="inline-flex size-4 items-center justify-center rounded-full border border-amber-200/45 bg-amber-300/10 text-[10px] font-bold leading-none text-amber-100 transition hover:border-amber-100 hover:bg-amber-300/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="button" aria-label="アクセス禁止設定の注意事項" aria-describedby="denied-access-networks-help">?</button>
+                            <span class="pointer-events-none invisible absolute bottom-full left-1/2 z-20 mb-2 w-72 -translate-x-1/2 rounded-lg border border-amber-200/25 bg-slate-950 px-3 py-2 text-xs font-normal leading-relaxed text-white opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100" id="denied-access-networks-help" role="tooltip">
+                                一致した利用者は投稿だけでなく、掲示板の閲覧もできなくなります。設定を誤っても復旧できるよう管理画面は対象外です。大量アクセスの遮断にはCDN・WAF・Webサーバーを使用してください。
+                                <span class="absolute left-1/2 top-full size-2 -translate-x-1/2 -translate-y-1/2 rotate-45 border-b border-r border-amber-200/25 bg-slate-950"></span>
+                            </span>
+                        </span>
+                    </div>
+                    <textarea class="min-h-36 w-full resize-y rounded-md border border-amber-200/30 bg-black/15 px-3 py-2 font-mono text-sm text-white shadow-inner outline-none transition placeholder:text-white/40 focus:border-amber-100/70 focus:ring-2 focus:ring-amber-200/20" id="denied_access_networks" name="denied_access_networks" maxlength="6600" placeholder="192.0.2.10&#10;198.51.100.0/24&#10;2001:db8::/32">{{ denied_access_networks }}</textarea>
+                    <p class="text-sm leading-6 text-white/65">1行に1件ずつ、IPv4・IPv6の単一アドレスまたはCIDRを100件まで設定できます。</p>
+                </div>
+                <button class="justify-self-start rounded-md bg-amber-600 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-amber-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">保存</button>
+            </form>
+            <form action="{{ path('app_admin_denied_access_networks_reset') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_denied_access_networks_reset') }}">
                 <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">初期値（未設定）に戻す</button>
             </form>
             <form class="grid gap-4 border-t border-white/15 pt-4" action="{{ path('app_admin_undo') }}" method="post">

@@ -463,6 +463,43 @@ test('投稿禁止ワードを含む入力を拒否する', function () {
     }
 });
 
+test('投稿禁止IPアドレスまたはCIDRに該当する投稿を拒否する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient([], ['REMOTE_ADDR' => '192.0.2.25']);
+    $settings = $this->getContainer()->get(\App\Settings\SiteSettings::class);
+    $this->assertInstanceOf(\App\Settings\SiteSettings::class, $settings);
+    $settings->setDeniedPostNetworksText("198.51.100.9\n192.0.2.0/24");
+
+    try {
+        $token = $this->csrfToken($client);
+        $client->request('POST', '/submit', ['content' => '拒否される投稿', '_token' => $token]);
+
+        $this->assertResponseStatusCodeSame(403);
+        $this->assertStringContainsString('このIPアドレスからは投稿できません。', (string) $client->getResponse()->getContent());
+    } finally {
+        $settings->resetDeniedPostNetworks();
+    }
+});
+
+test('投稿受付停止中は閲覧を許可して投稿を拒否する', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.33']);
+    $settings = $this->getContainer()->get(\App\Settings\SiteSettings::class);
+    $this->assertInstanceOf(\App\Settings\SiteSettings::class, $settings);
+    $settings->setOperationStatus(false, false, 'メンテナンス中です。', '');
+
+    try {
+        $client->request('GET', '/');
+        $this->assertResponseIsSuccessful();
+        $token = $this->csrfToken($client);
+        $client->request('POST', '/submit', ['content' => '停止中の投稿', '_token' => $token]);
+        $this->assertResponseStatusCodeSame(403);
+        $this->assertStringContainsString('現在、投稿受付を停止しています。', (string) $client->getResponse()->getContent());
+    } finally {
+        $settings->resetOperationStatus();
+    }
+});
+
 test('短時間に投稿できる件数をIPアドレス単位で制限する', function () {
     /** @var TestCase $this */
     $client = $this->createClient();

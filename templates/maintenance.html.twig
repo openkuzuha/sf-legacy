@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>メンテナンス中 - {{ app_title }}</title>
+    {{ vite_entry_link_tags('app') }}
+    {{ vite_entry_script_tags('app') }}
+</head>
+<body class="min-h-screen bg-slate-950 text-white">
+    <main class="mx-auto flex min-h-screen max-w-2xl items-center px-5 py-12">
+        <section class="w-full rounded-2xl border border-amber-200/20 bg-white/5 p-6 shadow-2xl backdrop-blur sm:p-10">
+            <div class="mb-5 inline-flex rounded-full border border-amber-200/30 bg-amber-300/10 px-3 py-1 text-xs font-semibold tracking-wider text-amber-100">SERVICE MAINTENANCE</div>
+            <h1 class="text-2xl font-bold tracking-wide sm:text-3xl">{{ app_title }}</h1>
+            <p class="mt-5 whitespace-pre-line text-base leading-8 text-white/75">{{ message }}</p>
+            {% if ends_at %}
+                <p class="mt-6 rounded-lg border border-white/10 bg-black/15 px-4 py-3 text-sm text-white/65">終了予定: {{ ends_at|date('Y年n月j日 H:i') }}</p>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>

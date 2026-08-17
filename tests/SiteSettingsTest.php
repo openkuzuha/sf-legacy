@@ -193,6 +193,26 @@ test('保存値がなければAPP_TITLE相当の初期値を返す', function ()
         public function resetProhibitedWords(): void
         {
         }
+        public function deniedPostNetworks(): ?array
+        {
+            return null;
+        }
+        public function setDeniedPostNetworks(array $networks): void
+        {
+        }
+        public function resetDeniedPostNetworks(): void
+        {
+        }
+        public function deniedAccessNetworks(): ?array
+        {
+            return null;
+        }
+        public function setDeniedAccessNetworks(array $networks): void
+        {
+        }
+        public function resetDeniedAccessNetworks(): void
+        {
+        }
         public function undoEnabled(): ?bool
         {
             return null;
@@ -233,6 +253,19 @@ test('保存値がなければAPP_TITLE相当の初期値を返す', function ()
         public function resetArchivePublicDays(): void
         {
         }
+
+        public function postingEnabled(): ?bool { return null; }
+        public function setPostingEnabled(bool $enabled): void {}
+        public function resetPostingEnabled(): void {}
+        public function maintenanceEnabled(): ?bool { return null; }
+        public function setMaintenanceEnabled(bool $enabled): void {}
+        public function resetMaintenanceEnabled(): void {}
+        public function maintenanceMessage(): ?string { return null; }
+        public function setMaintenanceMessage(string $message): void {}
+        public function resetMaintenanceMessage(): void {}
+        public function maintenanceEndsAt(): ?string { return null; }
+        public function setMaintenanceEndsAt(string $endsAt): void {}
+        public function resetMaintenanceEndsAt(): void {}
 
         public function adminPasswordHash(): ?string
         {
@@ -367,6 +400,26 @@ test('保存先を読み込めない場合も初期タイトルを返す', funct
         public function resetProhibitedWords(): void
         {
         }
+        public function deniedPostNetworks(): ?array
+        {
+            return null;
+        }
+        public function setDeniedPostNetworks(array $networks): void
+        {
+        }
+        public function resetDeniedPostNetworks(): void
+        {
+        }
+        public function deniedAccessNetworks(): ?array
+        {
+            return null;
+        }
+        public function setDeniedAccessNetworks(array $networks): void
+        {
+        }
+        public function resetDeniedAccessNetworks(): void
+        {
+        }
         public function undoEnabled(): ?bool
         {
             throw new RuntimeException('読み込みエラー');
@@ -407,6 +460,19 @@ test('保存先を読み込めない場合も初期タイトルを返す', funct
         public function resetArchivePublicDays(): void
         {
         }
+
+        public function postingEnabled(): ?bool { return null; }
+        public function setPostingEnabled(bool $enabled): void {}
+        public function resetPostingEnabled(): void {}
+        public function maintenanceEnabled(): ?bool { return null; }
+        public function setMaintenanceEnabled(bool $enabled): void {}
+        public function resetMaintenanceEnabled(): void {}
+        public function maintenanceMessage(): ?string { return null; }
+        public function setMaintenanceMessage(string $message): void {}
+        public function resetMaintenanceMessage(): void {}
+        public function maintenanceEndsAt(): ?string { return null; }
+        public function setMaintenanceEndsAt(string $endsAt): void {}
+        public function resetMaintenanceEndsAt(): void {}
 
         public function adminPasswordHash(): ?string
         {

@@ -120,6 +120,12 @@ final class AdminController
             'default_admin_name' => $this->siteSettings->defaultAdminName(),
             'admin_email' => $this->siteSettings->adminEmail(),
             'prohibited_words' => $this->siteSettings->prohibitedWordsText(),
+            'denied_post_networks' => $this->siteSettings->deniedPostNetworksText(),
+            'denied_access_networks' => $this->siteSettings->deniedAccessNetworksText(),
+            'posting_enabled' => $this->siteSettings->postingEnabled(),
+            'maintenance_enabled' => $this->siteSettings->maintenanceEnabled(),
+            'maintenance_message' => $this->siteSettings->maintenanceMessage(),
+            'maintenance_ends_at' => $this->siteSettings->maintenanceEndsAt()?->format('Y-m-d\TH:i') ?? '',
             'undo_enabled' => $this->siteSettings->undoEnabled(),
             'default_undo_enabled' => $this->siteSettings->defaultUndoEnabled(),
             'undo_window_seconds' => $this->siteSettings->undoWindowSeconds(),
@@ -131,6 +137,55 @@ final class AdminController
             'app_environment' => $this->appEnvironment,
             'cloud_mode' => $this->cloudMode,
         ]));
+    }
+
+    #[Route('/admin/settings/operation-status', name: 'app_admin_operation_status', methods: ['POST'])]
+    public function updateOperationStatus(Request $request): Response
+    {
+        if (!$this->isAuthenticated($request)) {
+            return $this->redirectToAdmin();
+        }
+        $token = new CsrfToken('admin_operation_status', $request->request->getString('_token'));
+        if (!$this->csrfTokenManager->isTokenValid($token)) {
+            $this->addFlash($request->getSession(), 'admin_error', '入力の有効期限が切れました。');
+
+            return $this->redirectToSettings();
+        }
+        try {
+            $this->siteSettings->setOperationStatus(
+                $request->request->getBoolean('posting_enabled'),
+                $request->request->getBoolean('maintenance_enabled'),
+                $request->request->getString('maintenance_message'),
+                $request->request->getString('maintenance_ends_at'),
+            );
+            $this->addFlash($request->getSession(), 'admin_success', '運用状態を保存しました。');
+        } catch (InvalidArgumentException | RuntimeException $exception) {
+            $this->addFlash($request->getSession(), 'admin_error', $exception->getMessage());
+        }
+
+        return $this->redirectToSettings();
+    }
+
+    #[Route('/admin/settings/operation-status/reset', name: 'app_admin_operation_status_reset', methods: ['POST'])]
+    public function resetOperationStatus(Request $request): Response
+    {
+        if (!$this->isAuthenticated($request)) {
+            return $this->redirectToAdmin();
+        }
+        $token = new CsrfToken('admin_operation_status_reset', $request->request->getString('_token'));
+        if (!$this->csrfTokenManager->isTokenValid($token)) {
+            $this->addFlash($request->getSession(), 'admin_error', '入力の有効期限が切れました。');
+
+            return $this->redirectToSettings();
+        }
+        try {
+            $this->siteSettings->resetOperationStatus();
+            $this->addFlash($request->getSession(), 'admin_success', '運用状態を初期値に戻しました。');
+        } catch (RuntimeException $exception) {
+            $this->addFlash($request->getSession(), 'admin_error', $exception->getMessage());
+        }
+
+        return $this->redirectToSettings();
     }
 
     #[Route('/admin/settings/archive-public-days', name: 'app_admin_archive_public_days', methods: ['POST'])]
@@ -305,6 +360,102 @@ final class AdminController
             $this->siteSettings->setProhibitedWordsText($request->request->getString('prohibited_words'));
             $this->addFlash($request->getSession(), 'admin_success', '投稿禁止ワードを保存しました。');
         } catch (InvalidArgumentException | RuntimeException $exception) {
+            $this->addFlash($request->getSession(), 'admin_error', $exception->getMessage());
+        }
+
+        return $this->redirectToSettings();
+    }
+
+    #[Route('/admin/settings/denied-post-networks', name: 'app_admin_denied_post_networks', methods: ['POST'])]
+    public function updateDeniedPostNetworks(Request $request): Response
+    {
+        if (!$this->isAuthenticated($request)) {
+            return $this->redirectToAdmin();
+        }
+        $token = new CsrfToken('admin_denied_post_networks', $request->request->getString('_token'));
+        if (!$this->csrfTokenManager->isTokenValid($token)) {
+            $this->addFlash($request->getSession(), 'admin_error', '入力の有効期限が切れました。');
+
+            return $this->redirectToSettings();
+        }
+        try {
+            $this->siteSettings->setDeniedPostNetworksText($request->request->getString('denied_post_networks'));
+            $this->addFlash($request->getSession(), 'admin_success', '投稿禁止IPアドレス・CIDRを保存しました。');
+        } catch (InvalidArgumentException | RuntimeException $exception) {
+            $this->addFlash($request->getSession(), 'admin_error', $exception->getMessage());
+        }
+
+        return $this->redirectToSettings();
+    }
+
+    #[Route(
+        '/admin/settings/denied-post-networks/reset',
+        name: 'app_admin_denied_post_networks_reset',
+        methods: ['POST'],
+    )]
+    public function resetDeniedPostNetworks(Request $request): Response
+    {
+        if (!$this->isAuthenticated($request)) {
+            return $this->redirectToAdmin();
+        }
+        $token = new CsrfToken('admin_denied_post_networks_reset', $request->request->getString('_token'));
+        if (!$this->csrfTokenManager->isTokenValid($token)) {
+            $this->addFlash($request->getSession(), 'admin_error', '入力の有効期限が切れました。');
+
+            return $this->redirectToSettings();
+        }
+        try {
+            $this->siteSettings->resetDeniedPostNetworks();
+            $this->addFlash($request->getSession(), 'admin_success', '投稿禁止IPアドレス・CIDRを初期値に戻しました。');
+        } catch (RuntimeException $exception) {
+            $this->addFlash($request->getSession(), 'admin_error', $exception->getMessage());
+        }
+
+        return $this->redirectToSettings();
+    }
+
+    #[Route('/admin/settings/denied-access-networks', name: 'app_admin_denied_access_networks', methods: ['POST'])]
+    public function updateDeniedAccessNetworks(Request $request): Response
+    {
+        if (!$this->isAuthenticated($request)) {
+            return $this->redirectToAdmin();
+        }
+        $token = new CsrfToken('admin_denied_access_networks', $request->request->getString('_token'));
+        if (!$this->csrfTokenManager->isTokenValid($token)) {
+            $this->addFlash($request->getSession(), 'admin_error', '入力の有効期限が切れました。');
+
+            return $this->redirectToSettings();
+        }
+        try {
+            $this->siteSettings->setDeniedAccessNetworksText($request->request->getString('denied_access_networks'));
+            $this->addFlash($request->getSession(), 'admin_success', 'アクセス禁止IPアドレス・CIDRを保存しました。');
+        } catch (InvalidArgumentException | RuntimeException $exception) {
+            $this->addFlash($request->getSession(), 'admin_error', $exception->getMessage());
+        }
+
+        return $this->redirectToSettings();
+    }
+
+    #[Route(
+        '/admin/settings/denied-access-networks/reset',
+        name: 'app_admin_denied_access_networks_reset',
+        methods: ['POST'],
+    )]
+    public function resetDeniedAccessNetworks(Request $request): Response
+    {
+        if (!$this->isAuthenticated($request)) {
+            return $this->redirectToAdmin();
+        }
+        $token = new CsrfToken('admin_denied_access_networks_reset', $request->request->getString('_token'));
+        if (!$this->csrfTokenManager->isTokenValid($token)) {
+            $this->addFlash($request->getSession(), 'admin_error', '入力の有効期限が切れました。');
+
+            return $this->redirectToSettings();
+        }
+        try {
+            $this->siteSettings->resetDeniedAccessNetworks();
+            $this->addFlash($request->getSession(), 'admin_success', 'アクセス禁止IPアドレス・CIDRを初期値に戻しました。');
+        } catch (RuntimeException $exception) {
             $this->addFlash($request->getSession(), 'admin_error', $exception->getMessage());
         }
 

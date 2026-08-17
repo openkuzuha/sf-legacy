@@ -72,6 +72,46 @@ interface SiteSettingsRepository
 
     public function resetProhibitedWords(): void;
 
+    /** @return list<string>|null */
+    public function deniedPostNetworks(): ?array;
+
+    /** @param list<string> $networks */
+    public function setDeniedPostNetworks(array $networks): void;
+
+    public function resetDeniedPostNetworks(): void;
+
+    /** @return list<string>|null */
+    public function deniedAccessNetworks(): ?array;
+
+    /** @param list<string> $networks */
+    public function setDeniedAccessNetworks(array $networks): void;
+
+    public function resetDeniedAccessNetworks(): void;
+
+    public function postingEnabled(): ?bool;
+
+    public function setPostingEnabled(bool $enabled): void;
+
+    public function resetPostingEnabled(): void;
+
+    public function maintenanceEnabled(): ?bool;
+
+    public function setMaintenanceEnabled(bool $enabled): void;
+
+    public function resetMaintenanceEnabled(): void;
+
+    public function maintenanceMessage(): ?string;
+
+    public function setMaintenanceMessage(string $message): void;
+
+    public function resetMaintenanceMessage(): void;
+
+    public function maintenanceEndsAt(): ?string;
+
+    public function setMaintenanceEndsAt(string $endsAt): void;
+
+    public function resetMaintenanceEndsAt(): void;
+
     public function undoEnabled(): ?bool;
 
     public function setUndoEnabled(bool $enabled): void;

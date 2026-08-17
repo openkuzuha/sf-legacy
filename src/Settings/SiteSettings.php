@@ -22,6 +22,8 @@ final class SiteSettings
     public const int MAX_ADMIN_EMAIL_CHARS = 255;
     public const int MAX_PROHIBITED_WORDS = 100;
     public const int MAX_PROHIBITED_WORD_CHARS = 100;
+    public const int MAX_DENIED_POST_NETWORKS = 100;
+    public const int MAX_MAINTENANCE_MESSAGE_CHARS = 500;
     public const int MIN_UNDO_WINDOW_SECONDS = 1;
     public const int MAX_UNDO_WINDOW_SECONDS = 2592000;
     public const int MIN_ARCHIVE_RETENTION_DAYS = 0;
@@ -210,6 +212,151 @@ final class SiteSettings
     public function resetProhibitedWords(): void
     {
         $this->repository->resetProhibitedWords();
+    }
+
+    /** @return list<string> */
+    public function deniedPostNetworks(): array
+    {
+        try {
+            $networks = $this->repository->deniedPostNetworks() ?? [];
+            $this->validateDeniedPostNetworks($networks);
+
+            return $networks;
+        } catch (RuntimeException | InvalidArgumentException $exception) {
+            $this->logger->warning('投稿禁止IPアドレス・CIDRを読み込めないため、初期値を使用します。', [
+                'exception' => $exception,
+            ]);
+
+            return [];
+        }
+    }
+
+    public function deniedPostNetworksText(): string
+    {
+        return implode("\n", $this->deniedPostNetworks());
+    }
+
+    public function setDeniedPostNetworksText(string $text): void
+    {
+        $networks = $this->parseDeniedNetworksText($text, '投稿禁止IPアドレス・CIDR');
+        $this->repository->setDeniedPostNetworks($networks);
+    }
+
+    public function resetDeniedPostNetworks(): void
+    {
+        $this->repository->resetDeniedPostNetworks();
+    }
+
+    /** @return list<string> */
+    public function deniedAccessNetworks(): array
+    {
+        try {
+            $networks = $this->repository->deniedAccessNetworks() ?? [];
+            $this->validateDeniedPostNetworks($networks);
+
+            return $networks;
+        } catch (RuntimeException | InvalidArgumentException $exception) {
+            $this->logger->warning('アクセス禁止IPアドレス・CIDRを読み込めないため、初期値を使用します。', [
+                'exception' => $exception,
+            ]);
+
+            return [];
+        }
+    }
+
+    public function deniedAccessNetworksText(): string
+    {
+        return implode("\n", $this->deniedAccessNetworks());
+    }
+
+    public function setDeniedAccessNetworksText(string $text): void
+    {
+        $networks = $this->parseDeniedNetworksText($text, 'アクセス禁止IPアドレス・CIDR');
+        $this->repository->setDeniedAccessNetworks($networks);
+    }
+
+    public function resetDeniedAccessNetworks(): void
+    {
+        $this->repository->resetDeniedAccessNetworks();
+    }
+
+    public function postingEnabled(): bool
+    {
+        try {
+            return $this->repository->postingEnabled() ?? true;
+        } catch (RuntimeException $exception) {
+            $this->logger->warning('投稿受付状態を読み込めないため、受付中として動作します。', ['exception' => $exception]);
+
+            return true;
+        }
+    }
+
+    public function maintenanceEnabled(): bool
+    {
+        try {
+            return $this->repository->maintenanceEnabled() ?? false;
+        } catch (RuntimeException $exception) {
+            $this->logger->warning('メンテナンス状態を読み込めないため、公開中として動作します。', ['exception' => $exception]);
+
+            return false;
+        }
+    }
+
+    public function maintenanceMessage(): string
+    {
+        try {
+            $message = $this->repository->maintenanceMessage() ?? 'ただいまメンテナンス中です。しばらくしてからもう一度お試しください。';
+            $this->validateMaintenanceMessage($message);
+
+            return $message;
+        } catch (RuntimeException | InvalidArgumentException $exception) {
+            $this->logger->warning('メンテナンス表示文を読み込めないため、初期値を使用します。', ['exception' => $exception]);
+
+            return 'ただいまメンテナンス中です。しばらくしてからもう一度お試しください。';
+        }
+    }
+
+    public function maintenanceEndsAt(): ?DateTimeImmutable
+    {
+        try {
+            $value = $this->repository->maintenanceEndsAt();
+
+            return $value === null || $value === '' ? null : new DateTimeImmutable($value);
+        } catch (RuntimeException | \Exception $exception) {
+            $this->logger->warning('メンテナンス終了予定日時を読み込めないため、未設定として動作します。', ['exception' => $exception]);
+
+            return null;
+        }
+    }
+
+    public function setOperationStatus(
+        bool $postingEnabled,
+        bool $maintenanceEnabled,
+        string $message,
+        string $endsAt,
+    ): void {
+        $message = trim($message);
+        $this->validateMaintenanceMessage($message);
+        $normalizedEndsAt = '';
+        if ($endsAt !== '') {
+            $date = DateTimeImmutable::createFromFormat('Y-m-d\TH:i', $endsAt);
+            if ($date === false || $date->format('Y-m-d\TH:i') !== $endsAt) {
+                throw new InvalidArgumentException('メンテナンス終了予定日時を正しく入力してください。');
+            }
+            $normalizedEndsAt = $date->format(DATE_ATOM);
+        }
+        $this->repository->setPostingEnabled($postingEnabled);
+        $this->repository->setMaintenanceEnabled($maintenanceEnabled);
+        $this->repository->setMaintenanceMessage($message);
+        $this->repository->setMaintenanceEndsAt($normalizedEndsAt);
+    }
+
+    public function resetOperationStatus(): void
+    {
+        $this->repository->resetPostingEnabled();
+        $this->repository->resetMaintenanceEnabled();
+        $this->repository->resetMaintenanceMessage();
+        $this->repository->resetMaintenanceEndsAt();
     }
 
     public function adminName(): string
@@ -594,6 +741,17 @@ final class SiteSettings
         }
     }
 
+    private function validateMaintenanceMessage(string $message): void
+    {
+        $invalid = $message === '' || !mb_check_encoding($message, 'UTF-8');
+        if ($invalid || mb_strlen($message) > self::MAX_MAINTENANCE_MESSAGE_CHARS) {
+            throw new InvalidArgumentException(sprintf(
+                'メンテナンス表示文は1文字以上%d文字以内で入力してください。',
+                self::MAX_MAINTENANCE_MESSAGE_CHARS,
+            ));
+        }
+    }
+
     private function validateAdminEmail(string $email): void
     {
         if ($email === '') {
@@ -622,6 +780,58 @@ final class SiteSettings
                     self::MAX_PROHIBITED_WORD_CHARS,
                 ));
             }
+        }
+    }
+
+    /** @param list<string> $networks */
+    private function validateDeniedPostNetworks(array $networks): void
+    {
+        if (count($networks) > self::MAX_DENIED_POST_NETWORKS) {
+            throw new InvalidArgumentException(sprintf(
+                'IPアドレス・CIDRは%d件以内で入力してください。',
+                self::MAX_DENIED_POST_NETWORKS,
+            ));
+        }
+        foreach ($networks as $index => $network) {
+            $this->validateDeniedPostNetwork($network, $index + 1);
+        }
+    }
+
+    /** @return list<string> */
+    private function parseDeniedNetworksText(string $text, string $label): array
+    {
+        $lines = preg_split('/\R/u', $text);
+        if ($lines === false) {
+            throw new InvalidArgumentException(sprintf('%sを読み取れません。', $label));
+        }
+        $networks = [];
+        foreach ($lines as $lineNumber => $line) {
+            $network = trim($line);
+            if ($network === '') {
+                continue;
+            }
+            $this->validateDeniedPostNetwork($network, $lineNumber + 1);
+            if (!in_array($network, $networks, true)) {
+                $networks[] = $network;
+            }
+        }
+        $this->validateDeniedPostNetworks($networks);
+
+        return $networks;
+    }
+
+    private function validateDeniedPostNetwork(string $network, int $lineNumber): void
+    {
+        $parts = explode('/', $network);
+        if (count($parts) > 2 || inet_pton($parts[0]) === false) {
+            throw new InvalidArgumentException(sprintf('%d行目を正しいIPアドレスまたはCIDRで入力してください。', $lineNumber));
+        }
+        if (count($parts) === 1) {
+            return;
+        }
+        $maxPrefix = str_contains($parts[0], ':') ? 128 : 32;
+        if ($parts[1] === '' || !ctype_digit($parts[1]) || (int) $parts[1] > $maxPrefix) {
+            throw new InvalidArgumentException(sprintf('%d行目のCIDRプレフィックス長が不正です。', $lineNumber));
         }
     }
 
