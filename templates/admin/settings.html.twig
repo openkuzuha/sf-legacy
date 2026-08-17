@@ -38,4 +38,22 @@
             <button class="w-fit rounded-md border border-white/30 bg-white/10 px-4 py-2 font-semibold !text-white transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">パスワードを変更</button>
         </form>
     </section>
+    <section class="admin-settings rounded-xl border border-white/15 bg-white/5 p-4 shadow-sm sm:p-5">
+        <h3>実行環境</h3>
+        <dl class="mt-4 grid max-w-lg gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
+            <dt class="text-sm font-semibold text-white/70">現在のAPP_ENV</dt>
+            <dd>
+                <code class="inline-flex rounded-md border border-white/20 bg-black/20 px-3 py-1.5 font-mono text-sm font-bold text-white">{{ app_environment }}</code>
+            </dd>
+        </dl>
+        <div class="mt-4 max-w-2xl space-y-3 text-sm leading-relaxed text-white/75">
+            <p>APP_ENVはアプリ起動時に確定するため、この画面からは変更できません。</p>
+            <p>通常環境では、Git管理外の <code class="rounded bg-black/20 px-1.5 py-0.5 text-white">.env.local</code> に次のように設定し、キャッシュ削除後にPHPプロセスを再起動します。</p>
+            <pre class="overflow-x-auto rounded-lg border border-white/15 bg-black/25 p-3 font-mono text-sm text-white"><code>APP_ENV=prod
+APP_DEBUG=0
+php bin/console cache:clear</code></pre>
+            <p>Docker Composeでは <code class="rounded bg-black/20 px-1.5 py-0.5 text-white">compose.yaml</code> の <code class="rounded bg-black/20 px-1.5 py-0.5 text-white">services.app.environment</code> を変更し、コンテナを再作成します。</p>
+            <pre class="overflow-x-auto rounded-lg border border-white/15 bg-black/25 p-3 font-mono text-sm text-white"><code>docker compose up -d --force-recreate app</code></pre>
+        </div>
+    </section>
 {% endblock %}

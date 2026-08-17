@@ -67,6 +67,7 @@ docker compose exec app php bin/console bbs:admin:password-hash
 ```
 
 ログイン後は「設定管理」と「投稿記事管理」の2画面を利用できます。投稿記事管理は現在WIPです。
+設定管理画面には、Symfonyが現在使用している `APP_ENV` と変更手順も表示されます。
 設定管理画面からパスワードを変更できます。変更後のハッシュは、ローカル環境では
 `var/data/site-settings.json`、`CLOUD_MODE=1` では Valkey に保存され、
 `ADMIN_PASSWORD_HASH` より優先されます。変更すると既存の管理セッションはすべて無効になります。

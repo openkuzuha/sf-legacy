@@ -31,6 +31,8 @@ test('環境変数のパスワードで管理画面にログインしてログ�
     $this->assertSelectorTextSame('h2', '設定管理');
     $this->assertSelectorExists('nav a[href="/admin/settings"][aria-current="page"]');
     $this->assertSelectorExists('nav a[href="/admin/posts"]');
+    $this->assertSelectorTextSame('dt', '現在のAPP_ENV');
+    $this->assertSelectorTextSame('dd code', 'test');
 
     $client->submit($crawler->selectButton('ログアウト')->form());
     $this->assertResponseRedirects('/admin', 303);

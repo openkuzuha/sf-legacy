@@ -6,6 +6,7 @@ use App\Settings\AdminPassword;
 use App\Settings\SiteSettings;
 use InvalidArgumentException;
 use RuntimeException;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
@@ -26,6 +27,8 @@ final class AdminController
         private readonly Environment $twig,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly RateLimiterFactoryInterface $adminLoginLimiter,
+        #[Autowire(param: 'kernel.environment')]
+        private readonly string $appEnvironment,
     ) {
     }
 
@@ -93,6 +96,7 @@ final class AdminController
         return new Response($this->twig->render('admin/settings.html.twig', [
             'app_title' => $this->siteSettings->title(),
             'default_title' => $this->siteSettings->defaultTitle(),
+            'app_environment' => $this->appEnvironment,
         ]));
     }
 
