@@ -53,7 +53,7 @@ test('誤ったパスワードでは管理画面を表示しない', function ()
     $this->assertSelectorTextNotContains('main', '現在作成中です。');
 });
 
-test('管理画面でサイトタイトルを保存してAPP_TITLEへ戻す', function () {
+test('管理画面でサイトタイトルを保存して初期値へ戻す', function () {
     /** @var TestCase $this */
     $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.3']);
     $settings = $this->getContainer()->get(SiteSettings::class);
@@ -82,7 +82,7 @@ test('管理画面でサイトタイトルを保存してAPP_TITLEへ戻す', fu
         $this->assertSelectorTextContains('h1', '管理画面で変更したタイトル');
 
         $crawler = $client->request('GET', '/admin/settings');
-        $client->submit($crawler->selectButton('APP_TITLEに戻す')->form());
+        $client->submit($crawler->selectButton('初期値に戻す')->form());
         $this->assertResponseRedirects('/admin/settings', 303);
         $crawler = $client->followRedirect();
         $this->assertSelectorTextSame('[role="status"]', 'サイトタイトルを初期値に戻しました。');

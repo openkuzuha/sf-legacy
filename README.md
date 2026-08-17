@@ -72,7 +72,7 @@ docker compose exec app php bin/console bbs:admin:password-hash
 `ADMIN_PASSWORD_HASH` より優先されます。変更すると既存の管理セッションはすべて無効になります。
 
 ログイン後の管理画面ではサイトタイトルを変更できます。管理画面で保存した値は
-`APP_TITLE` より優先され、再起動せずに反映されます。「APP_TITLEに戻す」を実行すると
+`APP_TITLE` より優先され、再起動せずに反映されます。「初期値に戻す」を実行すると
 上書き値を削除します。保存先は通常実行時が `var/data/site-settings.json`、
 `CLOUD_MODE=1` の場合はValkeyです。
 
