@@ -10,8 +10,6 @@ namespace App\Post;
  *     title: string,
  *     message: string,
  *     auto_link?: bool,
- *     host: ?string,
- *     user_agent: ?string,
  *     thread_id: ?int,
  *     reply_to: ?int
  * }
@@ -20,8 +18,6 @@ namespace App\Post;
  *     post_id: int,
  *     thread_id: int,
  *     location: string,
- *     host: ?string,
- *     user_agent: ?string,
  *     author: string,
  *     author_spoofed?: bool,
  *     email: string,

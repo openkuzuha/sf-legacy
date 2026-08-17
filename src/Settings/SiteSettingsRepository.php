@@ -112,6 +112,18 @@ interface SiteSettingsRepository
 
     public function resetMaintenanceEndsAt(): void;
 
+    public function auditMode(): ?string;
+
+    public function setAuditMode(string $mode): void;
+
+    public function resetAuditMode(): void;
+
+    public function auditRetentionDays(): ?int;
+
+    public function setAuditRetentionDays(int $days): void;
+
+    public function resetAuditRetentionDays(): void;
+
     public function undoEnabled(): ?bool;
 
     public function setUndoEnabled(bool $enabled): void;

@@ -145,7 +145,9 @@ test('管理画面でマスターログ保存件数を変更して初期値へ�
         $crawler = $client->followRedirect();
         $this->assertInputValueSame('central_post_limit', '500');
 
-        $client->submit($crawler->selectButton('保存して反映')->form(['central_post_limit' => '250']));
+        $client->submit($crawler->filter('form[action="/admin/settings/central-post-limit"]')->form([
+            'central_post_limit' => '250',
+        ]));
         $this->assertResponseRedirects('/admin/settings', 303);
         $crawler = $client->followRedirect();
         $this->assertSelectorTextSame('[role="status"]', 'マスターログ保存件数を保存し、現在のログへ反映しました。');
@@ -490,6 +492,35 @@ test('管理画面でメンテナンスモードを設定しても管理画面�
         expect($settings->maintenanceEnabled())->toBeFalse();
     } finally {
         $settings->resetOperationStatus();
+    }
+});
+
+test('管理画面で投稿者監査モードと保存日数を変更して初期値へ戻す', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.34']);
+    $settings = $this->getContainer()->get(SiteSettings::class);
+    $this->assertInstanceOf(SiteSettings::class, $settings);
+    $settings->resetAuditSettings();
+
+    try {
+        $crawler = $client->request('GET', '/admin');
+        $client->submit($crawler->selectButton('ログイン')->form(['password' => 'admin-test-password']));
+        $crawler = $client->followRedirect();
+        $this->assertSelectorTextContains('main', 'AUDIT_HMAC_KEY: 設定済み');
+        $form = $crawler->filter('form[action="/admin/settings/audit"]')->form([
+            'audit_mode' => 'raw',
+            'audit_retention_days' => '14',
+        ]);
+        $client->submit($form);
+        $crawler = $client->followRedirect();
+        $this->assertSelectorTextSame('[role="status"]', '投稿者監査設定を保存しました。');
+        expect($settings->auditMode())->toBe('raw')->and($settings->auditRetentionDays())->toBe(14);
+
+        $client->submit($crawler->filter('form[action="/admin/settings/audit/reset"]')->form());
+        $client->followRedirect();
+        expect($settings->auditMode())->toBe('pseudonymous')->and($settings->auditRetentionDays())->toBe(30);
+    } finally {
+        $settings->resetAuditSettings();
     }
 });
 

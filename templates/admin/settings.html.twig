@@ -174,6 +174,34 @@
                 <input type="hidden" name="_token" value="{{ csrf_token('admin_archive_public_days_reset') }}">
                 <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">初期値（{{ default_archive_public_days }}日）に戻す</button>
             </form>
+            <form class="grid gap-4 border-t border-amber-200/25 pt-4" action="{{ path('app_admin_audit') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_audit') }}">
+                <div class="grid gap-1.5">
+                    <div class="flex items-center gap-1.5">
+                        <label class="text-sm font-semibold text-white" for="audit_mode">投稿者監査情報</label>
+                        <span class="group relative inline-flex">
+                            <button class="inline-flex size-4 items-center justify-center rounded-full border border-amber-200/45 bg-amber-300/10 text-[10px] font-bold leading-none text-amber-100" type="button" aria-label="投稿者監査情報の注意事項" aria-describedby="audit-help">?</button>
+                            <span class="pointer-events-none invisible absolute bottom-full left-1/2 z-20 mb-2 w-80 -translate-x-1/2 rounded-lg border border-amber-200/25 bg-slate-950 px-3 py-2 text-xs font-normal leading-relaxed text-white opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100" id="audit-help" role="tooltip">仮名化された識別子にも追跡可能性があります。生データではIPアドレスとUser-Agentを保存するため、漏洩時の影響が大きくなります。NginxやCDNのアクセスログはこの設定の対象外です。</span>
+                        </span>
+                    </div>
+                    <select class="w-full rounded-md border border-amber-200/30 bg-slate-900 px-3 py-2 text-white outline-none focus:border-amber-100/70 focus:ring-2 focus:ring-amber-200/20" id="audit_mode" name="audit_mode">
+                        <option value="none"{% if audit_mode == 'none' %} selected{% endif %}>記録しない</option>
+                        <option value="pseudonymous"{% if audit_mode == 'pseudonymous' %} selected{% endif %}>仮名化して記録（推奨）</option>
+                        <option value="raw"{% if audit_mode == 'raw' %} selected{% endif %}>生データを記録</option>
+                    </select>
+                    <p class="text-sm leading-6 {{ audit_key_configured ? 'text-emerald-200' : 'text-amber-100' }}">AUDIT_HMAC_KEY: {{ audit_key_configured ? '設定済み' : '未設定（監査は記録されません）' }}</p>
+                </div>
+                <div class="grid gap-1.5">
+                    <label class="text-sm font-semibold text-white" for="audit_retention_days">監査情報の保存日数</label>
+                    <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none focus:border-white/60 focus:ring-2 focus:ring-white/20" id="audit_retention_days" name="audit_retention_days" type="number" min="1" max="365" required value="{{ audit_retention_days }}">
+                    <p class="text-sm leading-6 text-white/65">仮名化識別子は月ごとに変わります。保存期限を過ぎた監査情報は削除されます。</p>
+                </div>
+                <button class="justify-self-start rounded-md bg-amber-600 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-amber-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">保存</button>
+            </form>
+            <form action="{{ path('app_admin_audit_reset') }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_audit_reset') }}">
+                <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">初期値（仮名化・30日）に戻す</button>
+            </form>
             <form class="grid gap-4 border-t border-white/15 pt-4" action="{{ path('app_admin_prohibited_words') }}" method="post">
                 <input type="hidden" name="_token" value="{{ csrf_token('admin_prohibited_words') }}">
                 <div class="grid gap-1.5">

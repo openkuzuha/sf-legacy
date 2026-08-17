@@ -10,6 +10,10 @@ services:
             APP_DEBUG: '1'
             APP_TIMEZONE: Asia/Tokyo
             CLOUD_MODE: '1'
+            AUDIT_HMAC_KEY: ${AUDIT_HMAC_KEY-}
+            REQUEST_ID_HEADER: ${REQUEST_ID_HEADER:-X-Request-ID}
+            REQUEST_ID_TRUSTED_PROXIES: ${REQUEST_ID_TRUSTED_PROXIES-}
+            SYMFONY_TRUSTED_PROXIES: ${SYMFONY_TRUSTED_PROXIES-}
             VALKEY_URL: redis://valkey:6379
             ARCHIVE_S3_ENDPOINT: http://minio:9000
             ARCHIVE_S3_REGION: us-east-1

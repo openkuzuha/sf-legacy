@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Audit\AuditIdentity;
 use App\Post\PostRepository;
 use App\Post\PostArchive;
 use App\Settings\AdminPassword;
@@ -28,6 +29,7 @@ final class AdminController
         private readonly PostRepository $posts,
         private readonly PostArchive $archive,
         private readonly AdminPassword $adminPassword,
+        private readonly AuditIdentity $auditIdentity,
         private readonly Environment $twig,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly RateLimiterFactoryInterface $adminLoginLimiter,
@@ -133,10 +135,65 @@ final class AdminController
             'archive_retention_days' => $this->siteSettings->archiveRetentionDays(),
             'default_archive_retention_days' => $this->siteSettings->defaultArchiveRetentionDays(),
             'archive_public_days' => $this->siteSettings->archivePublicDays(),
+            'audit_mode' => $this->siteSettings->auditMode(),
+            'audit_retention_days' => $this->siteSettings->auditRetentionDays(),
+            'audit_key_configured' => $this->auditIdentity->isConfigured(),
             'default_archive_public_days' => $this->siteSettings->defaultArchivePublicDays(),
             'app_environment' => $this->appEnvironment,
             'cloud_mode' => $this->cloudMode,
         ]));
+    }
+
+    #[Route('/admin/settings/audit', name: 'app_admin_audit', methods: ['POST'])]
+    public function updateAuditSettings(Request $request): Response
+    {
+        if (!$this->isAuthenticated($request)) {
+            return $this->redirectToAdmin();
+        }
+        $token = new CsrfToken('admin_audit', $request->request->getString('_token'));
+        if (!$this->csrfTokenManager->isTokenValid($token)) {
+            $this->addFlash($request->getSession(), 'admin_error', '入力の有効期限が切れました。');
+
+            return $this->redirectToSettings();
+        }
+        try {
+            $days = $request->request->getString('audit_retention_days');
+            if (filter_var($days, FILTER_VALIDATE_INT) === false) {
+                throw new InvalidArgumentException('投稿者監査情報の保存日数を整数で入力してください。');
+            }
+            $mode = $request->request->getString('audit_mode');
+            if ($mode !== 'none' && !$this->auditIdentity->isConfigured()) {
+                throw new InvalidArgumentException('AUDIT_HMAC_KEYを設定してから監査を有効にしてください。');
+            }
+            $this->siteSettings->setAuditSettings($mode, (int) $days);
+            $this->addFlash($request->getSession(), 'admin_success', '投稿者監査設定を保存しました。');
+        } catch (InvalidArgumentException | RuntimeException $exception) {
+            $this->addFlash($request->getSession(), 'admin_error', $exception->getMessage());
+        }
+
+        return $this->redirectToSettings();
+    }
+
+    #[Route('/admin/settings/audit/reset', name: 'app_admin_audit_reset', methods: ['POST'])]
+    public function resetAuditSettings(Request $request): Response
+    {
+        if (!$this->isAuthenticated($request)) {
+            return $this->redirectToAdmin();
+        }
+        $token = new CsrfToken('admin_audit_reset', $request->request->getString('_token'));
+        if (!$this->csrfTokenManager->isTokenValid($token)) {
+            $this->addFlash($request->getSession(), 'admin_error', '入力の有効期限が切れました。');
+
+            return $this->redirectToSettings();
+        }
+        try {
+            $this->siteSettings->resetAuditSettings();
+            $this->addFlash($request->getSession(), 'admin_success', '投稿者監査設定を初期値に戻しました。');
+        } catch (RuntimeException $exception) {
+            $this->addFlash($request->getSession(), 'admin_error', $exception->getMessage());
+        }
+
+        return $this->redirectToSettings();
     }
 
     #[Route('/admin/settings/operation-status', name: 'app_admin_operation_status', methods: ['POST'])]

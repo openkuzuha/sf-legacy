@@ -52,8 +52,10 @@ test('投稿日時をUTCのRFC 3339形式でJSONLへ追記する', function () {
         expect($record)->toBeArray();
         assert(is_array($record));
         expect($record)
-            ->not->toHaveKey('protect')
-            ->and($record['post_id'])->toBe(1)
+            ->not->toHaveKey('protect');
+        expect($record)->not->toHaveKey('host');
+        expect($record)->not->toHaveKey('user_agent');
+        expect($record['post_id'])->toBe(1)
             ->and($record['thread_id'])->toBe(1)
             ->and($record['location'])->toBe('main')
             ->and($record['posted_at'])->toMatch('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/')
@@ -65,6 +67,17 @@ test('投稿日時をUTCのRFC 3339形式でJSONLへ追記する', function () {
         $legacyRecord = $record;
         $legacyRecord['posted_at'] = 1_700_000_000;
         expect((new PostRecordCodec())->decode(json_encode($legacyRecord, JSON_THROW_ON_ERROR)))->toBeNull();
+
+        $legacyRecord = $record;
+        $legacyRecord['host'] = '192.0.2.1';
+        $legacyRecord['user_agent'] = 'Legacy Browser';
+        $decodedLegacy = (new PostRecordCodec())->decode(json_encode($legacyRecord, JSON_THROW_ON_ERROR));
+        expect($decodedLegacy)->toBeArray();
+        if (!is_array($decodedLegacy)) {
+            throw new RuntimeException('旧形式の投稿を読み込めません。');
+        }
+        expect($decodedLegacy)->not->toHaveKey('host');
+        expect($decodedLegacy)->not->toHaveKey('user_agent');
 
         unset($record['auto_link'], $record['author_spoofed']);
         $decoded = (new PostRecordCodec())->decode(json_encode($record, JSON_THROW_ON_ERROR));

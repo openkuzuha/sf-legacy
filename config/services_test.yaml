@@ -2,4 +2,5 @@ parameters:
     app.cloud_mode: false
     app.page_view_filename: '%kernel.cache_dir%/page-views.txt'
     app.post_archive_directory: '%kernel.cache_dir%/archive'
+    app.audit_directory: '%kernel.cache_dir%/audit'
     app.site_settings_filename: '%kernel.cache_dir%/site-settings.json'

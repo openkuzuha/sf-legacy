@@ -24,6 +24,8 @@ final class SiteSettings
     public const int MAX_PROHIBITED_WORD_CHARS = 100;
     public const int MAX_DENIED_POST_NETWORKS = 100;
     public const int MAX_MAINTENANCE_MESSAGE_CHARS = 500;
+    public const int MIN_AUDIT_RETENTION_DAYS = 1;
+    public const int MAX_AUDIT_RETENTION_DAYS = 365;
     public const int MIN_UNDO_WINDOW_SECONDS = 1;
     public const int MAX_UNDO_WINDOW_SECONDS = 2592000;
     public const int MIN_ARCHIVE_RETENTION_DAYS = 0;
@@ -357,6 +359,52 @@ final class SiteSettings
         $this->repository->resetMaintenanceEnabled();
         $this->repository->resetMaintenanceMessage();
         $this->repository->resetMaintenanceEndsAt();
+    }
+
+    public function auditMode(): string
+    {
+        try {
+            $mode = $this->repository->auditMode() ?? 'pseudonymous';
+            $this->validateAuditMode($mode);
+
+            return $mode;
+        } catch (RuntimeException | InvalidArgumentException $exception) {
+            $this->logger->warning('投稿者監査モードを読み込めないため、仮名化モードを使用します。', [
+                'exception' => $exception,
+            ]);
+
+            return 'pseudonymous';
+        }
+    }
+
+    public function auditRetentionDays(): int
+    {
+        try {
+            $days = $this->repository->auditRetentionDays() ?? 30;
+            $this->validateAuditRetentionDays($days);
+
+            return $days;
+        } catch (RuntimeException | InvalidArgumentException $exception) {
+            $this->logger->warning('投稿者監査情報の保存日数を読み込めないため、30日を使用します。', [
+                'exception' => $exception,
+            ]);
+
+            return 30;
+        }
+    }
+
+    public function setAuditSettings(string $mode, int $retentionDays): void
+    {
+        $this->validateAuditMode($mode);
+        $this->validateAuditRetentionDays($retentionDays);
+        $this->repository->setAuditMode($mode);
+        $this->repository->setAuditRetentionDays($retentionDays);
+    }
+
+    public function resetAuditSettings(): void
+    {
+        $this->repository->resetAuditMode();
+        $this->repository->resetAuditRetentionDays();
     }
 
     public function adminName(): string
@@ -748,6 +796,24 @@ final class SiteSettings
             throw new InvalidArgumentException(sprintf(
                 'メンテナンス表示文は1文字以上%d文字以内で入力してください。',
                 self::MAX_MAINTENANCE_MESSAGE_CHARS,
+            ));
+        }
+    }
+
+    private function validateAuditMode(string $mode): void
+    {
+        if (!in_array($mode, ['none', 'pseudonymous', 'raw'], true)) {
+            throw new InvalidArgumentException('投稿者監査モードが不正です。');
+        }
+    }
+
+    private function validateAuditRetentionDays(int $days): void
+    {
+        if ($days < self::MIN_AUDIT_RETENTION_DAYS || $days > self::MAX_AUDIT_RETENTION_DAYS) {
+            throw new InvalidArgumentException(sprintf(
+                '投稿者監査情報の保存日数は%d日以上%d日以下で入力してください。',
+                self::MIN_AUDIT_RETENTION_DAYS,
+                self::MAX_AUDIT_RETENTION_DAYS,
             ));
         }
     }

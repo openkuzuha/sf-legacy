@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\Audit\AuditRecorder;
+use App\Http\RequestIdSubscriber;
 use App\Post\AuthorNamePolicy;
 use App\Post\DeniedPostNetworkPolicy;
 use App\Post\PostRepository;
@@ -33,6 +35,7 @@ final class SubmitController
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly Environment $twig,
         private readonly SiteSettings $siteSettings,
+        private readonly AuditRecorder $auditRecorder,
         #[Autowire(param: 'app.post_max_author_chars')]
         private readonly int $maxAuthorChars,
         #[Autowire(param: 'app.post_max_email_chars')]
@@ -113,11 +116,17 @@ final class SubmitController
             'title' => $title,
             'message' => $message,
             'auto_link' => $autoLink,
-            'host' => $request->getClientIp(),
-            'user_agent' => $request->headers->get('User-Agent'),
             'thread_id' => $threadId,
             'reply_to' => $replyTo,
         ]);
+        $requestId = $request->attributes->get(RequestIdSubscriber::ATTRIBUTE);
+        $this->auditRecorder->record(
+            is_string($requestId) ? $requestId : bin2hex(random_bytes(16)),
+            'main',
+            $postId,
+            $request->getClientIp(),
+            $request->headers->get('User-Agent'),
+        );
         if ($this->siteSettings->undoEnabled()) {
             $request->getSession()->set('post_undo', [
                 'post_id' => $postId,

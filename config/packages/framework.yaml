@@ -1,5 +1,7 @@
 framework:
     secret: '%env(APP_SECRET)%'
+    trusted_proxies: '%env(SYMFONY_TRUSTED_PROXIES)%'
+    trusted_headers: ['x-forwarded-for', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-prefix']
     session: true
     csrf_protection: true
     rate_limiter:

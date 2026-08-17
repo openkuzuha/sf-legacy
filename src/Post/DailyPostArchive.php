@@ -44,7 +44,7 @@ final class DailyPostArchive implements PostArchive
                     && $existing['location'] === $record['location']
                     && $existing['post_id'] === $record['post_id']
                 ) {
-                    if ($existing === $record) {
+                    if ($this->codec->encode($existing) === $this->codec->encode($record)) {
                         return false;
                     }
                     throw new RuntimeException(sprintf('アーカイブ内の投稿ID %d の内容が一致しません。', $record['post_id']));

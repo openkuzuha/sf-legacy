@@ -86,7 +86,7 @@ final class JsonlPostRepository implements PostRepository
                     && $existing['location'] === $post['location']
                     && $existing['post_id'] === $post['post_id']
                 ) {
-                    if ($existing === $post) {
+                    if ($this->codec->encode($existing) === $this->codec->encode($post)) {
                         $this->trim($handle);
 
                         return false;
@@ -299,8 +299,6 @@ final class JsonlPostRepository implements PostRepository
             'post_id' => $postId,
             'thread_id' => $post['thread_id'] ?? $postId,
             'location' => $this->location,
-            'host' => $post['host'],
-            'user_agent' => $post['user_agent'],
             'author' => $post['author'],
             'author_spoofed' => $post['author_spoofed'] ?? false,
             'email' => $post['email'],

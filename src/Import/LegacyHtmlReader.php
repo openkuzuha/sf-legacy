@@ -49,8 +49,6 @@ final class LegacyHtmlReader
                 // HTML上の並び順に依存せず、全投稿のreply_toを読んだ後で確定する。
                 'thread_id' => $postId,
                 'location' => $location,
-                'host' => null,
-                'user_agent' => null,
                 'author' => $author,
                 'author_spoofed' => false,
                 'email' => $email,

@@ -366,6 +366,40 @@ final class FileSiteSettingsRepository implements SiteSettingsRepository
         $this->resetSetting('maintenance_ends_at');
     }
 
+    public function auditMode(): ?string
+    {
+        $value = $this->readSettings()['audit_mode'] ?? null;
+
+        return is_string($value) ? $value : null;
+    }
+
+    public function setAuditMode(string $mode): void
+    {
+        $this->setStringSetting('audit_mode', $mode);
+    }
+
+    public function resetAuditMode(): void
+    {
+        $this->resetSetting('audit_mode');
+    }
+
+    public function auditRetentionDays(): ?int
+    {
+        $value = $this->readSettings()['audit_retention_days'] ?? null;
+
+        return is_int($value) ? $value : null;
+    }
+
+    public function setAuditRetentionDays(int $days): void
+    {
+        $this->setIntegerSetting('audit_retention_days', $days);
+    }
+
+    public function resetAuditRetentionDays(): void
+    {
+        $this->resetSetting('audit_retention_days');
+    }
+
     public function undoEnabled(): ?bool
     {
         $enabled = $this->readSettings()['undo_enabled'] ?? null;

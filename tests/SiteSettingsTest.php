@@ -254,18 +254,66 @@ test('保存値がなければAPP_TITLE相当の初期値を返す', function ()
         {
         }
 
-        public function postingEnabled(): ?bool { return null; }
-        public function setPostingEnabled(bool $enabled): void {}
-        public function resetPostingEnabled(): void {}
-        public function maintenanceEnabled(): ?bool { return null; }
-        public function setMaintenanceEnabled(bool $enabled): void {}
-        public function resetMaintenanceEnabled(): void {}
-        public function maintenanceMessage(): ?string { return null; }
-        public function setMaintenanceMessage(string $message): void {}
-        public function resetMaintenanceMessage(): void {}
-        public function maintenanceEndsAt(): ?string { return null; }
-        public function setMaintenanceEndsAt(string $endsAt): void {}
-        public function resetMaintenanceEndsAt(): void {}
+        public function postingEnabled(): ?bool
+        {
+            return null;
+        }
+        public function setPostingEnabled(bool $enabled): void
+        {
+        }
+        public function resetPostingEnabled(): void
+        {
+        }
+        public function maintenanceEnabled(): ?bool
+        {
+            return null;
+        }
+        public function setMaintenanceEnabled(bool $enabled): void
+        {
+        }
+        public function resetMaintenanceEnabled(): void
+        {
+        }
+        public function maintenanceMessage(): ?string
+        {
+            return null;
+        }
+        public function setMaintenanceMessage(string $message): void
+        {
+        }
+        public function resetMaintenanceMessage(): void
+        {
+        }
+        public function maintenanceEndsAt(): ?string
+        {
+            return null;
+        }
+        public function setMaintenanceEndsAt(string $endsAt): void
+        {
+        }
+        public function resetMaintenanceEndsAt(): void
+        {
+        }
+        public function auditMode(): ?string
+        {
+            return null;
+        }
+        public function setAuditMode(string $mode): void
+        {
+        }
+        public function resetAuditMode(): void
+        {
+        }
+        public function auditRetentionDays(): ?int
+        {
+            return null;
+        }
+        public function setAuditRetentionDays(int $days): void
+        {
+        }
+        public function resetAuditRetentionDays(): void
+        {
+        }
 
         public function adminPasswordHash(): ?string
         {
@@ -461,18 +509,66 @@ test('保存先を読み込めない場合も初期タイトルを返す', funct
         {
         }
 
-        public function postingEnabled(): ?bool { return null; }
-        public function setPostingEnabled(bool $enabled): void {}
-        public function resetPostingEnabled(): void {}
-        public function maintenanceEnabled(): ?bool { return null; }
-        public function setMaintenanceEnabled(bool $enabled): void {}
-        public function resetMaintenanceEnabled(): void {}
-        public function maintenanceMessage(): ?string { return null; }
-        public function setMaintenanceMessage(string $message): void {}
-        public function resetMaintenanceMessage(): void {}
-        public function maintenanceEndsAt(): ?string { return null; }
-        public function setMaintenanceEndsAt(string $endsAt): void {}
-        public function resetMaintenanceEndsAt(): void {}
+        public function postingEnabled(): ?bool
+        {
+            return null;
+        }
+        public function setPostingEnabled(bool $enabled): void
+        {
+        }
+        public function resetPostingEnabled(): void
+        {
+        }
+        public function maintenanceEnabled(): ?bool
+        {
+            return null;
+        }
+        public function setMaintenanceEnabled(bool $enabled): void
+        {
+        }
+        public function resetMaintenanceEnabled(): void
+        {
+        }
+        public function maintenanceMessage(): ?string
+        {
+            return null;
+        }
+        public function setMaintenanceMessage(string $message): void
+        {
+        }
+        public function resetMaintenanceMessage(): void
+        {
+        }
+        public function maintenanceEndsAt(): ?string
+        {
+            return null;
+        }
+        public function setMaintenanceEndsAt(string $endsAt): void
+        {
+        }
+        public function resetMaintenanceEndsAt(): void
+        {
+        }
+        public function auditMode(): ?string
+        {
+            return null;
+        }
+        public function setAuditMode(string $mode): void
+        {
+        }
+        public function resetAuditMode(): void
+        {
+        }
+        public function auditRetentionDays(): ?int
+        {
+            return null;
+        }
+        public function setAuditRetentionDays(int $days): void
+        {
+        }
+        public function resetAuditRetentionDays(): void
+        {
+        }
 
         public function adminPasswordHash(): ?string
         {
@@ -648,6 +744,22 @@ test('過去ログ公開日数を保存して検証する', function () {
         if (is_file($filename . '.lock')) {
             unlink($filename . '.lock');
         }
+    }
+});
+
+test('投稿者監査モードと保存日数を保存して検証する', function () {
+    $filename = sys_get_temp_dir() . '/audit-settings-' . bin2hex(random_bytes(8)) . '.json';
+    $settings = new SiteSettings(new FileSiteSettingsRepository($filename), new NullLogger(), '初期タイトル', 500);
+    try {
+        expect($settings->auditMode())->toBe('pseudonymous')->and($settings->auditRetentionDays())->toBe(30);
+        $settings->setAuditSettings('raw', 14);
+        expect($settings->auditMode())->toBe('raw')->and($settings->auditRetentionDays())->toBe(14);
+        expect(fn () => $settings->setAuditSettings('invalid', 14))->toThrow(InvalidArgumentException::class)
+            ->and(fn () => $settings->setAuditSettings('none', 0))->toThrow(InvalidArgumentException::class);
+        $settings->resetAuditSettings();
+        expect($settings->auditMode())->toBe('pseudonymous')->and($settings->auditRetentionDays())->toBe(30);
+    } finally {
+        @unlink($filename);
     }
 });
 

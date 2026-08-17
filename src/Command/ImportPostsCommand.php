@@ -101,7 +101,7 @@ final class ImportPostsCommand extends Command
             || str_starts_with(ltrim($text), '{') ? 'jsonl' : 'legacy-html';
     }
 
-    /** @return list<array{posted_at:string, post_id:int, thread_id:int, location:string, host:?string, user_agent:?string, author:string, email:string, title:string, message:string, auto_link:bool, reply_to:?int}> */
+    /** @return list<array{posted_at:string, post_id:int, thread_id:int, location:string, author:string, email:string, title:string, message:string, auto_link:bool, reply_to:?int}> */
     private function readJsonl(string $text): array
     {
         $records = [];
