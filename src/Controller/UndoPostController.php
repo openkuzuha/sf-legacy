@@ -4,13 +4,13 @@ namespace App\Controller;
 
 use App\Post\PostRepository;
 use App\Settings\SiteSettings;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Twig\Environment;
 
 final class UndoPostController
 {
@@ -18,6 +18,7 @@ final class UndoPostController
         private readonly PostRepository $posts,
         private readonly UrlGeneratorInterface $urlGenerator,
         private readonly SiteSettings $siteSettings,
+        private readonly Environment $twig,
     ) {
     }
 
@@ -45,6 +46,9 @@ final class UndoPostController
         }
         $session->remove('post_undo');
 
-        return new RedirectResponse($this->urlGenerator->generate('app_hello'), Response::HTTP_SEE_OTHER);
+        return new Response($this->twig->render('bbs/undo_complete.html.twig', [
+            'app_title' => $this->siteSettings->title(),
+            'return_to' => $this->urlGenerator->generate('app_hello'),
+        ]));
     }
 }

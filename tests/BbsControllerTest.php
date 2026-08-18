@@ -154,9 +154,13 @@ test('自分の直前の投稿だけを×ボタンから削除する', function 
     $this->assertSelectorExists('.undo-form > button.undo-mark[type="submit"]');
     $this->assertSelectorTextSame('.undo-form > button.undo-mark', '✕');
     expect($undoForm->ancestors()->filter('.m')->text())->toContain($deletedMessage);
-    $client->submit($undoForm->form());
-    $crawler = $client->followRedirect();
+    $crawler = $client->submit($undoForm->form());
 
+    $this->assertResponseIsSuccessful();
+    $this->assertSelectorTextSame('.page-title a[href="/"]', '消去完了');
+    $this->assertSelectorCount(0, '.page-header');
+
+    $crawler = $client->click($crawler->selectLink('消去完了')->link());
     $this->assertSelectorTextContains('main', $keptMessage);
     $this->assertSelectorTextNotContains('main', $deletedMessage);
     $this->assertSelectorCount(0, 'form[action$="/undo"]');
