@@ -53,6 +53,12 @@
                 AUDIT_HMAC_KEY: 未設定（仮名化して記録は動作しません）。過去の投稿を含め、該当する監査ログは表示されません。
             </p>
         {% endif %}
+        {% if host_audit_mode != 'none' or ua_audit_mode != 'none' %}
+            <p class="mt-1 text-xs text-white/50">
+                ホストまたはUAの片方だけが一致していても、キャリアNATや共有Wi-Fiなど別人が同じ値を持つ場合があるため同一人物の証拠にはなりません。
+                このページ内でホスト・UAの両方が一致する投稿には「両方一致」の印を付けています。
+            </p>
+        {% endif %}
         {% if audit_filter %}
             <p class="mt-2 rounded-lg border border-sky-200/30 bg-sky-400/10 px-3 py-2 text-xs text-sky-100 break-all">
                 {{ audit_filter.label }}が「{{ audit_filter.value }}」と一致する投稿のみ表示中
@@ -93,8 +99,9 @@
                         {% set audit = audit_records[post.post_id] ?? null %}
                         {% set host_field = audit and audit.ip_address is defined ? 'ip_address' : (audit and audit.network_token is defined ? 'network_token' : null) %}
                         {% set ua_field = audit and audit.user_agent is defined ? 'user_agent' : (audit and audit.client_token is defined ? 'client_token' : null) %}
+                        {% set strong_match_ids = strong_matches[post.post_id] ?? [] %}
                         {% if post.email or host_field or ua_field %}
-                            <p class="mt-2 flex flex-wrap gap-x-3 gap-y-1 break-all text-xs text-white/45">
+                            <p class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 break-all text-xs text-white/45">
                                 {% if post.email %}
                                     <span>メール：{{ post.email }}</span>
                                 {% endif %}
@@ -103,6 +110,14 @@
                                 {% endif %}
                                 {% if ua_field %}
                                     <a class="underline" href="{{ path('app_admin_posts', {audit_field: ua_field, audit_value: audit[ua_field]}) }}" title="同じUAの投稿を一覧">{{ audit_field_labels[ua_field] }}：{{ audit[ua_field] }}</a>
+                                {% endif %}
+                                {% if strong_match_ids %}
+                                    <span class="inline-flex flex-wrap items-center gap-1 rounded-full border border-red-300/40 bg-red-500/15 px-2 py-0.5 font-semibold text-red-100" title="ホストとUAの両方が一致する投稿があります">
+                                        両方一致：
+                                        {% for match_id in strong_match_ids %}
+                                            <a class="underline" href="#admin-post-{{ match_id }}">#{{ match_id }}</a>{{ not loop.last ? '、' : '' }}
+                                        {% endfor %}
+                                    </span>
                                 {% endif %}
                             </p>
                         {% endif %}

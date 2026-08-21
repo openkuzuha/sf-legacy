@@ -932,12 +932,14 @@ final class AdminController
             static fn (array $post): array => ['post_id' => $post['post_id'], 'posted_at' => $post['posted_at']],
             $posts,
         ));
+        $strongMatches = $this->findStrongAuditMatches($posts, $auditRecords);
 
         return new Response($this->twig->render('admin/posts.html.twig', [
             'app_title' => $this->siteSettings->title(),
             'admin_name' => $this->siteSettings->adminName(),
             'posts' => $posts,
             'audit_records' => $auditRecords,
+            'strong_matches' => $strongMatches,
             'audit_field_labels' => self::AUDIT_FIELD_LABELS,
             'audit_filter' => $auditFilter,
             'host_audit_mode' => $this->siteSettings->hostAuditMode(),
@@ -1035,6 +1037,54 @@ final class AdminController
         }
 
         return $this->redirectToPosts($request);
+    }
+
+    /**
+     * @param list<array{post_id: int, posted_at: string}> $posts
+     * @param array<int, array<string, bool|int|string|null>> $auditRecords
+     * @return array<int, list<int>> post_idをキーにした、ホストとUAが両方一致する他の投稿ID一覧
+     */
+    private function findStrongAuditMatches(array $posts, array $auditRecords): array
+    {
+        $groups = [];
+        foreach ($posts as $post) {
+            $audit = $auditRecords[$post['post_id']] ?? null;
+            if ($audit === null) {
+                continue;
+            }
+            $hostField = match (true) {
+                array_key_exists('ip_address', $audit) => 'ip_address',
+                array_key_exists('network_token', $audit) => 'network_token',
+                default => null,
+            };
+            $uaField = match (true) {
+                array_key_exists('user_agent', $audit) => 'user_agent',
+                array_key_exists('client_token', $audit) => 'client_token',
+                default => null,
+            };
+            if ($hostField === null || $uaField === null) {
+                continue;
+            }
+            $hostValue = $audit[$hostField];
+            $uaValue = $audit[$uaField];
+            if (!is_string($hostValue) || !is_string($uaValue) || $hostValue === '' || $uaValue === '') {
+                continue;
+            }
+            $key = $hostField . ':' . $hostValue . '|' . $uaField . ':' . $uaValue;
+            $groups[$key][] = $post['post_id'];
+        }
+
+        $matches = [];
+        foreach ($groups as $postIds) {
+            if (count($postIds) < 2) {
+                continue;
+            }
+            foreach ($postIds as $postId) {
+                $matches[$postId] = array_values(array_diff($postIds, [$postId]));
+            }
+        }
+
+        return $matches;
     }
 
     private function validateAdminPost(string $title, string $message): void
