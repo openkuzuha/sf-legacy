@@ -2,6 +2,7 @@
 
 namespace App\Tests;
 
+use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DependencyInjection\Container;
@@ -16,6 +17,12 @@ abstract class TestCase extends WebTestCase
     public static function createClient(array $options = [], array $server = []): KernelBrowser
     {
         $client = parent::createClient($options, $server);
+        $rateLimiterCache = self::getContainer()->get('cache.rate_limiter');
+        if (!$rateLimiterCache instanceof CacheItemPoolInterface) {
+            throw new \LogicException('レートリミッターのキャッシュが設定されていません。');
+        }
+        $rateLimiterCache->clear();
+
         $limiter = self::getContainer()->get('limiter.post');
         if (!$limiter instanceof RateLimiterFactoryInterface) {
             throw new \LogicException('投稿レートリミッターが設定されていません。');

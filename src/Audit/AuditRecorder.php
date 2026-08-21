@@ -25,37 +25,63 @@ final class AuditRecorder
         ?string $ipAddress,
         ?string $userAgent,
     ): void {
-        $mode = $this->settings->auditMode();
-        if ($mode === 'none') {
+        $hostMode = $this->settings->hostAuditMode();
+        $uaMode = $this->settings->uaAuditMode();
+        if ($hostMode === 'none' && $uaMode === 'none') {
             return;
         }
-        if ($ipAddress === null || $this->identity->isConfigured() === false) {
+        if ($ipAddress === null) {
             $this->logger->error('投稿者監査情報を記録できません。', [
                 'request_id' => $requestId,
-                'reason' => $ipAddress === null ? 'client_ip_missing' : 'audit_hmac_key_missing',
+                'reason' => 'client_ip_missing',
             ]);
 
             return;
         }
-        $recordedAt = new DateTimeImmutable('now', new DateTimeZone('UTC'));
-        $tokens = $this->identity->tokens($ipAddress, $userAgent ?? '', $recordedAt);
-        if ($tokens === null) {
-            $this->logger->error('投稿者監査用の識別子を生成できません。', ['request_id' => $requestId]);
 
-            return;
-        }
+        $recordedAt = new DateTimeImmutable('now', new DateTimeZone('UTC'));
         $record = [
             'version' => 1,
             'recorded_at' => $recordedAt->format('Y-m-d\TH:i:s\Z'),
             'request_id' => $requestId,
             'location' => $location,
             'post_id' => $postId,
-            ...$tokens,
         ];
-        if ($mode === 'raw') {
+
+        if ($hostMode === 'raw') {
             $record['ip_address'] = $ipAddress;
-            $record['user_agent'] = $userAgent;
+        } elseif ($hostMode === 'pseudonymous') {
+            $networkToken = $this->identity->networkToken($ipAddress, $recordedAt);
+            if ($networkToken === null) {
+                $this->logger->error('投稿者監査用のホスト識別子を生成できません。', [
+                    'request_id' => $requestId,
+                    'reason' => $this->identity->isConfigured() ? 'token_generation_failed' : 'audit_hmac_key_missing',
+                ]);
+            } else {
+                $record['network_token'] = $networkToken;
+            }
         }
+
+        if ($uaMode === 'raw') {
+            $record['user_agent'] = $userAgent;
+        } elseif ($uaMode === 'pseudonymous') {
+            $clientToken = $this->identity->clientToken($userAgent ?? '', $recordedAt);
+            if ($clientToken === null) {
+                $this->logger->error('投稿者監査用のUA識別子を生成できません。', [
+                    'request_id' => $requestId,
+                    'reason' => $this->identity->isConfigured() ? 'token_generation_failed' : 'audit_hmac_key_missing',
+                ]);
+            } else {
+                $record['client_token'] = $clientToken;
+            }
+        }
+
+        $hasHostInfo = isset($record['ip_address']) || isset($record['network_token']);
+        $hasUaInfo = isset($record['user_agent']) || isset($record['client_token']);
+        if (!$hasHostInfo && !$hasUaInfo) {
+            return;
+        }
+
         try {
             $this->log->write($record, $this->settings->auditRetentionDays());
         } catch (Throwable $exception) {

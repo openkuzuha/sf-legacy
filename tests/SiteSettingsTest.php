@@ -294,14 +294,24 @@ test('保存値がなければAPP_TITLE相当の初期値を返す', function ()
         public function resetMaintenanceEndsAt(): void
         {
         }
-        public function auditMode(): ?string
+        public function hostAuditMode(): ?string
         {
             return null;
         }
-        public function setAuditMode(string $mode): void
+        public function setHostAuditMode(string $mode): void
         {
         }
-        public function resetAuditMode(): void
+        public function resetHostAuditMode(): void
+        {
+        }
+        public function uaAuditMode(): ?string
+        {
+            return null;
+        }
+        public function setUaAuditMode(string $mode): void
+        {
+        }
+        public function resetUaAuditMode(): void
         {
         }
         public function auditRetentionDays(): ?int
@@ -549,14 +559,24 @@ test('保存先を読み込めない場合も初期タイトルを返す', funct
         public function resetMaintenanceEndsAt(): void
         {
         }
-        public function auditMode(): ?string
+        public function hostAuditMode(): ?string
         {
             return null;
         }
-        public function setAuditMode(string $mode): void
+        public function setHostAuditMode(string $mode): void
         {
         }
-        public function resetAuditMode(): void
+        public function resetHostAuditMode(): void
+        {
+        }
+        public function uaAuditMode(): ?string
+        {
+            return null;
+        }
+        public function setUaAuditMode(string $mode): void
+        {
+        }
+        public function resetUaAuditMode(): void
         {
         }
         public function auditRetentionDays(): ?int
@@ -751,13 +771,20 @@ test('投稿者監査モードと保存日数を保存して検証する', funct
     $filename = sys_get_temp_dir() . '/audit-settings-' . bin2hex(random_bytes(8)) . '.json';
     $settings = new SiteSettings(new FileSiteSettingsRepository($filename), new NullLogger(), '初期タイトル', 500);
     try {
-        expect($settings->auditMode())->toBe('pseudonymous')->and($settings->auditRetentionDays())->toBe(30);
-        $settings->setAuditSettings('raw', 14);
-        expect($settings->auditMode())->toBe('raw')->and($settings->auditRetentionDays())->toBe(14);
-        expect(fn () => $settings->setAuditSettings('invalid', 14))->toThrow(InvalidArgumentException::class)
-            ->and(fn () => $settings->setAuditSettings('none', 0))->toThrow(InvalidArgumentException::class);
+        expect($settings->hostAuditMode())->toBe('pseudonymous')
+            ->and($settings->uaAuditMode())->toBe('pseudonymous')
+            ->and($settings->auditRetentionDays())->toBe(30);
+        $settings->setAuditSettings('raw', 'none', 14);
+        expect($settings->hostAuditMode())->toBe('raw')
+            ->and($settings->uaAuditMode())->toBe('none')
+            ->and($settings->auditRetentionDays())->toBe(14);
+        expect(fn () => $settings->setAuditSettings('invalid', 'none', 14))->toThrow(InvalidArgumentException::class)
+            ->and(fn () => $settings->setAuditSettings('none', 'invalid', 14))->toThrow(InvalidArgumentException::class)
+            ->and(fn () => $settings->setAuditSettings('none', 'none', 0))->toThrow(InvalidArgumentException::class);
         $settings->resetAuditSettings();
-        expect($settings->auditMode())->toBe('pseudonymous')->and($settings->auditRetentionDays())->toBe(30);
+        expect($settings->hostAuditMode())->toBe('pseudonymous')
+            ->and($settings->uaAuditMode())->toBe('pseudonymous')
+            ->and($settings->auditRetentionDays())->toBe(30);
     } finally {
         @unlink($filename);
     }

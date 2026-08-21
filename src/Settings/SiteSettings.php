@@ -361,15 +361,31 @@ final class SiteSettings
         $this->repository->resetMaintenanceEndsAt();
     }
 
-    public function auditMode(): string
+    public function hostAuditMode(): string
     {
         try {
-            $mode = $this->repository->auditMode() ?? 'pseudonymous';
+            $mode = $this->repository->hostAuditMode() ?? 'pseudonymous';
             $this->validateAuditMode($mode);
 
             return $mode;
         } catch (RuntimeException | InvalidArgumentException $exception) {
-            $this->logger->warning('投稿者監査モードを読み込めないため、仮名化モードを使用します。', [
+            $this->logger->warning('投稿者監査モード（ホスト）を読み込めないため、仮名化モードを使用します。', [
+                'exception' => $exception,
+            ]);
+
+            return 'pseudonymous';
+        }
+    }
+
+    public function uaAuditMode(): string
+    {
+        try {
+            $mode = $this->repository->uaAuditMode() ?? 'pseudonymous';
+            $this->validateAuditMode($mode);
+
+            return $mode;
+        } catch (RuntimeException | InvalidArgumentException $exception) {
+            $this->logger->warning('投稿者監査モード（UA）を読み込めないため、仮名化モードを使用します。', [
                 'exception' => $exception,
             ]);
 
@@ -393,17 +409,20 @@ final class SiteSettings
         }
     }
 
-    public function setAuditSettings(string $mode, int $retentionDays): void
+    public function setAuditSettings(string $hostMode, string $uaMode, int $retentionDays): void
     {
-        $this->validateAuditMode($mode);
+        $this->validateAuditMode($hostMode);
+        $this->validateAuditMode($uaMode);
         $this->validateAuditRetentionDays($retentionDays);
-        $this->repository->setAuditMode($mode);
+        $this->repository->setHostAuditMode($hostMode);
+        $this->repository->setUaAuditMode($uaMode);
         $this->repository->setAuditRetentionDays($retentionDays);
     }
 
     public function resetAuditSettings(): void
     {
-        $this->repository->resetAuditMode();
+        $this->repository->resetHostAuditMode();
+        $this->repository->resetUaAuditMode();
         $this->repository->resetAuditRetentionDays();
     }
 

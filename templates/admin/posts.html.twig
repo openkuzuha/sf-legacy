@@ -2,12 +2,136 @@
 
 {% block admin_content %}
     <h2 class="mb-4 text-xl font-bold tracking-wide">投稿記事管理</h2>
-    <div class="rounded-xl border border-dashed border-white/25 bg-white/5 px-6 py-12 text-center shadow-inner">
-        <svg class="mx-auto mb-3 size-10 text-white/60" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 4.5h12A1.5 1.5 0 0 1 19.5 6v12a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 18V6A1.5 1.5 0 0 1 6 4.5Z" />
-            <path stroke-linecap="round" d="M8 9h8M8 12.5h8M8 16h5" />
-        </svg>
-        <p class="font-semibold">投稿記事管理は現在作成中です。</p>
-        <p class="mt-1 text-sm text-white/60">記事の検索・編集・削除機能を追加予定です。</p>
-    </div>
+
+    {% set base_params = {} %}
+    {% if before %}
+        {% set base_params = base_params|merge({before: before}) %}
+    {% endif %}
+    {% if audit_filter %}
+        {% set base_params = base_params|merge({audit_field: audit_filter.field, audit_value: audit_filter.value}) %}
+    {% endif %}
+
+    <section class="admin-settings rounded-xl border border-white/15 bg-white/5 p-4 shadow-sm sm:p-5">
+        <h3>{{ reply_to ? '返信を投稿' : '新規投稿' }}</h3>
+        {% if reply_to %}
+            <p class="mt-2 text-sm text-white/70">
+                返信先：#{{ reply_to.post_id }}
+                {{ include('bbs/_author_name.html.twig', {post: reply_to}) }}
+                「{{ reply_to.title }}」
+                ／ <a class="underline" href="{{ path('app_admin_posts', base_params) }}">返信をやめる</a>
+            </p>
+        {% endif %}
+        <form id="post-form" class="mt-4 grid max-w-lg gap-4" action="{{ path('app_admin_post_create') }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin_post_create') }}">
+            {% if reply_to %}
+                <input type="hidden" name="reply_to" value="{{ reply_to.post_id }}">
+            {% endif %}
+            <p class="text-sm text-white/65">投稿者名：<strong class="text-white">{{ admin_name }}</strong>（固定）</p>
+            <div class="grid gap-1.5">
+                <label class="text-sm font-semibold text-white" for="title">題名</label>
+                <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20" id="title" name="title" type="text" maxlength="{{ max_title_chars }}" data-character-limit="{{ max_title_chars }}" aria-describedby="title-limit">
+                <output id="title-limit" class="post-input-limit text-xs text-amber-300" for="title" aria-live="polite"></output>
+            </div>
+            <div class="grid gap-1.5">
+                <label class="text-sm font-semibold text-white" for="content">内容</label>
+                <textarea class="min-h-32 w-full resize-y rounded-md border border-white/25 bg-black/15 px-3 py-2 text-sm text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20 aria-invalid:border-red-400 aria-invalid:bg-red-500/10" id="content" name="message" rows="6" data-message-char-limit="{{ max_message_chars }}" data-message-line-limit="{{ max_message_lines }}" data-line-char-limit="{{ max_line_chars }}" aria-describedby="content-limit" required></textarea>
+                <output id="content-limit" class="post-input-limit text-xs text-amber-300" for="content" aria-live="polite"></output>
+            </div>
+            <button class="justify-self-start rounded-md bg-teal-600 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-teal-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">{{ reply_to ? '返信する' : '投稿する' }}</button>
+        </form>
+    </section>
+
+    <section class="admin-settings mt-5 rounded-xl border border-white/15 bg-white/5 p-4 shadow-sm sm:p-5">
+        <h3>投稿一覧</h3>
+        {% set audit_mode_labels = {none: '記録しない', pseudonymous: '仮名化して記録', raw: '生データを記録'} %}
+        <p class="mt-1 text-xs text-white/50">
+            投稿者監査：ホスト＝{{ audit_mode_labels[host_audit_mode] ?? host_audit_mode }}／UA＝{{ audit_mode_labels[ua_audit_mode] ?? ua_audit_mode }}
+            （<a class="underline" href="{{ path('app_admin_settings') }}">設定を変更</a>）
+        </p>
+        {% if (host_audit_mode == 'pseudonymous' or ua_audit_mode == 'pseudonymous') and not audit_key_configured %}
+            <p class="mt-1 text-xs text-amber-100">
+                AUDIT_HMAC_KEY: 未設定（仮名化して記録は動作しません）。過去の投稿を含め、該当する監査ログは表示されません。
+            </p>
+        {% endif %}
+        {% if audit_filter %}
+            <p class="mt-2 rounded-lg border border-sky-200/30 bg-sky-400/10 px-3 py-2 text-xs text-sky-100 break-all">
+                {{ audit_filter.label }}が「{{ audit_filter.value }}」と一致する投稿のみ表示中
+                （<a class="underline" href="{{ path('app_admin_posts') }}">絞り込みを解除</a>）
+            </p>
+        {% endif %}
+        {% if posts %}
+            <ul class="mt-4 grid list-none gap-3">
+                {% for post in posts %}
+                    <li class="rounded-lg border border-white/15 bg-black/10 p-3" id="admin-post-{{ post.post_id }}">
+                        <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-white/60">
+                            <span>
+                                #{{ post.post_id }}
+                                ／ <time datetime="{{ post.posted_at }}">{{ post.posted_at|bbs_datetime }}</time>
+                                ／ 投稿者：<span class="text-white/80">{{ include('bbs/_author_name.html.twig', {post: post}) }}</span>
+                            </span>
+                            <span class="flex items-center gap-3">
+                                <a class="inline-flex items-center gap-0.5 whitespace-nowrap underline" href="{{ path('app_thread', {threadId: post.thread_id}) }}" target="_blank" rel="noopener noreferrer">
+                                    スレッド表示
+                                    <svg class="size-2.5 shrink-0" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H18m0 0v4.5M18 6l-8 8m-3.5-8H6a2 2 0 0 0-2 2v9.5a2 2 0 0 0 2 2h9.5a2 2 0 0 0 2-2V13" />
+                                    </svg>
+                                </a>
+                                <a class="underline" href="{{ path('app_admin_posts', base_params|merge({reply_to: post.post_id})) }}">返信</a>
+                                <form action="{{ path('app_admin_post_delete', {postId: post.post_id}) }}" method="post" data-confirm="この投稿を削除しますか？（元に戻せません）">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('admin_post_delete') }}">
+                                    {% for key, value in base_params %}
+                                        <input type="hidden" name="{{ key }}" value="{{ value }}">
+                                    {% endfor %}
+                                    <button class="rounded-md border border-red-300/40 bg-red-500/10 px-2 py-1 font-semibold text-red-200 transition hover:bg-red-500/20" type="submit">削除</button>
+                                </form>
+                            </span>
+                        </div>
+                        {% if post.title %}
+                            <p class="mt-2 font-semibold text-white">{{ post.title }}</p>
+                        {% endif %}
+                        <pre class="mt-1 whitespace-pre-wrap break-words text-sm text-white/85">{{ post.message|message_html(post.auto_link) }}</pre>
+                        {% set audit = audit_records[post.post_id] ?? null %}
+                        {% set host_field = audit and audit.ip_address is defined ? 'ip_address' : (audit and audit.network_token is defined ? 'network_token' : null) %}
+                        {% set ua_field = audit and audit.user_agent is defined ? 'user_agent' : (audit and audit.client_token is defined ? 'client_token' : null) %}
+                        {% if post.email or host_field or ua_field %}
+                            <p class="mt-2 flex flex-wrap gap-x-3 gap-y-1 break-all text-xs text-white/45">
+                                {% if post.email %}
+                                    <span>メール：{{ post.email }}</span>
+                                {% endif %}
+                                {% if host_field %}
+                                    <a class="underline" href="{{ path('app_admin_posts', {audit_field: host_field, audit_value: audit[host_field]}) }}" title="同じホストの投稿を一覧">{{ audit_field_labels[host_field] }}：{{ audit[host_field] }}</a>
+                                {% endif %}
+                                {% if ua_field %}
+                                    <a class="underline" href="{{ path('app_admin_posts', {audit_field: ua_field, audit_value: audit[ua_field]}) }}" title="同じUAの投稿を一覧">{{ audit_field_labels[ua_field] }}：{{ audit[ua_field] }}</a>
+                                {% endif %}
+                            </p>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+            <nav class="page-actions mt-4" aria-label="ページ操作">
+                {% if next_before %}
+                    <form action="{{ path('app_admin_posts') }}" method="get">
+                        {% for key, value in base_params|merge({before: next_before}) %}
+                            <input type="hidden" name="{{ key }}" value="{{ value }}">
+                        {% endfor %}
+                        <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">次のページ</button>
+                    </form>
+                {% endif %}
+                {% if before %}
+                    <form action="{{ path('app_admin_posts') }}" method="get">
+                        {% if audit_filter %}
+                            <input type="hidden" name="audit_field" value="{{ audit_filter.field }}">
+                            <input type="hidden" name="audit_value" value="{{ audit_filter.value }}">
+                        {% endif %}
+                        <button class="rounded-md border border-white/45 bg-white/10 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">最初のページへ戻る</button>
+                    </form>
+                {% endif %}
+            </nav>
+        {% else %}
+            <p class="mt-4 text-sm text-white/60">
+                {{ audit_filter ? '一致する投稿はありません。' : '投稿はまだありません。' }}
+            </p>
+        {% endif %}
+    </section>
 {% endblock %}

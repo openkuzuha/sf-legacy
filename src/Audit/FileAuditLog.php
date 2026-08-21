@@ -50,6 +50,94 @@ final class FileAuditLog implements AuditLog
         $this->prune($retentionDays);
     }
 
+    public function findByPosts(string $location, array $posts): array
+    {
+        $wantedPostIds = array_flip(array_column($posts, 'post_id'));
+        $dates = [];
+        foreach ($posts as $post) {
+            try {
+                $postedAt = new DateTimeImmutable($post['posted_at']);
+            } catch (\Exception) {
+                continue;
+            }
+            $dates[$postedAt->setTimezone(new DateTimeZone($this->appTimezone))->format('Y/m/d')] = true;
+        }
+
+        $results = [];
+        foreach (array_keys($dates) as $date) {
+            $filename = sprintf('%s/%s.jsonl', rtrim($this->directory, '/'), $date);
+            $lines = is_file($filename) ? file($filename, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) : false;
+            if ($lines === false) {
+                continue;
+            }
+            foreach ($lines as $line) {
+                try {
+                    $record = $this->sanitizeRecord(json_decode($line, true, flags: JSON_THROW_ON_ERROR));
+                } catch (JsonException) {
+                    continue;
+                }
+                $postId = $record['post_id'] ?? null;
+                if (
+                    $record !== null
+                    && ($record['location'] ?? null) === $location
+                    && is_int($postId)
+                    && isset($wantedPostIds[$postId])
+                ) {
+                    $results[$postId] = $record;
+                }
+            }
+        }
+
+        return $results;
+    }
+
+    public function findPostIds(string $location, string $field, string $value): array
+    {
+        $postIds = [];
+        foreach (glob(rtrim($this->directory, '/') . '/*/*/*.jsonl') ?: [] as $filename) {
+            $lines = file($filename, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            if ($lines === false) {
+                continue;
+            }
+            foreach ($lines as $line) {
+                try {
+                    $record = $this->sanitizeRecord(json_decode($line, true, flags: JSON_THROW_ON_ERROR));
+                } catch (JsonException) {
+                    continue;
+                }
+                $postId = $record['post_id'] ?? null;
+                if (
+                    $record !== null
+                    && ($record['location'] ?? null) === $location
+                    && ($record[$field] ?? null) === $value
+                    && is_int($postId)
+                ) {
+                    $postIds[] = $postId;
+                }
+            }
+        }
+
+        return $postIds;
+    }
+
+    /** @return array<string, bool|int|string|null>|null */
+    private function sanitizeRecord(mixed $record): ?array
+    {
+        if (!is_array($record)) {
+            return null;
+        }
+        $sanitized = [];
+        foreach ($record as $key => $value) {
+            $isScalarOrNull = is_bool($value) || is_int($value) || is_string($value) || $value === null;
+            if (!is_string($key) || !$isScalarOrNull) {
+                return null;
+            }
+            $sanitized[$key] = $value;
+        }
+
+        return $sanitized;
+    }
+
     private function prune(int $retentionDays): void
     {
         $cutoff = (new DateTimeImmutable('today', new DateTimeZone($this->appTimezone)))

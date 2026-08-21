@@ -2,7 +2,10 @@
 
 namespace App\Controller;
 
+use App\Audit\AdminActionRecorder;
 use App\Audit\AuditIdentity;
+use App\Audit\AuditLog;
+use App\Http\RequestIdSubscriber;
 use App\Post\PostRepository;
 use App\Post\PostArchive;
 use App\Settings\AdminPassword;
@@ -23,6 +26,13 @@ use Twig\Environment;
 final class AdminController
 {
     private const string SESSION_KEY = 'admin_password_fingerprint';
+    private const int POSTS_PAGE_SIZE = 50;
+    private const array AUDIT_FIELD_LABELS = [
+        'ip_address' => 'ホスト',
+        'network_token' => 'ホスト（仮名化）',
+        'user_agent' => 'UA',
+        'client_token' => 'UA（仮名化）',
+    ];
 
     public function __construct(
         private readonly SiteSettings $siteSettings,
@@ -30,6 +40,8 @@ final class AdminController
         private readonly PostArchive $archive,
         private readonly AdminPassword $adminPassword,
         private readonly AuditIdentity $auditIdentity,
+        private readonly AuditLog $auditLog,
+        private readonly AdminActionRecorder $adminActionRecorder,
         private readonly Environment $twig,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly RateLimiterFactoryInterface $adminLoginLimiter,
@@ -37,6 +49,8 @@ final class AdminController
         private readonly string $appEnvironment,
         #[Autowire(param: 'app.cloud_mode')]
         private readonly bool $cloudMode,
+        #[Autowire(param: 'app.post_max_title_chars')]
+        private readonly int $maxTitleChars,
     ) {
     }
 
@@ -135,7 +149,8 @@ final class AdminController
             'archive_retention_days' => $this->siteSettings->archiveRetentionDays(),
             'default_archive_retention_days' => $this->siteSettings->defaultArchiveRetentionDays(),
             'archive_public_days' => $this->siteSettings->archivePublicDays(),
-            'audit_mode' => $this->siteSettings->auditMode(),
+            'host_audit_mode' => $this->siteSettings->hostAuditMode(),
+            'ua_audit_mode' => $this->siteSettings->uaAuditMode(),
             'audit_retention_days' => $this->siteSettings->auditRetentionDays(),
             'audit_key_configured' => $this->auditIdentity->isConfigured(),
             'default_archive_public_days' => $this->siteSettings->defaultArchivePublicDays(),
@@ -161,11 +176,15 @@ final class AdminController
             if (filter_var($days, FILTER_VALIDATE_INT) === false) {
                 throw new InvalidArgumentException('投稿者監査情報の保存日数を整数で入力してください。');
             }
-            $mode = $request->request->getString('audit_mode');
-            if ($mode !== 'none' && !$this->auditIdentity->isConfigured()) {
-                throw new InvalidArgumentException('AUDIT_HMAC_KEYを設定してから監査を有効にしてください。');
+            $hostMode = $request->request->getString('host_audit_mode');
+            $uaMode = $request->request->getString('ua_audit_mode');
+            if (
+                ($hostMode === 'pseudonymous' || $uaMode === 'pseudonymous')
+                && !$this->auditIdentity->isConfigured()
+            ) {
+                throw new InvalidArgumentException('AUDIT_HMAC_KEYを設定してから仮名化記録を有効にしてください。');
             }
-            $this->siteSettings->setAuditSettings($mode, (int) $days);
+            $this->siteSettings->setAuditSettings($hostMode, $uaMode, (int) $days);
             $this->addFlash($request->getSession(), 'admin_success', '投稿者監査設定を保存しました。');
         } catch (InvalidArgumentException | RuntimeException $exception) {
             $this->addFlash($request->getSession(), 'admin_error', $exception->getMessage());
@@ -867,9 +886,209 @@ final class AdminController
             return $this->redirectToAdmin();
         }
 
+        $beforePostId = $request->query->getInt('before');
+        $auditField = $request->query->getString('audit_field');
+        $auditValue = $request->query->getString('audit_value');
+        $auditFilter = $auditField !== '' && $auditValue !== '' && isset(self::AUDIT_FIELD_LABELS[$auditField])
+            ? ['field' => $auditField, 'value' => $auditValue, 'label' => self::AUDIT_FIELD_LABELS[$auditField]]
+            : null;
+
+        $allPosts = null;
+        if ($beforePostId > 0 || $auditFilter !== null) {
+            $matchedPostIds = $auditFilter !== null
+                ? array_flip($this->auditLog->findPostIds('main', $auditFilter['field'], $auditFilter['value']))
+                : null;
+            $allPosts = $this->posts->all();
+            $candidates = array_values(array_filter(
+                $allPosts,
+                static function (array $post) use ($beforePostId, $matchedPostIds): bool {
+                    if ($matchedPostIds !== null && !isset($matchedPostIds[$post['post_id']])) {
+                        return false;
+                    }
+
+                    return $beforePostId <= 0 || $post['post_id'] < $beforePostId;
+                },
+            ));
+        } else {
+            $candidates = $this->posts->recent(self::POSTS_PAGE_SIZE + 1);
+        }
+        $hasMore = count($candidates) > self::POSTS_PAGE_SIZE;
+        $posts = array_slice($candidates, 0, self::POSTS_PAGE_SIZE);
+        $nextBefore = $hasMore && $posts !== [] ? $posts[count($posts) - 1]['post_id'] : null;
+
+        $replyToId = $request->query->getInt('reply_to') ?: null;
+        $replyTo = null;
+        if ($replyToId !== null) {
+            $allPosts ??= $this->posts->all();
+            foreach ($allPosts as $post) {
+                if ($post['post_id'] === $replyToId) {
+                    $replyTo = $post;
+                    break;
+                }
+            }
+        }
+
+        $auditRecords = $this->auditLog->findByPosts('main', array_map(
+            static fn (array $post): array => ['post_id' => $post['post_id'], 'posted_at' => $post['posted_at']],
+            $posts,
+        ));
+
         return new Response($this->twig->render('admin/posts.html.twig', [
             'app_title' => $this->siteSettings->title(),
+            'admin_name' => $this->siteSettings->adminName(),
+            'posts' => $posts,
+            'audit_records' => $auditRecords,
+            'audit_field_labels' => self::AUDIT_FIELD_LABELS,
+            'audit_filter' => $auditFilter,
+            'host_audit_mode' => $this->siteSettings->hostAuditMode(),
+            'ua_audit_mode' => $this->siteSettings->uaAuditMode(),
+            'audit_key_configured' => $this->auditIdentity->isConfigured(),
+            'before' => $beforePostId > 0 ? $beforePostId : null,
+            'next_before' => $nextBefore,
+            'reply_to' => $replyTo,
+            'max_message_lines' => $this->siteSettings->maxMessageLines(),
+            'max_line_chars' => $this->siteSettings->maxLineChars(),
+            'max_message_chars' => $this->siteSettings->maxMessageChars(),
+            'max_title_chars' => $this->maxTitleChars,
         ]));
+    }
+
+    #[Route('/admin/posts/new', name: 'app_admin_post_create', methods: ['POST'])]
+    public function createPost(Request $request): Response
+    {
+        if (!$this->isAuthenticated($request)) {
+            return $this->redirectToAdmin();
+        }
+        $token = new CsrfToken('admin_post_create', $request->request->getString('_token'));
+        if (!$this->csrfTokenManager->isTokenValid($token)) {
+            $this->addFlash($request->getSession(), 'admin_error', '入力の有効期限が切れました。');
+
+            return $this->redirectToPosts($request);
+        }
+
+        $title = $request->request->getString('title');
+        $message = $request->request->getString('message');
+        $replyTo = $request->request->getInt('reply_to') ?: null;
+
+        try {
+            $this->validateAdminPost($title, $message);
+
+            $threadId = null;
+            if ($replyTo !== null) {
+                $parent = null;
+                foreach ($this->posts->all() as $post) {
+                    if ($post['post_id'] === $replyTo) {
+                        $parent = $post;
+                        break;
+                    }
+                }
+                if ($parent === null) {
+                    throw new InvalidArgumentException('返信先の投稿が見つかりませんでした。');
+                }
+                $threadId = $parent['thread_id'];
+            }
+
+            $postId = $this->posts->append([
+                'author' => $this->siteSettings->adminName(),
+                'author_spoofed' => false,
+                'email' => '',
+                'title' => $title,
+                'message' => $message,
+                'auto_link' => true,
+                'thread_id' => $threadId,
+                'reply_to' => $replyTo,
+            ]);
+            $this->adminActionRecorder->record(
+                $this->requestId($request),
+                'post_create',
+                $postId,
+                $threadId ?? $postId,
+            );
+            $this->addFlash($request->getSession(), 'admin_success', '投稿しました。');
+
+            return new Response('', Response::HTTP_SEE_OTHER, ['Location' => '/admin/posts']);
+        } catch (InvalidArgumentException | RuntimeException $exception) {
+            $this->addFlash($request->getSession(), 'admin_error', $exception->getMessage());
+        }
+
+        return $this->redirectToPosts($request);
+    }
+
+    #[Route('/admin/posts/{postId<\d+>}/delete', name: 'app_admin_post_delete', methods: ['POST'])]
+    public function deletePost(Request $request, int $postId): Response
+    {
+        if (!$this->isAuthenticated($request)) {
+            return $this->redirectToAdmin();
+        }
+        $token = new CsrfToken('admin_post_delete', $request->request->getString('_token'));
+        if (!$this->csrfTokenManager->isTokenValid($token)) {
+            $this->addFlash($request->getSession(), 'admin_error', '入力の有効期限が切れました。');
+
+            return $this->redirectToPosts($request);
+        }
+
+        if ($this->posts->delete($postId)) {
+            $this->adminActionRecorder->record($this->requestId($request), 'post_delete', $postId, null);
+            $this->addFlash($request->getSession(), 'admin_success', '投稿を削除しました。');
+        } else {
+            $this->addFlash($request->getSession(), 'admin_error', '該当の投稿が見つかりませんでした。');
+        }
+
+        return $this->redirectToPosts($request);
+    }
+
+    private function validateAdminPost(string $title, string $message): void
+    {
+        if (!mb_check_encoding($title . $message, 'UTF-8')) {
+            throw new InvalidArgumentException('投稿内容をUTF-8で入力してください。');
+        }
+        if (trim($message) === '') {
+            throw new InvalidArgumentException('本文を入力してください。');
+        }
+        if (mb_strlen($title) > $this->maxTitleChars) {
+            throw new InvalidArgumentException(sprintf('題名は%d文字以内で入力してください。', $this->maxTitleChars));
+        }
+        $maxMessageChars = $this->siteSettings->maxMessageChars();
+        if (mb_strlen($message) > $maxMessageChars) {
+            throw new InvalidArgumentException(sprintf('本文は全体で%d文字以内で入力してください。', $maxMessageChars));
+        }
+        $lines = explode("\n", str_replace(["\r\n", "\r"], "\n", $message));
+        $maxMessageLines = $this->siteSettings->maxMessageLines();
+        if (count($lines) > $maxMessageLines) {
+            throw new InvalidArgumentException(sprintf('本文は%d行以内で入力してください。', $maxMessageLines));
+        }
+        $maxLineChars = $this->siteSettings->maxLineChars();
+        foreach ($lines as $line) {
+            if (mb_strlen($line) > $maxLineChars) {
+                throw new InvalidArgumentException(sprintf('本文の1行は%d文字以内で入力してください。', $maxLineChars));
+            }
+        }
+    }
+
+    private function requestId(Request $request): string
+    {
+        $requestId = $request->attributes->get(RequestIdSubscriber::ATTRIBUTE);
+
+        return is_string($requestId) ? $requestId : bin2hex(random_bytes(16));
+    }
+
+    private function redirectToPosts(Request $request): Response
+    {
+        $params = [];
+        $before = $request->request->getInt('before');
+        if ($before > 0) {
+            $params['before'] = $before;
+        }
+        $auditField = $request->request->getString('audit_field');
+        $auditValue = $request->request->getString('audit_value');
+        if ($auditField !== '' && $auditValue !== '' && isset(self::AUDIT_FIELD_LABELS[$auditField])) {
+            $params['audit_field'] = $auditField;
+            $params['audit_value'] = $auditValue;
+        }
+
+        return new Response('', Response::HTTP_SEE_OTHER, [
+            'Location' => $params === [] ? '/admin/posts' : '/admin/posts?' . http_build_query($params),
+        ]);
     }
 
     #[Route('/admin/settings/title', name: 'app_admin_title', methods: ['POST'])]
