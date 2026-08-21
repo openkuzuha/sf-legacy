@@ -19,8 +19,7 @@ final class AuditIdentity
         return $this->key !== null;
     }
 
-    /** @return array{network_token:string, client_token:string, actor_token:string}|null */
-    public function tokens(string $ipAddress, string $userAgent, DateTimeImmutable $recordedAt): ?array
+    public function networkToken(string $ipAddress, DateTimeImmutable $recordedAt): ?string
     {
         if ($this->key === null) {
             return null;
@@ -29,13 +28,17 @@ final class AuditIdentity
         if ($binaryIp === false) {
             return null;
         }
-        $period = $recordedAt->format('Y-m');
 
-        return [
-            'network_token' => $this->token('network', $period, $binaryIp),
-            'client_token' => $this->token('client', $period, $userAgent),
-            'actor_token' => $this->token('actor', $period, $binaryIp . "\0" . $userAgent),
-        ];
+        return $this->token('network', $recordedAt->format('Y-m'), $binaryIp);
+    }
+
+    public function clientToken(string $userAgent, DateTimeImmutable $recordedAt): ?string
+    {
+        if ($this->key === null) {
+            return null;
+        }
+
+        return $this->token('client', $recordedAt->format('Y-m'), $userAgent);
     }
 
     private function token(string $purpose, string $period, string $value): string

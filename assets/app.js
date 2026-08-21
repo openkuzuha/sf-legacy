@@ -87,6 +87,30 @@ if (colorSettingsForm instanceof HTMLFormElement) {
     });
 }
 
+const hostAuditModeSelect = document.getElementById('host_audit_mode');
+const uaAuditModeSelect = document.getElementById('ua_audit_mode');
+const auditKeyStatus = document.getElementById('audit-key-status');
+if (
+    hostAuditModeSelect instanceof HTMLSelectElement
+    && uaAuditModeSelect instanceof HTMLSelectElement
+    && auditKeyStatus instanceof HTMLElement
+) {
+    const configured = auditKeyStatus.dataset.auditKeyConfigured === '1';
+
+    const updateAuditKeyStatus = () => {
+        if (configured) {
+            return;
+        }
+        const needsKey = hostAuditModeSelect.value === 'pseudonymous' || uaAuditModeSelect.value === 'pseudonymous';
+        auditKeyStatus.textContent = `AUDIT_HMAC_KEY: ${needsKey ? '未設定（仮名化して記録が動作しません）' : '未設定（不要です）'}`;
+        auditKeyStatus.classList.toggle('text-amber-100', needsKey);
+        auditKeyStatus.classList.toggle('text-white/65', !needsKey);
+    };
+
+    hostAuditModeSelect.addEventListener('change', updateAuditKeyStatus);
+    uaAuditModeSelect.addEventListener('change', updateAuditKeyStatus);
+}
+
 document.addEventListener('click', (event) => {
     const button = event.target.closest('[data-scroll-target]');
     if (!(button instanceof HTMLButtonElement)) {
@@ -99,6 +123,17 @@ document.addEventListener('click', (event) => {
     }
 
     document.getElementById(button.dataset.scrollTarget)?.scrollIntoView();
+});
+
+document.addEventListener('submit', (event) => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement) || !form.dataset.confirm) {
+        return;
+    }
+
+    if (!window.confirm(form.dataset.confirm)) {
+        event.preventDefault();
+    }
 });
 
 document.addEventListener('change', (event) => {

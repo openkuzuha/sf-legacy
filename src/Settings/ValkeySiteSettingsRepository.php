@@ -26,7 +26,8 @@ final class ValkeySiteSettingsRepository implements SiteSettingsRepository
     private const string MAINTENANCE_ENABLED_KEY = 'bbs:settings:maintenance-enabled';
     private const string MAINTENANCE_MESSAGE_KEY = 'bbs:settings:maintenance-message';
     private const string MAINTENANCE_ENDS_AT_KEY = 'bbs:settings:maintenance-ends-at';
-    private const string AUDIT_MODE_KEY = 'bbs:settings:audit-mode';
+    private const string AUDIT_HOST_MODE_KEY = 'bbs:settings:audit-host-mode';
+    private const string AUDIT_UA_MODE_KEY = 'bbs:settings:audit-ua-mode';
     private const string AUDIT_RETENTION_DAYS_KEY = 'bbs:settings:audit-retention-days';
     private const string UNDO_ENABLED_KEY = 'bbs:settings:undo-enabled';
     private const string UNDO_WINDOW_SECONDS_KEY = 'bbs:settings:undo-window-seconds';
@@ -393,19 +394,34 @@ final class ValkeySiteSettingsRepository implements SiteSettingsRepository
         $this->deleteKey(self::MAINTENANCE_ENDS_AT_KEY, 'メンテナンス終了予定日時');
     }
 
-    public function auditMode(): ?string
+    public function hostAuditMode(): ?string
     {
-        return $this->readString(self::AUDIT_MODE_KEY, '投稿者監査モード');
+        return $this->readString(self::AUDIT_HOST_MODE_KEY, '投稿者監査モード（ホスト）');
     }
 
-    public function setAuditMode(string $mode): void
+    public function setHostAuditMode(string $mode): void
     {
-        $this->writeString(self::AUDIT_MODE_KEY, $mode, '投稿者監査モード');
+        $this->writeString(self::AUDIT_HOST_MODE_KEY, $mode, '投稿者監査モード（ホスト）');
     }
 
-    public function resetAuditMode(): void
+    public function resetHostAuditMode(): void
     {
-        $this->deleteKey(self::AUDIT_MODE_KEY, '投稿者監査モード');
+        $this->deleteKey(self::AUDIT_HOST_MODE_KEY, '投稿者監査モード（ホスト）');
+    }
+
+    public function uaAuditMode(): ?string
+    {
+        return $this->readString(self::AUDIT_UA_MODE_KEY, '投稿者監査モード（UA）');
+    }
+
+    public function setUaAuditMode(string $mode): void
+    {
+        $this->writeString(self::AUDIT_UA_MODE_KEY, $mode, '投稿者監査モード（UA）');
+    }
+
+    public function resetUaAuditMode(): void
+    {
+        $this->deleteKey(self::AUDIT_UA_MODE_KEY, '投稿者監査モード（UA）');
     }
 
     public function auditRetentionDays(): ?int

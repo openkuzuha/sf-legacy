@@ -1,0 +1,17 @@
+{% macro tooltip(id, label, text, variant = 'neutral', width = 'w-72') %}
+    {% set colors = variant == 'warning'
+        ? {
+            button: 'border-amber-200/45 bg-amber-300/10 text-amber-100 hover:border-amber-100 hover:bg-amber-300/20',
+            panel: 'border-amber-200/25',
+        }
+        : {
+            button: 'border-white/35 bg-white/10 text-white/75 hover:border-white/60 hover:bg-white/20 hover:text-white',
+            panel: 'border-white/20',
+        }
+    %}
+    <button class="inline-flex size-4 items-center justify-center rounded-full border {{ colors.button }} text-[10px] font-bold leading-none transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="button" aria-label="{{ label }}" aria-describedby="{{ id }}">?</button>
+    <span class="pointer-events-none invisible absolute bottom-full left-1/2 z-20 mb-2 {{ width }} -translate-x-1/2 rounded-lg border {{ colors.panel }} bg-slate-950 px-3 py-2 text-xs font-normal leading-relaxed text-white opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100" id="{{ id }}" role="tooltip">
+        {{ text }}
+        <span class="absolute left-1/2 top-full size-2 -translate-x-1/2 -translate-y-1/2 rotate-45 border-b border-r {{ colors.panel }} bg-slate-950"></span>
+    </span>
+{% endmacro %}

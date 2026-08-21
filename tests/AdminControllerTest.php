@@ -1,5 +1,11 @@
 <?php
 
+use App\Audit\AuditIdentity;
+use App\Audit\AuditLog;
+use App\Audit\FileAuditLog;
+use App\Post\JsonlPostRepository;
+use App\Post\PostRecordCodec;
+use App\Post\PostRepository;
 use App\Tests\TestCase;
 use App\Settings\SiteSettings;
 use App\Settings\SiteSettingsRepository;
@@ -508,17 +514,60 @@ test('管理画面で投稿者監査モードと保存日数を変更して初�
         $crawler = $client->followRedirect();
         $this->assertSelectorTextContains('main', 'AUDIT_HMAC_KEY: 設定済み');
         $form = $crawler->filter('form[action="/admin/settings/audit"]')->form([
-            'audit_mode' => 'raw',
+            'host_audit_mode' => 'raw',
+            'ua_audit_mode' => 'none',
             'audit_retention_days' => '14',
         ]);
         $client->submit($form);
         $crawler = $client->followRedirect();
         $this->assertSelectorTextSame('[role="status"]', '投稿者監査設定を保存しました。');
-        expect($settings->auditMode())->toBe('raw')->and($settings->auditRetentionDays())->toBe(14);
+        expect($settings->hostAuditMode())->toBe('raw')
+            ->and($settings->uaAuditMode())->toBe('none')
+            ->and($settings->auditRetentionDays())->toBe(14);
 
         $client->submit($crawler->filter('form[action="/admin/settings/audit/reset"]')->form());
         $client->followRedirect();
-        expect($settings->auditMode())->toBe('pseudonymous')->and($settings->auditRetentionDays())->toBe(30);
+        expect($settings->hostAuditMode())->toBe('pseudonymous')
+            ->and($settings->uaAuditMode())->toBe('pseudonymous')
+            ->and($settings->auditRetentionDays())->toBe(30);
+    } finally {
+        $settings->resetAuditSettings();
+    }
+});
+
+test('AUDIT_HMAC_KEY未設定時は生データ記録は選べるが仮名化記録は拒否される', function () {
+    /** @var TestCase $this */
+    $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.46']);
+    $client->disableReboot();
+    $this->getContainer()->set(AuditIdentity::class, new AuditIdentity(''));
+    $settings = $this->getContainer()->get(SiteSettings::class);
+    $this->assertInstanceOf(SiteSettings::class, $settings);
+    $settings->resetAuditSettings();
+
+    try {
+        $crawler = $client->request('GET', '/admin');
+        $client->submit($crawler->selectButton('ログイン')->form(['password' => 'admin-test-password']));
+        $crawler = $client->followRedirect();
+        $this->assertSelectorTextContains('main', 'AUDIT_HMAC_KEY: 未設定（仮名化して記録が動作しません）');
+
+        $client->submit($crawler->filter('form[action="/admin/settings/audit"]')->form([
+            'host_audit_mode' => 'raw',
+            'ua_audit_mode' => 'pseudonymous',
+            'audit_retention_days' => '14',
+        ]));
+        $crawler = $client->followRedirect();
+        $this->assertSelectorTextSame('[role="alert"]', 'AUDIT_HMAC_KEYを設定してから仮名化記録を有効にしてください。');
+        expect($settings->hostAuditMode())->toBe('pseudonymous')->and($settings->uaAuditMode())->toBe('pseudonymous');
+
+        $client->submit($crawler->filter('form[action="/admin/settings/audit"]')->form([
+            'host_audit_mode' => 'raw',
+            'ua_audit_mode' => 'none',
+            'audit_retention_days' => '14',
+        ]));
+        $crawler = $client->followRedirect();
+        $this->assertSelectorTextSame('[role="status"]', '投稿者監査設定を保存しました。');
+        $this->assertSelectorTextContains('main', 'AUDIT_HMAC_KEY: 未設定（不要です）');
+        expect($settings->hostAuditMode())->toBe('raw')->and($settings->uaAuditMode())->toBe('none');
     } finally {
         $settings->resetAuditSettings();
     }
@@ -615,22 +664,451 @@ test('管理画面で過去ログ公開日数を変更して初期値へ戻す',
     }
 });
 
-test('投稿記事管理画面は認証必須でWIPを表示する', function () {
+test('投稿記事管理画面は認証必須で新着順に投稿一覧を表示する', function () {
     /** @var TestCase $this */
-    $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.6']);
-    $client->request('GET', '/admin/posts');
-    $this->assertResponseRedirects('/admin', 303);
+    $filename = sys_get_temp_dir() . '/sf-legacy-admin-posts-' . bin2hex(random_bytes(8)) . '.jsonl';
+    $repository = new JsonlPostRepository($filename, new PostRecordCodec());
+    $base = [
+        'location' => 'main',
+        'host' => null,
+        'user_agent' => null,
+        'author' => '投稿者',
+        'email' => '',
+        'auto_link' => true,
+        'reply_to' => null,
+    ];
 
-    $crawler = $client->request('GET', '/admin');
-    $client->submit($crawler->selectButton('ログイン')->form([
-        'password' => 'admin-test-password',
-    ]));
-    $client->request('GET', '/admin/posts');
+    try {
+        $repository->import($base + [
+            'posted_at' => '2026-08-12T05:30:00Z',
+            'post_id' => 200,
+            'thread_id' => 200,
+            'title' => '古い投稿',
+            'message' => '古い本文',
+        ]);
+        $repository->import($base + [
+            'posted_at' => '2026-08-12T05:31:00Z',
+            'post_id' => 201,
+            'thread_id' => 201,
+            'title' => '新しい投稿',
+            'message' => '新しい本文',
+        ]);
 
-    $this->assertResponseIsSuccessful();
-    $this->assertSelectorTextSame('h2', '投稿記事管理');
-    $this->assertSelectorTextContains('main', '投稿記事管理は現在作成中です。');
-    $this->assertSelectorExists('nav a[href="/admin/posts"][aria-current="page"]');
+        $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.6']);
+        $client->disableReboot();
+        $this->getContainer()->set(PostRepository::class, $repository);
+
+        $client->request('GET', '/admin/posts');
+        $this->assertResponseRedirects('/admin', 303);
+
+        $crawler = $client->request('GET', '/admin');
+        $client->submit($crawler->selectButton('ログイン')->form([
+            'password' => 'admin-test-password',
+        ]));
+        $crawler = $client->request('GET', '/admin/posts');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextSame('h2', '投稿記事管理');
+        $this->assertSelectorExists('nav a[href="/admin/posts"][aria-current="page"]');
+        $this->assertSelectorTextContains('#admin-post-201', '新しい投稿');
+        $this->assertSelectorTextContains('#admin-post-200', '古い投稿');
+        $this->assertSelectorExists('#admin-post-201 form[action="/admin/posts/201/delete"] button');
+        $order = $crawler->filter('li[id^="admin-post-"]')->each(static fn ($node) => $node->attr('id'));
+        expect($order)->toBe(['admin-post-201', 'admin-post-200']);
+    } finally {
+        if (is_file($filename)) {
+            unlink($filename);
+        }
+    }
+});
+
+test('投稿一覧に投稿者監査ログのメール・ホスト情報を表示する', function () {
+    /** @var TestCase $this */
+    $postsFilename = sys_get_temp_dir() . '/sf-legacy-admin-audit-posts-' . bin2hex(random_bytes(8)) . '.jsonl';
+    $auditDirectory = sys_get_temp_dir() . '/sf-legacy-admin-audit-log-' . bin2hex(random_bytes(8));
+    $repository = new JsonlPostRepository($postsFilename, new PostRecordCodec());
+    $auditLog = new FileAuditLog($auditDirectory, 'Asia/Tokyo');
+
+    try {
+        $repository->import([
+            'posted_at' => '2026-08-12T05:30:00Z',
+            'post_id' => 500,
+            'thread_id' => 500,
+            'location' => 'main',
+            'host' => null,
+            'user_agent' => null,
+            'author' => '投稿者',
+            'email' => 'spam@example.com',
+            'title' => '仮名化監査対象',
+            'message' => '本文',
+            'auto_link' => true,
+            'reply_to' => null,
+        ]);
+        $repository->import([
+            'posted_at' => '2026-08-12T05:31:00Z',
+            'post_id' => 501,
+            'thread_id' => 501,
+            'location' => 'main',
+            'host' => null,
+            'user_agent' => null,
+            'author' => '投稿者',
+            'email' => '',
+            'title' => '生データ監査対象',
+            'message' => '本文',
+            'auto_link' => true,
+            'reply_to' => null,
+        ]);
+        $auditLog->write([
+            'version' => 1,
+            'recorded_at' => '2026-08-12T05:30:01Z',
+            'request_id' => str_repeat('a', 32),
+            'location' => 'main',
+            'post_id' => 500,
+            'network_token' => 'network-token-value',
+            'client_token' => 'client-token-value',
+            'actor_token' => 'actor-token-value',
+        ], 30);
+        $auditLog->write([
+            'version' => 1,
+            'recorded_at' => '2026-08-12T05:31:01Z',
+            'request_id' => str_repeat('b', 32),
+            'location' => 'main',
+            'post_id' => 501,
+            'network_token' => 'network-token-value-2',
+            'client_token' => 'client-token-value-2',
+            'actor_token' => 'actor-token-value-2',
+            'ip_address' => '192.0.2.55',
+            'user_agent' => 'Raw Browser/1.0',
+        ], 30);
+
+        $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.44']);
+        $client->disableReboot();
+        $this->getContainer()->set(PostRepository::class, $repository);
+        $this->getContainer()->set(AuditLog::class, $auditLog);
+
+        $crawler = $client->request('GET', '/admin');
+        $client->submit($crawler->selectButton('ログイン')->form(['password' => 'admin-test-password']));
+        $client->request('GET', '/admin/posts');
+
+        $this->assertSelectorTextContains('#admin-post-500', 'メール：spam@example.com');
+        $this->assertSelectorTextContains('#admin-post-500', 'ホスト（仮名化）：network-token-value');
+        $this->assertSelectorTextContains('#admin-post-500', 'UA（仮名化）：client-token-value');
+        $this->assertSelectorTextNotContains('#admin-post-500', 'actor-token-value');
+        $this->assertSelectorExists(
+            '#admin-post-500 a[href="/admin/posts?audit_field=network_token&audit_value=network-token-value"]',
+        );
+
+        $this->assertSelectorTextContains('#admin-post-501', 'ホスト：192.0.2.55');
+        $this->assertSelectorTextContains('#admin-post-501', 'UA：Raw Browser/1.0');
+        $this->assertSelectorTextNotContains('#admin-post-501', '仮名化');
+        $this->assertSelectorTextNotContains('#admin-post-501', 'actor-token-value-2');
+        $this->assertSelectorTextNotContains('#admin-post-501', 'メール：');
+    } finally {
+        if (is_file($postsFilename)) {
+            unlink($postsFilename);
+        }
+        foreach (glob($auditDirectory . '/*/*/*.jsonl') ?: [] as $file) {
+            @unlink($file);
+        }
+        foreach (glob($auditDirectory . '/*/*', GLOB_ONLYDIR) ?: [] as $month) {
+            @rmdir($month);
+        }
+        foreach (glob($auditDirectory . '/*', GLOB_ONLYDIR) ?: [] as $year) {
+            @rmdir($year);
+        }
+        @rmdir($auditDirectory);
+    }
+});
+
+test('投稿一覧を同じ監査識別子を持つ投稿だけに絞り込める', function () {
+    /** @var TestCase $this */
+    $postsFilename = sys_get_temp_dir() . '/sf-legacy-admin-audit-filter-' . bin2hex(random_bytes(8)) . '.jsonl';
+    $auditDirectory = sys_get_temp_dir() . '/sf-legacy-admin-audit-filter-log-' . bin2hex(random_bytes(8));
+    $repository = new JsonlPostRepository($postsFilename, new PostRecordCodec());
+    $auditLog = new FileAuditLog($auditDirectory, 'Asia/Tokyo');
+    $base = [
+        'location' => 'main',
+        'host' => null,
+        'user_agent' => null,
+        'author' => '投稿者',
+        'email' => '',
+        'auto_link' => true,
+        'reply_to' => null,
+    ];
+
+    try {
+        $repository->import($base + [
+            'posted_at' => '2026-08-12T05:30:00Z',
+            'post_id' => 600,
+            'thread_id' => 600,
+            'title' => '同じホストその1',
+            'message' => '本文600',
+        ]);
+        $repository->import($base + [
+            'posted_at' => '2026-08-12T05:31:00Z',
+            'post_id' => 601,
+            'thread_id' => 601,
+            'title' => '別ホスト',
+            'message' => '本文601',
+        ]);
+        $repository->import($base + [
+            'posted_at' => '2026-08-12T05:32:00Z',
+            'post_id' => 602,
+            'thread_id' => 602,
+            'title' => '同じホストその2',
+            'message' => '本文602',
+        ]);
+        $auditLog->write([
+            'version' => 1,
+            'recorded_at' => '2026-08-12T05:30:01Z',
+            'request_id' => str_repeat('a', 32),
+            'location' => 'main',
+            'post_id' => 600,
+            'network_token' => 'shared-host-token',
+        ], 30);
+        $auditLog->write([
+            'version' => 1,
+            'recorded_at' => '2026-08-12T05:31:01Z',
+            'request_id' => str_repeat('b', 32),
+            'location' => 'main',
+            'post_id' => 601,
+            'network_token' => 'other-host-token',
+        ], 30);
+        $auditLog->write([
+            'version' => 1,
+            'recorded_at' => '2026-08-12T05:32:01Z',
+            'request_id' => str_repeat('c', 32),
+            'location' => 'main',
+            'post_id' => 602,
+            'network_token' => 'shared-host-token',
+        ], 30);
+
+        $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.45']);
+        $client->disableReboot();
+        $this->getContainer()->set(PostRepository::class, $repository);
+        $this->getContainer()->set(AuditLog::class, $auditLog);
+
+        $crawler = $client->request('GET', '/admin');
+        $client->submit($crawler->selectButton('ログイン')->form(['password' => 'admin-test-password']));
+        $crawler = $client->request(
+            'GET',
+            '/admin/posts?audit_field=network_token&audit_value=shared-host-token',
+        );
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextContains('main', 'ホスト（仮名化）が「shared-host-token」と一致する投稿のみ表示中');
+        $this->assertSelectorExists('#admin-post-600');
+        $this->assertSelectorExists('#admin-post-602');
+        $this->assertSelectorNotExists('#admin-post-601');
+
+        $client->submit($crawler->filter('form[action="/admin/posts/600/delete"]')->form());
+        $this->assertResponseRedirects(
+            '/admin/posts?audit_field=network_token&audit_value=shared-host-token',
+            303,
+        );
+        $crawler = $client->followRedirect();
+        $this->assertSelectorNotExists('#admin-post-600');
+        $this->assertSelectorExists('#admin-post-602');
+        expect($repository->all())->toHaveCount(2);
+
+        $client->request('GET', '/admin/posts?audit_field=network_token&audit_value=nonexistent-token');
+        $this->assertSelectorTextContains('main', '一致する投稿はありません。');
+
+        $crawler = $client->request(
+            'GET',
+            '/admin/posts?audit_field=network_token&audit_value=shared-host-token',
+        );
+        $client->click($crawler->selectLink('絞り込みを解除')->link());
+        $this->assertSelectorExists('#admin-post-601');
+        $this->assertSelectorExists('#admin-post-602');
+    } finally {
+        if (is_file($postsFilename)) {
+            unlink($postsFilename);
+        }
+        foreach (glob($auditDirectory . '/*/*/*.jsonl') ?: [] as $file) {
+            @unlink($file);
+        }
+        foreach (glob($auditDirectory . '/*/*', GLOB_ONLYDIR) ?: [] as $month) {
+            @rmdir($month);
+        }
+        foreach (glob($auditDirectory . '/*', GLOB_ONLYDIR) ?: [] as $year) {
+            @rmdir($year);
+        }
+        @rmdir($auditDirectory);
+    }
+});
+
+test('管理画面から投稿を削除できる', function () {
+    /** @var TestCase $this */
+    $filename = sys_get_temp_dir() . '/sf-legacy-admin-delete-' . bin2hex(random_bytes(8)) . '.jsonl';
+    $repository = new JsonlPostRepository($filename, new PostRecordCodec());
+
+    try {
+        $repository->import([
+            'posted_at' => '2026-08-12T05:30:00Z',
+            'post_id' => 300,
+            'thread_id' => 300,
+            'location' => 'main',
+            'host' => null,
+            'user_agent' => null,
+            'author' => '投稿者',
+            'email' => '',
+            'title' => '削除対象',
+            'message' => '削除される本文',
+            'auto_link' => true,
+            'reply_to' => null,
+        ]);
+
+        $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.41']);
+        $client->disableReboot();
+        $this->getContainer()->set(PostRepository::class, $repository);
+
+        $client->request('POST', '/admin/posts/300/delete', ['_token' => 'invalid']);
+        $this->assertResponseRedirects('/admin', 303);
+        expect($repository->all())->toHaveCount(1);
+
+        $crawler = $client->request('GET', '/admin');
+        $client->submit($crawler->selectButton('ログイン')->form([
+            'password' => 'admin-test-password',
+        ]));
+        $crawler = $client->request('GET', '/admin/posts');
+
+        $client->request('POST', '/admin/posts/300/delete', ['_token' => 'invalid']);
+        $this->assertResponseRedirects('/admin/posts', 303);
+        $crawler = $client->followRedirect();
+        $this->assertSelectorTextSame('[role="alert"]', '入力の有効期限が切れました。');
+        expect($repository->all())->toHaveCount(1);
+
+        $token = $crawler->filter('form[action="/admin/posts/300/delete"] input[name="_token"]')->attr('value');
+        $client->request('POST', '/admin/posts/300/delete', ['_token' => $token]);
+        $this->assertResponseRedirects('/admin/posts', 303);
+        $crawler = $client->followRedirect();
+        $this->assertSelectorTextSame('[role="status"]', '投稿を削除しました。');
+        $this->assertSelectorNotExists('#admin-post-300');
+        expect($repository->all())->toHaveCount(0);
+
+        $client->request('POST', '/admin/posts/300/delete', ['_token' => $token]);
+        $client->followRedirect();
+        $this->assertSelectorTextSame('[role="alert"]', '該当の投稿が見つかりませんでした。');
+    } finally {
+        if (is_file($filename)) {
+            unlink($filename);
+        }
+    }
+});
+
+test('管理画面から新規投稿を作成すると管理者名で投稿される', function () {
+    /** @var TestCase $this */
+    $filename = sys_get_temp_dir() . '/sf-legacy-admin-create-' . bin2hex(random_bytes(8)) . '.jsonl';
+    $repository = new JsonlPostRepository($filename, new PostRecordCodec());
+
+    try {
+        $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.42']);
+        $client->disableReboot();
+        $this->getContainer()->set(PostRepository::class, $repository);
+
+        $crawler = $client->request('GET', '/admin');
+        $client->submit($crawler->selectButton('ログイン')->form([
+            'password' => 'admin-test-password',
+        ]));
+        $crawler = $client->request('GET', '/admin/posts');
+
+        $this->assertSelectorTextContains('#post-form', '管理人');
+
+        $client->submit($crawler->filter('#post-form')->form([
+            'title' => 'お知らせ',
+            'message' => 'メンテナンスのお知らせです。',
+        ]));
+        $this->assertResponseRedirects('/admin/posts', 303);
+        $crawler = $client->followRedirect();
+        $this->assertSelectorTextSame('[role="status"]', '投稿しました。');
+
+        $posts = $repository->all();
+        expect($posts)->toHaveCount(1);
+        expect($posts[0]['author'])->toBe('管理人')
+            ->and($posts[0]['author_spoofed'] ?? false)->toBeFalse()
+            ->and($posts[0]['title'])->toBe('お知らせ')
+            ->and($posts[0]['message'])->toBe('メンテナンスのお知らせです。')
+            ->and($posts[0]['thread_id'])->toBe($posts[0]['post_id'])
+            ->and($posts[0]['reply_to'])->toBeNull();
+
+        $client->submit($crawler->filter('#post-form')->form([
+            'title' => '',
+            'message' => '',
+        ]));
+        $crawler = $client->followRedirect();
+        $this->assertSelectorTextSame('[role="alert"]', '本文を入力してください。');
+        expect($repository->all())->toHaveCount(1);
+    } finally {
+        if (is_file($filename)) {
+            unlink($filename);
+        }
+    }
+});
+
+test('管理画面から既存スレッドへ返信すると同じスレッドIDで保存される', function () {
+    /** @var TestCase $this */
+    $filename = sys_get_temp_dir() . '/sf-legacy-admin-reply-' . bin2hex(random_bytes(8)) . '.jsonl';
+    $repository = new JsonlPostRepository($filename, new PostRecordCodec());
+
+    try {
+        $repository->import([
+            'posted_at' => '2026-08-12T05:30:00Z',
+            'post_id' => 400,
+            'thread_id' => 400,
+            'location' => 'main',
+            'host' => null,
+            'user_agent' => null,
+            'author' => '投稿者',
+            'email' => '',
+            'title' => '元投稿',
+            'message' => '元の本文',
+            'auto_link' => true,
+            'reply_to' => null,
+        ]);
+
+        $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.43']);
+        $client->disableReboot();
+        $this->getContainer()->set(PostRepository::class, $repository);
+
+        $crawler = $client->request('GET', '/admin');
+        $client->submit($crawler->selectButton('ログイン')->form([
+            'password' => 'admin-test-password',
+        ]));
+        $crawler = $client->request('GET', '/admin/posts?reply_to=400');
+
+        $this->assertSelectorTextContains('main', '返信先：#400');
+        $this->assertSelectorExists('#post-form input[name="reply_to"][value="400"]');
+
+        $client->submit($crawler->filter('#post-form')->form([
+            'title' => 'Re:元投稿',
+            'message' => '返信本文',
+        ]));
+        $this->assertResponseRedirects('/admin/posts', 303);
+        $crawler = $client->followRedirect();
+
+        $posts = $repository->all();
+        expect($posts)->toHaveCount(2);
+        $reply = $posts[0];
+        expect($reply['author'])->toBe('管理人')
+            ->and($reply['thread_id'])->toBe(400)
+            ->and($reply['reply_to'])->toBe(400);
+
+        $token = $crawler->filter('#post-form input[name="_token"]')->attr('value');
+        $client->request('POST', '/admin/posts/new', [
+            '_token' => $token,
+            'title' => '',
+            'message' => '存在しない返信先へのテスト',
+            'reply_to' => '99999',
+        ]);
+        $client->followRedirect();
+        $this->assertSelectorTextSame('[role="alert"]', '返信先の投稿が見つかりませんでした。');
+        expect($repository->all())->toHaveCount(2);
+    } finally {
+        if (is_file($filename)) {
+            unlink($filename);
+        }
+    }
 });
 
 test('管理画面でパスワードを変更すると再ログインが必要になる', function () {
