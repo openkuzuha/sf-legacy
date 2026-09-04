@@ -20,7 +20,7 @@
                 <textarea class="min-h-24 w-full resize-y rounded-md border border-white/25 bg-black/15 px-3 py-2 text-sm text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20" id="maintenance_message" name="maintenance_message" maxlength="500" required>{{ maintenance_message }}</textarea>
             </div>
             <div class="grid gap-1.5">
-                <label class="text-sm font-semibold text-white" for="maintenance_ends_at">終了予定日時（任意）</label>
+                <label class="text-sm font-semibold text-white" for="maintenance_ends_at">メンテナンス終了予定日時（任意）</label>
                 <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20" id="maintenance_ends_at" name="maintenance_ends_at" type="datetime-local" value="{{ maintenance_ends_at }}">
                 <p class="text-sm leading-6 text-white/65">設定すると案内画面に表示し、HTTPの Retry-After にも反映します。</p>
             </div>
@@ -334,6 +334,8 @@
             <dd class="text-sm font-semibold text-white">{{ cloud_mode ? 'Valkey' : 'テキストファイル' }}</dd>
             <dt class="text-sm font-semibold text-white/70">参加者カウンター</dt>
             <dd class="text-sm font-semibold text-white">ローカルキャッシュファイル</dd>
+            <dt class="text-sm font-semibold text-white/70">管理セッション</dt>
+            <dd class="text-sm font-semibold text-white">{{ cloud_mode ? 'Valkey' : 'PHPネイティブ（ファイル）' }}</dd>
         </dl>
         <div class="mt-4 max-w-2xl space-y-3 text-sm leading-relaxed text-white/75">
             <p>APP_ENVはアプリ起動時に確定するため、この画面からは変更できません。</p>

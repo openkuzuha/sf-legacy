@@ -26,6 +26,24 @@ final class EnvLocalWriter
         $this->withLock(fn () => $this->removeKeys($keys));
     }
 
+    public function has(string $key): bool
+    {
+        if (!is_file($this->filename)) {
+            return false;
+        }
+
+        $lines = file($this->filename, FILE_IGNORE_NEW_LINES);
+        $lines = $lines === false ? [] : $lines;
+
+        foreach ($lines as $line) {
+            if ($this->lineMatchesKey($line, $key)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function withLock(callable $fn): void
     {
         $directory = dirname($this->filename);
@@ -58,7 +76,7 @@ final class EnvLocalWriter
         $remaining = $values;
         foreach ($lines as $index => $line) {
             foreach ($remaining as $key => $value) {
-                if (preg_match('/^' . preg_quote($key, '/') . '=/', $line) === 1) {
+                if ($this->lineMatchesKey($line, $key)) {
                     $lines[$index] = $this->formatLine($key, $value);
                     unset($remaining[$key]);
                     break;
@@ -80,7 +98,7 @@ final class EnvLocalWriter
 
         $lines = array_values(array_filter($lines, function (string $line) use ($keys): bool {
             foreach ($keys as $key) {
-                if (preg_match('/^' . preg_quote($key, '/') . '=/', $line) === 1) {
+                if ($this->lineMatchesKey($line, $key)) {
                     return false;
                 }
             }
@@ -89,6 +107,11 @@ final class EnvLocalWriter
         }));
 
         $this->replaceContents($lines);
+    }
+
+    private function lineMatchesKey(string $line, string $key): bool
+    {
+        return preg_match('/^' . preg_quote($key, '/') . '=/', $line) === 1;
     }
 
     /** @param list<string> $lines */

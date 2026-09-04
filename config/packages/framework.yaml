@@ -2,7 +2,8 @@ framework:
     secret: '%env(APP_SECRET)%'
     trusted_proxies: '%env(SYMFONY_TRUSTED_PROXIES)%'
     trusted_headers: ['x-forwarded-for', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-prefix']
-    session: true
+    session:
+        handler_id: app.session_handler
     csrf_protection: true
     rate_limiter:
         admin_login:
@@ -10,6 +11,10 @@ framework:
             limit: 5
             interval: '1 minute'
         admin_setup:
+            policy: sliding_window
+            limit: 5
+            interval: '1 minute'
+        admin_setup_mode:
             policy: sliding_window
             limit: 5
             interval: '1 minute'

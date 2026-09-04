@@ -43,6 +43,7 @@ $cleanupSetupControllerFixtures = function (SiteSettingsRepository $repository, 
     $repository->resetTitle();
     $repository->resetAdminName();
     $repository->resetAdminEmail();
+    $repository->resetServiceStartedAt();
     if (is_file($envLocalFilename)) {
         unlink($envLocalFilename);
     }
@@ -89,6 +90,7 @@ test('有効な入力でセットアップを完了しAPP_SECRETとAUDIT_HMAC_KE
                 'title' => 'セットアップ済み掲示板',
                 'admin_name' => 'せっとあっぷ管理人',
                 'admin_email' => 'admin@example.test',
+                'service_started_at' => '2020-01-01',
                 'password' => 'setup-secure-password',
                 'password_confirmation' => 'setup-secure-password',
             ]));
@@ -98,7 +100,8 @@ test('有効な入力でセットアップを完了しAPP_SECRETとAUDIT_HMAC_KE
 
             expect($repository->title())->toBe('セットアップ済み掲示板')
                 ->and($repository->adminName())->toBe('せっとあっぷ管理人')
-                ->and($repository->adminEmail())->toBe('admin@example.test');
+                ->and($repository->adminEmail())->toBe('admin@example.test')
+                ->and($repository->serviceStartedAt())->toBe('2020-01-01');
 
             $this->assertTrue(is_file($envLocalFilename));
             $environment = $parseSetupEnvLocalFixture($envLocalFilename);
@@ -117,6 +120,59 @@ test('有効な入力でセットアップを完了しAPP_SECRETとAUDIT_HMAC_KE
             $this->assertResponseRedirects('/admin/settings', 303);
         } finally {
             $cleanupSetupControllerFixtures($repository, $envLocalFilename);
+        }
+    });
+});
+
+test('セットアップ画面のサービス開始日は既定で本日の日付を表示する', function () use ($withSetupEnvOverrides) {
+    /** @var TestCase $this */
+    $withSetupEnvOverrides(['ADMIN_PASSWORD_HASH' => ''], function () {
+        /** @var TestCase $this */
+        $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.15']);
+        $repository = $this->getContainer()->get(SiteSettingsRepository::class);
+        $this->assertInstanceOf(SiteSettingsRepository::class, $repository);
+        $timezone = $this->getContainer()->getParameter('app.timezone');
+        $this->assertIsString($timezone);
+        $repository->resetAdminPasswordHash();
+        $repository->resetServiceStartedAt();
+
+        try {
+            $crawler = $client->request('GET', '/admin/setup');
+            $this->assertResponseIsSuccessful();
+
+            $today = (new DateTimeImmutable('today', new DateTimeZone($timezone)))->format('Y-m-d');
+            $this->assertSame($today, $crawler->filter('#setup-service-started-at')->attr('value'));
+        } finally {
+            $repository->resetAdminPasswordHash();
+            $repository->resetServiceStartedAt();
+        }
+    });
+});
+
+test('サービス開始日に不正な形式を入力するとセットアップを完了しない', function () use ($withSetupEnvOverrides) {
+    /** @var TestCase $this */
+    $withSetupEnvOverrides(['ADMIN_PASSWORD_HASH' => ''], function () {
+        /** @var TestCase $this */
+        $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.16']);
+        $repository = $this->getContainer()->get(SiteSettingsRepository::class);
+        $this->assertInstanceOf(SiteSettingsRepository::class, $repository);
+        $repository->resetAdminPasswordHash();
+        $repository->resetServiceStartedAt();
+
+        try {
+            $crawler = $client->request('GET', '/admin/setup');
+            $client->submit($crawler->selectButton('セットアップを完了する')->form([
+                'service_started_at' => 'not-a-date',
+                'password' => 'setup-secure-password',
+                'password_confirmation' => 'setup-secure-password',
+            ]));
+
+            $this->assertResponseIsSuccessful();
+            $this->assertSelectorTextContains('main', 'サービス開始日を正しい日付で入力してください');
+            $this->assertFalse($repository->adminPasswordHash() !== null);
+        } finally {
+            $repository->resetAdminPasswordHash();
+            $repository->resetServiceStartedAt();
         }
     });
 });

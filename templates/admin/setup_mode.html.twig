@@ -1,0 +1,56 @@
+{% extends 'base.html.twig' %}
+
+{% block page_header %}
+    <header class="page-header admin-header">
+        <h1 class="page-title"><a href="{{ path('app_admin_setup_mode', token ? {token: token} : {}) }}">管理画面</a></h1>
+        <a class="header-link" href="{{ path('app_hello') }}">掲示板へ戻る</a>
+    </header>
+{% endblock %}
+
+{% block content %}
+    <section class="admin-panel">
+        <h2>動作モードの選択</h2>
+
+        <p>このサイトを「ローカルモード」と「クラウドモード」のどちらで動かすかを、最初に決めてください。
+            投稿・サイト設定・ページビュー・投稿者監査ログの保存先が切り替わり、
+            <strong>一度決定すると通常の管理画面からは変更できません</strong>（保存先が変わるため、既存データが
+            見えなくなります）。設定を誤った場合は、サーバー上で <code>bin/console bbs:setup:reset --with-mode</code>
+            を実行してやり直してください。</p>
+
+        {% if error %}
+            <p class="admin-error" style="white-space: pre-line;" role="alert">{{ error }}</p>
+        {% endif %}
+
+        <form class="mt-4 grid max-w-lg gap-4" action="{{ path('app_admin_setup_mode', token ? {token: token} : {}) }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin_setup_mode') }}">
+            {% if token %}<input type="hidden" name="token" value="{{ token }}">{% endif %}
+
+            <div class="grid gap-3">
+                <label class="flex items-start gap-3 rounded-md border border-white/25 bg-black/15 p-3 shadow-inner">
+                    <input class="mt-1" type="radio" name="cloud_mode" value="0" checked>
+                    <span>
+                        <span class="block font-semibold text-white">ローカルモード</span>
+                        <span class="block text-sm text-white/70">
+                            投稿・サイト設定・アーカイブ・監査ログをサーバー上のファイルへ保存します。
+                            VPSや単一サーバーでの運用向けです。
+                        </span>
+                    </span>
+                </label>
+                <label class="flex items-start gap-3 rounded-md border border-white/25 bg-black/15 p-3 shadow-inner">
+                    <input class="mt-1" type="radio" name="cloud_mode" value="1">
+                    <span>
+                        <span class="block font-semibold text-white">クラウドモード</span>
+                        <span class="block text-sm text-white/70">
+                            Valkey（投稿・サイト設定・ページビュー・監査ログ）とS3互換オブジェクトストレージ
+                            （アーカイブ）を使用します。複数インスタンスでの運用向けです。
+                            <code>VALKEY_URL</code> と <code>ARCHIVE_S3_*</code> があらかじめ実際に到達できる値へ
+                            設定されている必要があります。選択すると保存前に接続を確認します。
+                        </span>
+                    </span>
+                </label>
+            </div>
+
+            <button class="justify-self-start rounded-md bg-teal-600 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-teal-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">このモードで決定する</button>
+        </form>
+    </section>
+{% endblock %}

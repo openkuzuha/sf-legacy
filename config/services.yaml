@@ -86,6 +86,13 @@ services:
             $directory: '%app.admin_audit_directory%'
             $appTimezone: '%app.timezone%'
 
+    app.session_handler:
+        class: SessionHandlerInterface
+        factory: ['@App\Http\SessionHandlerFactory', 'create']
+        arguments:
+            $cloudMode: '%app.cloud_mode%'
+            $valkeyUrl: '%env(VALKEY_URL)%'
+
     App\Settings\SiteSettings:
         arguments:
             $defaultTitle: '%app.title%'

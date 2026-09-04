@@ -1,6 +1,7 @@
 <?php
 
 use App\Command\ResetSetupCommand;
+use App\Settings\CloudModeSetup;
 use App\Settings\EnvLocalWriter;
 use App\Settings\SiteSettingsRepository;
 use App\Tests\TestCase;
@@ -38,7 +39,7 @@ test('セットアップ状態と生成済みシークレットを初期化す�
     $envLocalFilename = sys_get_temp_dir() . '/sf-legacy-reset-setup-' . bin2hex(random_bytes(8)) . '/.env.local';
     mkdir(dirname($envLocalFilename), 0775, true);
     $envLocalContents = "SOME_OTHER_VAR='keep-me'\nADMIN_PASSWORD_HASH='old-hash'\n"
-        . "APP_SECRET='old-secret'\nAUDIT_HMAC_KEY='old-audit-key'\n";
+        . "APP_SECRET='old-secret'\nAUDIT_HMAC_KEY='old-audit-key'\nCLOUD_MODE='0'\n";
     file_put_contents($envLocalFilename, $envLocalContents);
 
     $repository->setTitle('セットアップ済み掲示板');
@@ -47,7 +48,10 @@ test('セットアップ状態と生成済みシークレットを初期化す�
     $repository->setAdminPasswordHash(password_hash('setup-secure-password', PASSWORD_DEFAULT));
 
     try {
-        $tester = new CommandTester(new ResetSetupCommand($repository, new EnvLocalWriter($envLocalFilename)));
+        $envLocalWriter = new EnvLocalWriter($envLocalFilename);
+        $tester = new CommandTester(
+            new ResetSetupCommand($repository, $envLocalWriter, new CloudModeSetup(false, $envLocalWriter)),
+        );
         $status = $tester->execute(['--force' => true]);
 
         expect($status)->toBe(Command::SUCCESS);
@@ -62,7 +66,35 @@ test('セットアップ状態と生成済みシークレットを初期化す�
         expect($environment)->toHaveKey('SOME_OTHER_VAR')
             ->and($environment)->not->toHaveKey('ADMIN_PASSWORD_HASH')
             ->and($environment)->not->toHaveKey('APP_SECRET')
-            ->and($environment)->not->toHaveKey('AUDIT_HMAC_KEY');
+            ->and($environment)->not->toHaveKey('AUDIT_HMAC_KEY')
+            ->and($environment)->toHaveKey('CLOUD_MODE');
+    } finally {
+        $cleanupResetSetupFixture($repository, $envLocalFilename);
+    }
+});
+
+test('--with-modeを指定するとCLOUD_MODEも削除する', function () use ($parseEnvLocalFixture, $cleanupResetSetupFixture) {
+    /** @var TestCase $this */
+    $repository = $this->getContainer()->get(SiteSettingsRepository::class);
+    $this->assertInstanceOf(SiteSettingsRepository::class, $repository);
+
+    $envLocalFilename = sys_get_temp_dir() . '/sf-legacy-reset-setup-' . bin2hex(random_bytes(8)) . '/.env.local';
+    mkdir(dirname($envLocalFilename), 0775, true);
+    file_put_contents($envLocalFilename, "ADMIN_PASSWORD_HASH='old-hash'\nCLOUD_MODE='1'\n");
+
+    $repository->setAdminPasswordHash(password_hash('setup-secure-password', PASSWORD_DEFAULT));
+
+    try {
+        $envLocalWriter = new EnvLocalWriter($envLocalFilename);
+        $tester = new CommandTester(
+            new ResetSetupCommand($repository, $envLocalWriter, new CloudModeSetup(true, $envLocalWriter)),
+        );
+        $status = $tester->execute(['--force' => true, '--with-mode' => true]);
+
+        expect($status)->toBe(Command::SUCCESS);
+
+        $environment = $parseEnvLocalFixture($envLocalFilename);
+        expect($environment)->not->toHaveKey('CLOUD_MODE');
     } finally {
         $cleanupResetSetupFixture($repository, $envLocalFilename);
     }
@@ -78,7 +110,10 @@ test('確認をキャンセルすると何も変更しない', function () use (
     $repository->setTitle('セットアップ済み掲示板');
 
     try {
-        $tester = new CommandTester(new ResetSetupCommand($repository, new EnvLocalWriter($envLocalFilename)));
+        $envLocalWriter = new EnvLocalWriter($envLocalFilename);
+        $tester = new CommandTester(
+            new ResetSetupCommand($repository, $envLocalWriter, new CloudModeSetup(false, $envLocalWriter)),
+        );
         $tester->setInputs(['no']);
         $status = $tester->execute([]);
 
