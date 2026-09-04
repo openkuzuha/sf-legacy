@@ -10,22 +10,27 @@ framework:
             policy: sliding_window
             limit: 5
             interval: '1 minute'
+            storage_service: app.rate_limiter_storage
         admin_setup:
             policy: sliding_window
             limit: 5
             interval: '1 minute'
+            storage_service: app.rate_limiter_storage
         admin_setup_mode:
             policy: sliding_window
             limit: 5
             interval: '1 minute'
+            storage_service: app.rate_limiter_storage
         post_short:
             policy: sliding_window
             limit: 2
             interval: '10 seconds'
+            storage_service: app.rate_limiter_storage
         post_hourly:
             policy: sliding_window
             limit: 30
             interval: '1 hour'
+            storage_service: app.rate_limiter_storage
         post:
             policy: compound
             limiters:
@@ -35,6 +40,7 @@ framework:
             policy: sliding_window
             limit: 1
             interval: '3 minutes'
+            storage_service: app.rate_limiter_storage
 
 when@test:
     framework:

@@ -93,6 +93,13 @@ services:
             $cloudMode: '%app.cloud_mode%'
             $valkeyUrl: '%env(VALKEY_URL)%'
 
+    app.rate_limiter_storage:
+        class: Symfony\Component\RateLimiter\Storage\StorageInterface
+        factory: ['@App\Http\RateLimiterStorageFactory', 'create']
+        arguments:
+            $cloudMode: '%app.cloud_mode%'
+            $valkeyUrl: '%env(VALKEY_URL)%'
+
     App\Settings\SiteSettings:
         arguments:
             $defaultTitle: '%app.title%'

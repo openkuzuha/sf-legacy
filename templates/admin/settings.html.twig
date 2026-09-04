@@ -336,6 +336,8 @@
             <dd class="text-sm font-semibold text-white">ローカルキャッシュファイル</dd>
             <dt class="text-sm font-semibold text-white/70">管理セッション</dt>
             <dd class="text-sm font-semibold text-white">{{ cloud_mode ? 'Valkey' : 'PHPネイティブ（ファイル）' }}</dd>
+            <dt class="text-sm font-semibold text-white/70">レート制限</dt>
+            <dd class="text-sm font-semibold text-white">{{ cloud_mode ? 'Valkey' : 'ローカルキャッシュファイル' }}</dd>
         </dl>
         <div class="mt-4 max-w-2xl space-y-3 text-sm leading-relaxed text-white/75">
             <p>APP_ENVはアプリ起動時に確定するため、この画面からは変更できません。</p>
