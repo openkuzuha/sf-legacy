@@ -106,9 +106,41 @@ Docker Composeの `app` サービスのように、`CLOUD_MODE` が実行環境�
 | データ | ローカル | クラウド |
 |---|---|---|
 | 投稿（マスターログ） | JSON Linesファイル `var/data/posts.jsonl` | Valkey |
-| サイト設定・管理パスワード | JSONファイル `var/data/site-settings.json` | Valkey |
 | 過去ログ（アーカイブ） | 日別JSON Linesファイル `var/data/archive/` | S3互換オブジェクトストレージ |
+| サイト設定・管理パスワード | JSONファイル `var/data/site-settings.json` | Valkey |
 | 投稿者監査ログ | 日別JSON Linesファイル `var/data/audit/` | Valkey（TTL付き） |
+
+
+オリジナル版と同じく、マスターログのコピーが過去ログ(アーカイブ)に保存されます。
+クラウドモードの場合はアーカイブはS3互換ストレージに保存されるため、設定が必要です。
+
+なお、データー形式はオリジナルのCSVっぽいもの、とは異なりJSON Lines(jsonl)となっています。
+
+メンテナンスモード（`maintenance_enabled`・`maintenance_message`・`maintenance_ends_at`）と
+投稿受付（`posting_enabled`）も、独立した仕組みではなく上表の「サイト設定」に含まれます。
+
+#### メンテナンスモードを手動で切り替える
+
+`/admin` 以下のルートはメンテナンスモードの対象外なので、通常は `/admin/settings` にログインして
+「メンテナンスモード」のチェックを外すか、「初期値（公開・投稿受付中）に戻す」を押せば足ります。
+
+ブラウザを使わず切り替えたい場合（デプロイスクリプトからの自動化など）は、後述の
+`bbs:maintenance:enable` / `bbs:maintenance:disable` を使ってください。
+
+管理画面自体にログインできない場合は、先に `bbs:admin:password-hash` や `bbs:setup:reset` で
+ログインできる状態に戻してから上記のいずれかを行います。それでも難しい場合の最終手段として、
+保存先を直接書き換えることもできます。
+
+```bash
+# ローカルモード：var/data/site-settings.json の該当行を書き換える（次のリクエストから反映）
+# "maintenance_enabled": true → "maintenance_enabled": false
+
+# クラウドモード：Valkeyのキーを直接操作する
+docker compose exec valkey valkey-cli set bbs:settings:maintenance-enabled 0
+# もしくはキーごと削除して既定値（無効）に戻す
+docker compose exec valkey valkey-cli del bbs:settings:maintenance-enabled
+```
+
 
 ### カウンターデータ
 
@@ -134,6 +166,8 @@ Docker Composeの `app` サービスのように、`CLOUD_MODE` が実行環境�
 別インスタンスに振られても正しく検証できます。レート制限（`admin_login`・`admin_setup`・
 `admin_setup_mode`・`post_short`/`post_hourly`・`post_duplicate`）も同様にValkeyへ寄せているため、
 「5回/分」のような制限は複数インスタンスをまたいでも正しく1つの上限として働きます。
+
+
 
 ---
 
@@ -165,6 +199,23 @@ Docker Composeの `app` サービスのように、`CLOUD_MODE` が実行環境�
 
   ```
   bin/console bbs:audit-key:generate
+  ```
+
+### メンテナンスモード
+
+- **`bbs:maintenance:enable`**：メンテナンスモードを有効にします。投稿受付の状態は変更しません。
+  - `message`（省略可能な引数）：公開画面に表示する文言。省略時は現在設定されている値をそのまま使う。
+  - `--ends-at`：終了予定日時（例: `2026-09-10T12:00`）。省略時は現在設定されている値を維持する。
+
+  ```
+  bin/console bbs:maintenance:enable "ただいまメンテナンス中です。" --ends-at=2026-09-10T12:00
+  ```
+
+- **`bbs:maintenance:disable`**：メンテナンスモードを無効にします。表示文・終了予定日時・投稿受付の
+  状態は変更せずそのまま残します（次回の有効化に備えて）。
+
+  ```
+  bin/console bbs:maintenance:disable
   ```
 
 ### 投稿データ
