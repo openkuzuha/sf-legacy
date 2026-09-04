@@ -9,6 +9,10 @@ framework:
             policy: sliding_window
             limit: 5
             interval: '1 minute'
+        admin_setup:
+            policy: sliding_window
+            limit: 5
+            interval: '1 minute'
         post_short:
             policy: sliding_window
             limit: 2

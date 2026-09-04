@@ -26,7 +26,6 @@ test('トップページに設定したアプリケーション名が表示さ�
     $this->assertSelectorCount(1, '#post-form input[type="hidden"][name="_token"]');
     $this->assertSelectorCount(1, '.post-honeypot[aria-hidden="true"] input[name="website"][tabindex="-1"]');
     $this->assertSelectorCount(1, 'input[name="author"][type="text"]');
-    $this->assertSelectorTextContains('#author-name-help', '管理人（騙り）');
     $this->assertSelectorCount(1, 'input[name="email"][type="email"]');
     $this->assertSelectorCount(1, 'input[name="title"][type="text"]');
     $this->assertSelectorCount(1, 'textarea[name="content"]');

@@ -39,6 +39,52 @@ test('管理用パスワードをハッシュで保存して環境変数より�
     }
 });
 
+test('未設定時にsetInitialでパスワードを保存し、二重設定を拒否する', function () {
+    $filename = sys_get_temp_dir() . '/sf-legacy-admin-password-initial-' . bin2hex(random_bytes(8)) . '/settings.json';
+    $repository = new FileSiteSettingsRepository($filename);
+    $password = new AdminPassword($repository, new NullLogger(), '');
+
+    try {
+        expect($password->isConfigured())->toBeFalse();
+        $password->setInitial('initial-secure-password', 'initial-secure-password');
+        expect($password->isConfigured())->toBeTrue()
+            ->and($password->verify('initial-secure-password'))->toBeTrue();
+
+        expect(fn () => $password->setInitial('another-password', 'another-password'))
+            ->toThrow(RuntimeException::class, '管理用パスワードはすでに設定されています。');
+    } finally {
+        if (is_file($filename)) {
+            unlink($filename);
+        }
+        if (is_file($filename . '.lock')) {
+            unlink($filename . '.lock');
+        }
+        if (is_dir(dirname($filename))) {
+            rmdir(dirname($filename));
+        }
+    }
+});
+
+test('setInitialの不正入力を拒否する', function (
+    string $password,
+    string $confirmation,
+    string $message,
+) {
+    $adminPassword = new AdminPassword(
+        new FileSiteSettingsRepository(
+            sys_get_temp_dir() . '/unused-admin-password-initial-' . bin2hex(random_bytes(8)) . '.json',
+        ),
+        new NullLogger(),
+        '',
+    );
+
+    expect(fn () => $adminPassword->setInitial($password, $confirmation))
+        ->toThrow(InvalidArgumentException::class, $message);
+})->with([
+    '確認が違う' => ['new-secure-password', 'another-password', 'パスワードと確認入力が一致しません。'],
+    '短すぎる' => ['short', 'short', 'パスワードは12文字以上で入力してください。'],
+]);
+
 test('管理用パスワード変更の不正入力を拒否する', function (
     string $current,
     string $new,

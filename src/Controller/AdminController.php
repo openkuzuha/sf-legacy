@@ -87,6 +87,13 @@ final class AdminController
     #[Route('/admin', name: 'app_admin', methods: ['GET', 'POST'])]
     public function index(Request $request): Response
     {
+        if (!$this->adminPassword->isConfigured()) {
+            $token = $request->query->getString('token');
+            $location = '/admin/setup' . ($token !== '' ? '?token=' . urlencode($token) : '');
+
+            return new Response('', Response::HTTP_SEE_OTHER, ['Location' => $location]);
+        }
+
         $session = $request->getSession();
         $session->start();
         $error = null;

@@ -53,6 +53,24 @@ final class AdminPassword
         $this->repository->setAdminPasswordHash($hash);
     }
 
+    public function setInitial(string $password, string $confirmation): void
+    {
+        if ($this->isConfigured()) {
+            throw new RuntimeException('管理用パスワードはすでに設定されています。');
+        }
+        if ($password !== $confirmation) {
+            throw new InvalidArgumentException('パスワードと確認入力が一致しません。');
+        }
+        if (mb_strlen($password) < self::MIN_CHARS) {
+            throw new InvalidArgumentException(sprintf('パスワードは%d文字以上で入力してください。', self::MIN_CHARS));
+        }
+        if (mb_strlen($password) > self::MAX_CHARS) {
+            throw new InvalidArgumentException(sprintf('パスワードは%d文字以内で入力してください。', self::MAX_CHARS));
+        }
+        $hash = password_hash($password, PASSWORD_DEFAULT);
+        $this->repository->setAdminPasswordHash($hash);
+    }
+
     private function hash(): string
     {
         try {

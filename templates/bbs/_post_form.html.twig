@@ -12,13 +12,7 @@
     </div>
     <div class="post-fields flex flex-col gap-0">
         <div class="flex items-center gap-2">
-            <label class="group relative flex w-14 items-center gap-1" for="author">
-                投稿者
-                <span class="inline-flex size-4 shrink-0 items-center justify-center rounded-full border border-current/50 text-[10px] font-bold leading-none opacity-70 hover:opacity-100 focus-visible:outline-1 focus-visible:outline-offset-1" tabindex="0" role="img" aria-label="管理者名を含む投稿者名の扱い" aria-describedby="author-name-help">?</span>
-                <span class="pointer-events-none invisible absolute bottom-full left-0 z-20 mb-2 w-64 rounded border border-white/30 bg-black px-3 py-2 text-xs font-normal leading-relaxed text-white opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100" id="author-name-help" role="tooltip">
-                    投稿者名に「{{ admin_name }}」が含まれる場合は「{{ admin_name }}（騙り）」と表示されます。
-                </span>
-            </label>
+            <label class="w-14" for="author">投稿者</label>
             <input id="author" name="author" type="text" data-character-limit="{{ post_limits.author_chars }}" aria-describedby="author-limit">
             <output id="author-limit" class="post-input-limit" for="author" aria-live="polite"></output>
         </div>

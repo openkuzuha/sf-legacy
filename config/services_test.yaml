@@ -5,3 +5,4 @@ parameters:
     app.audit_directory: '%kernel.cache_dir%/audit'
     app.admin_audit_directory: '%kernel.cache_dir%/admin-audit'
     app.site_settings_filename: '%kernel.cache_dir%/site-settings.json'
+    app.env_local_filename: '%kernel.cache_dir%/env-local-test'

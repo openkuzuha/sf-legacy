@@ -1,0 +1,82 @@
+{% extends 'base.html.twig' %}
+
+{% block page_header %}
+    <header class="page-header admin-header">
+        <h1 class="page-title"><a href="{{ path('app_admin_setup', token ? {token: token} : {}) }}">管理画面</a></h1>
+        <a class="header-link" href="{{ path('app_hello') }}">掲示板へ戻る</a>
+    </header>
+{% endblock %}
+
+{% block content %}
+    <section class="admin-panel">
+        <h2>初回セットアップ</h2>
+
+        {% if completed %}
+            <p class="admin-success" role="status">セットアップが完了しました。</p>
+            <p>管理パスワードはアプリの設定ストア（ファイル、または <code>CLOUD_MODE=1</code> ならValkey）へ保存されました。
+                環境変数ファイルには保存されないため、設定ストアを失った場合は再度このセットアップを実行するか、
+                <code>bin/console bbs:admin:password-hash</code> で <code>ADMIN_PASSWORD_HASH</code> を設定し直してください。</p>
+
+            {% if completed.env_write_failed %}
+                <p class="admin-error" role="alert">
+                    <code>.env.local</code> への自動書き込みに失敗しました。下記の値を手動で <code>.env.local</code> へ追加し、
+                    アプリを再読み込みしてください。
+                </p>
+            {% endif %}
+
+            {% if completed.app_secret %}
+                <p>APP_SECRET（一度だけ表示します）：<br>
+                    <code class="break-all">APP_SECRET='{{ completed.app_secret }}'</code></p>
+            {% endif %}
+            {% if completed.audit_hmac_key %}
+                <p>AUDIT_HMAC_KEY（一度だけ表示します）：<br>
+                    <code class="break-all">AUDIT_HMAC_KEY='{{ completed.audit_hmac_key }}'</code></p>
+            {% endif %}
+            {% if completed.app_secret or completed.audit_hmac_key %}
+                <p class="admin-setting-help">
+                    <code>CLOUD_MODE=1</code> で複数インスタンスを運用している場合、この値は今回リクエストを処理した
+                    インスタンスの <code>.env.local</code> にのみ書き込まれています。他のインスタンスやホスティング先の
+                    環境変数設定にも、同じ値を手動で反映してください。
+                </p>
+            {% endif %}
+
+            <p><a href="{{ path('app_admin') }}">管理画面ログインへ進む</a></p>
+        {% else %}
+            <p>このアプリはまだ初期設定が完了していません。サイトタイトルや管理者情報、管理パスワードを設定してください。</p>
+            {% if error %}<p class="admin-error" role="alert">{{ error }}</p>{% endif %}
+
+            <form class="mt-4 grid max-w-lg gap-4" action="{{ path('app_admin_setup', token ? {token: token} : {}) }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_setup') }}">
+                {% if token %}<input type="hidden" name="token" value="{{ token }}">{% endif %}
+
+                <div class="grid gap-1.5">
+                    <label class="text-sm font-semibold text-white" for="setup-title">サイトタイトル</label>
+                    <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20" id="setup-title" name="title" type="text" value="{{ title }}">
+                </div>
+                <div class="grid gap-1.5">
+                    <label class="text-sm font-semibold text-white" for="setup-admin-name">管理者名</label>
+                    <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20" id="setup-admin-name" name="admin_name" type="text" value="{{ admin_name }}">
+                </div>
+                <div class="grid gap-1.5">
+                    <label class="text-sm font-semibold text-white" for="setup-admin-email">管理者メールアドレス</label>
+                    <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20" id="setup-admin-email" name="admin_email" type="email" value="{{ admin_email }}">
+                </div>
+                <div class="grid gap-1.5">
+                    <label class="text-sm font-semibold text-white" for="setup-password">管理パスワード</label>
+                    <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20" id="setup-password" name="password" type="password" required autocomplete="new-password">
+                </div>
+                <div class="grid gap-1.5">
+                    <label class="text-sm font-semibold text-white" for="setup-password-confirmation">管理パスワード（確認）</label>
+                    <input class="w-full rounded-md border border-white/25 bg-black/15 px-3 py-2 text-white shadow-inner outline-none transition focus:border-white/60 focus:ring-2 focus:ring-white/20" id="setup-password-confirmation" name="password_confirmation" type="password" required autocomplete="new-password">
+                </div>
+
+                <p class="admin-setting-help">
+                    APP_SECRET: {{ app_secret_configured ? '設定済みのため変更しません' : '自動生成して.env.localへ保存します' }}<br>
+                    AUDIT_HMAC_KEY: {{ audit_hmac_key_configured ? '設定済みのため変更しません' : '自動生成して.env.localへ保存します' }}
+                </p>
+
+                <button class="justify-self-start rounded-md bg-teal-600 px-4 py-2 font-semibold !text-white shadow-sm transition hover:bg-teal-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" type="submit">セットアップを完了する</button>
+            </form>
+        {% endif %}
+    </section>
+{% endblock %}

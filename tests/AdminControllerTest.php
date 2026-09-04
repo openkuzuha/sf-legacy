@@ -51,6 +51,41 @@ test('環境変数のパスワードで管理画面にログインしてログ�
     $this->assertSelectorTextSame('h2', '管理画面ログイン');
 });
 
+test('管理用パスワード未設定時は/adminがセットアップ画面へ誘導する', function () {
+    /** @var TestCase $this */
+    $originalEnv = $_ENV['ADMIN_PASSWORD_HASH'] ?? null;
+    $originalServer = $_SERVER['ADMIN_PASSWORD_HASH'] ?? null;
+    $_ENV['ADMIN_PASSWORD_HASH'] = '';
+    $_SERVER['ADMIN_PASSWORD_HASH'] = '';
+    $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.9']);
+    $repository = $this->getContainer()->get(SiteSettingsRepository::class);
+    $this->assertInstanceOf(SiteSettingsRepository::class, $repository);
+    $repository->resetAdminPasswordHash();
+
+    try {
+        $client->request('GET', '/admin');
+        $this->assertResponseRedirects('/admin/setup', 303);
+
+        $crawler = $client->request('GET', '/admin/setup');
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextSame('h2', '初回セットアップ');
+        $this->assertSelectorExists('input[name="_token"]');
+        unset($crawler);
+    } finally {
+        if ($originalEnv === null) {
+            unset($_ENV['ADMIN_PASSWORD_HASH']);
+        } else {
+            $_ENV['ADMIN_PASSWORD_HASH'] = $originalEnv;
+        }
+        if ($originalServer === null) {
+            unset($_SERVER['ADMIN_PASSWORD_HASH']);
+        } else {
+            $_SERVER['ADMIN_PASSWORD_HASH'] = $originalServer;
+        }
+        $repository->resetAdminPasswordHash();
+    }
+});
+
 test('誤ったパスワードでは管理画面を表示しない', function () {
     /** @var TestCase $this */
     $client = $this->createClient([], ['REMOTE_ADDR' => '127.0.0.2']);

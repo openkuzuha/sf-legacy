@@ -17,6 +17,8 @@ parameters:
     app.page_view_initial_value: 0
     app.page_view_filename: '%kernel.project_dir%/var/data/page-views.txt'
     app.site_settings_filename: '%kernel.project_dir%/var/data/site-settings.json'
+    app.env_local_filename: '%kernel.project_dir%/.env.local'
+    app.setup_token: '%env(SETUP_TOKEN)%'
     app.post_archive_directory: '%kernel.project_dir%/var/data/archive'
     app.audit_directory: '%kernel.project_dir%/var/data/audit'
     app.admin_audit_directory: '%kernel.project_dir%/var/data/admin-audit'
@@ -104,6 +106,10 @@ services:
     App\Settings\AdminPassword:
         arguments:
             $defaultHash: '%app.admin_password_hash%'
+
+    App\Settings\EnvLocalWriter:
+        arguments:
+            $filename: '%app.env_local_filename%'
 
     App\Http\RequestIdSubscriber:
         arguments:
